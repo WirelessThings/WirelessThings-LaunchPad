@@ -15,19 +15,13 @@ from Tkinter import *
 import ttk
 import sys
 import os
-import subprocess
 import argparse
-import math
 import serial
 import json
-import urllib2
-import httplib
-import shutil
 import ConfigParser
 import tkMessageBox
 import threading
 import Queue
-import zipfile
 import time as time_
 #import ImageTk
 from Tabs import *
@@ -40,7 +34,6 @@ elif sys.platform == 'win32':
 else:
     port = '/dev/ttyAMA0'
 
-baud = 9600
 
 class LLAPCongfigMeClient:
     """
@@ -56,19 +49,15 @@ class LLAPCongfigMeClient:
         self.debug = False # until we read config
         self.debugArg = False # or get command line
         self.configFileDefault = "LLAPCM_defaults.cfg"
-        self.configFile = "LLACPCM.cfg"
-        self.devFile = "DevList.json"
+        self.configFile = "LLAPCM.cfg"
+        self.devFile = "LLAPConfigMeDevices.json"
         self.myNodesFile = "MyNodes.json"
         
         self.widthMain = 750
         self.heightMain = 600
         self.heightTab = self.heightMain - 40
-        self.proc = []
-        self.disableLaunch = False
-        self.updateAvailable = False
-        
-        self._running = False
 
+        self._running = False
 
     def on_excute(self):
         """
@@ -84,7 +73,6 @@ class LLAPCongfigMeClient:
 
         self.cleanUp()
 
-
     def runConfigMe(self):
         self.debugPrint("Running Main GUI")
         self.master = tk.Tk()
@@ -92,35 +80,64 @@ class LLAPCongfigMeClient:
         self.master.geometry(
                  "{}x{}+{}+{}".format(self.widthMain,
                                       self.heightMain,
-                                      self.config.get('Launcher',
+                                      self.config.get('LLAPCM',
                                                       'window_width_offset'),
-                                      self.config.get('Launcher',
+                                      self.config.get('LLAPCM',
                                                       'window_height_offset')
                                       )
                              )
+
+        self.master.title("LLAP Config Me v{}".format(self.currentVersion))
+        self.master.resizable(0,0)
+
+        self.tabFrame = tk.Frame(self.master, name='tabFrame')
+        self.tabFrame.pack(pady=2)
+
+        self.initTabBar()
+        self.initMain()
+
+        self.tBarFrame.show()
                          
-     self.master.title("LLAP Config Me v{}".format(self.currentVersion))
-     self.master.resizable(0,0)
-     
-     self.tabFrame = tk.Frame(self.master, name='tabFrame')
-     self.tabFrame.pack(pady=2)
-     
-     self.initTabBar()
-     self.initMain()
-     self.initAdvanced()
-     
-     self.tBarFrame.show()
-     
-     if self.updateAvailable:
-         self.master.after(500, self.offerUpdate)
-                         
-    self.master.mainloop()
+        self.master.mainloop()
+
+    def initTabBar(self):
+        self.debugPrint("Setting up TabBar")
+        # tab button frame
+        self.tBarFrame = TabBar(self.tabFrame, "Main", fname='tabBar')
+        self.tBarFrame.config(relief=tk.RAISED, pady=4)
+        
+        # tab buttons
+        tk.Button(self.tBarFrame, text='Quit', command=self.endLauncher
+                  ).pack(side=tk.RIGHT)
+    
+    def initMain(self):
+        self.debugPrint("Setting up Main Tab")
+        iframe = Tab(self.tabFrame, "Main", fname='main')
+        iframe.config(relief=tk.RAISED, borderwidth=2, width=self.widthMain,
+                      height=self.heightTab)
+        self.tBarFrame.add(iframe)
+    
+                  
+        #canvas = tk.Canvas(iframe, bd=0, width=self.widthMain-4,
+        #                       height=self.heightTab-4, highlightthickness=0)
+        #canvas.grid(row=0, column=0, columnspan=3, rowspan=5)
+
+        tk.Canvas(iframe, bd=0, highlightthickness=0, width=self.widthMain-4,
+                  height=28).grid(row=1, column=1, columnspan=3)
+        tk.Canvas(iframe, bd=0, highlightthickness=0, width=150,
+                  height=self.heightTab-4).grid(row=1, column=1, rowspan=3)
+                  
+        tk.Label(iframe, text="Select an App to Launch").grid(row=1, column=1,
+                                                            sticky=tk.W)
+
+        lbframe = tk.Frame(iframe, bd=2, relief=tk.SUNKEN)
+
 
     def endLauncher(self):
         self.debugPrint("End Launcher")
         position = self.master.geometry().split("+")
-        self.config.set('Launcher', 'window_width_offset', position[1])
-        self.config.set('Launcher', 'window_height_offset', position[2])
+        self.config.set('LLAPCM', 'window_width_offset', position[1])
+        self.config.set('LLAPCM', 'window_height_offset', position[2])
         self.master.destroy()
         self._running = False
 
@@ -171,7 +188,7 @@ class LLAPCongfigMeClient:
         self.debug = self.config.getboolean('Shared', 'debug')
         
         try:
-            f = open(self.config.get('Update', 'versionfile'))
+            f = open(self.config.get('Shared', 'versionfile'))
             self.currentVersion = f.read()
             f.close()
         except:
@@ -182,8 +199,24 @@ class LLAPCongfigMeClient:
         with open(self.configFile, 'wb') as configfile:
             self.config.write(configfile)
 
+    def loadDevices(self):
+        self.debugPrint("Loading device List")
+        try:
+            with open(self.devFile, 'r') as f:
+                read_data = f.read()
+            f.closed
+            
+            self.appList = json.loads(read_data)['Devices']
+        except IOError:
+            self.debugPrint("Could Not Load AppList File")
+            self.appList = [
+                            {'id': 0,
+                             'Description': 'Error loading DevList file'
+                            }]
+
+
 
 
 if __name__ == "__main__":
-    app = LLAPCongfigMeClient(root)
+    app = LLAPCongfigMeClient()
     app.on_excute()

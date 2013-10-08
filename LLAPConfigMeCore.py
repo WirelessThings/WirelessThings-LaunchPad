@@ -6,7 +6,12 @@ Give a LLAPConfigReuest this will open the current transport and conducted
 the requested exchanges returning a LLAPConfigReqesut complete with
 replies to the calling application
 """
-import sys, time, Queue, argparse, serial, threading
+import sys
+import time as time_
+import Queue
+import argparse
+import serial
+import threading
 
 
 class LLAPConfigRequest:

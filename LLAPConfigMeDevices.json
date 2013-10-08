@@ -1,0 +1,9 @@
+{
+    "Devices": [
+             {
+             "id" : 0,
+             "Name" : "Thermistor",
+             "Description" : "LLAP Thermistor"
+             }
+             ]
+}
