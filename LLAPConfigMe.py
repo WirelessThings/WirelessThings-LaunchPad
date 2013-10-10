@@ -50,7 +50,7 @@ class LLAPCongfigMeClient:
         self.debugArg = False # or get command line
         self.configFileDefault = "LLAPCM_defaults.cfg"
         self.configFile = "LLAPCM.cfg"
-        self.devFile = "LLAPConfigMeDevices.json"
+        self.devFile = "LLAPDevices.json"
         self.myNodesFile = "MyNodes.json"
         
         self.rows = 18
