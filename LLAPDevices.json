@@ -1,45 +1,81 @@
 {
-   "Devices":[
-      {
-         "id":0,
-         "DEVTYPE":"THERM001",
-         "Name":"Thermistor",
-         "Description":"LLAP Thermistor",
-         "Cyclic":true,
-         "Commands":[
-            {
-               "Command":"TEMP",
-               "Description":"Request Temperature",
-               "Format":"Float"
-            },
-            {
-               "Command":"TMPA",
-               "Description":"Request Temperature",
-               "Format":"Float"
-            }
-         ],
-         "Options":[
-            {
-               "Command":"BVAL",
-               "Description":"Beta Value of Thermistor",
-               "Format":"Int"
-            },
-            {
-               "Command":"RNOM",
-               "Description":"Resistance at 20C",
-               "Format":"Int"
-            },
-            {
-               "Command":"IR",
-               "Description":"Internal Resistance",
-               "Format":"int"
-            },
-            {
-               "Command":"SRES",
-               "Description":"Series Resistance",
-               "Format":"int"
-            }
-         ]
-      }
-   ]
+    "Devices":[
+               {
+               "id":0,
+               "DEVTYPE":"THERM001",
+               "Name":"Thermistor",
+               "Description":"LLAP Thermistor",
+               "Cyclic":true,
+               "Commands":[
+                           {
+                           "Command":"TEMP",
+                           "Description":"Request Temperature",
+                           "Format":"Float"
+                           },
+                           {
+                           "Command":"TMPA",
+                           "Description":"Request Temperature",
+                           "Format":"Float"
+                           }
+                           ],
+               "Options":[
+                          {
+                          "Command":"BVAL",
+                          "Description":"Beta Value of Thermistor",
+                          "Format":"Int"
+                          },
+                          {
+                          "Command":"RNOM",
+                          "Description":"Resistance at 20C",
+                          "Format":"Int"
+                          },
+                          {
+                          "Command":"IR",
+                          "Description":"Internal Resistance",
+                          "Format":"int"
+                          },
+                          {
+                          "Command":"SRES",
+                          "Description":"Series Resistance",
+                          "Format":"int"
+                          }
+                          ]
+               },
+               {
+               "id":1,
+               "DEVTYPE":"BUT00002",
+               "Name":"Button V2",
+               "Description":"LLAP Button",
+               "Cyclic":false,
+               "Commands":[
+               ],
+               "Options":[
+                          {
+                          "Command":"MSG",
+                          "Description":"Message",
+                          "Format":"String"
+                          },
+                          {
+                          "Command":"TYP",
+                          "Description":"Mode of Operation",
+                          "Format":"Int"
+                          },
+                          {
+                          "Command":"INVERT",
+                          "Description":"Invert inputs",
+                          "Format":"ONOFF"
+                          },
+                          {
+                          "Command":"CHREMID",
+                          "Description":"Remote ID, Tageet of button presses",
+                          "Format":"ID"
+                          },
+                          {
+                          "Command":"DEB",
+                          "Description":"Button debounce",
+                          "Format":"INT"
+                          }
+                          ]
+               }
+               ]
 }
