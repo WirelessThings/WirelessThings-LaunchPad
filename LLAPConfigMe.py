@@ -170,7 +170,7 @@ class LLAPCongfigMeClient:
         """
         self.debugPrint("Query type")
         
-        query = ["DEVTPY", "APVER", "CHDEVID"]
+        query = ["DEVTYPE", "APVER", "CHDEVID"]
         lcr = LLAPConfigRequest(toQuery=query)
     
         # start timer out (1min?)
@@ -354,10 +354,11 @@ class LLAPCongfigMeClient:
                 read_data = f.read()
             f.closed
             
-            self.appList = json.loads(read_data)['Devices']
+            self.devices = json.loads(read_data)['Devices']
+    
         except IOError:
-            self.debugPrint("Could Not Load AppList File")
-            self.appList = [
+            self.debugPrint("Could Not Load DevList File")
+            self.devices = [
                             {'id': 0,
                              'Description': 'Error loading DevList file'
                             }]
