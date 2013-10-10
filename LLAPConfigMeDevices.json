@@ -1,9 +1,45 @@
 {
-    "Devices": [
-             {
-             "id" : 0,
-             "Name" : "Thermistor",
-             "Description" : "LLAP Thermistor"
-             }
-             ]
+   "Devices":[
+      {
+         "id":0,
+         "DEVTYPE":"THERM001",
+         "Name":"Thermistor",
+         "Description":"LLAP Thermistor",
+         "Cyclic":true,
+         "Commands":[
+            {
+               "Command":"TEMP",
+               "Description":"Request Temperature",
+               "Format":"Float"
+            },
+            {
+               "Command":"TMPA",
+               "Description":"Request Temperature",
+               "Format":"Float"
+            }
+         ],
+         "Options":[
+            {
+               "Command":"BVAL",
+               "Description":"Beta Value of Thermistor",
+               "Format":"Int"
+            },
+            {
+               "Command":"RNOM",
+               "Description":"Resistance at 20C",
+               "Format":"Int"
+            },
+            {
+               "Command":"IR",
+               "Description":"Internal Resistance",
+               "Format":"int"
+            },
+            {
+               "Command":"SRES",
+               "Description":"Series Resistance",
+               "Format":"int"
+            }
+         ]
+      }
+   ]
 }
