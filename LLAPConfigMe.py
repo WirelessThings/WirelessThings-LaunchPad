@@ -190,12 +190,25 @@ class LLAPCongfigMeClient:
     
         if reply.devType == None:
             # this was a query type request
-            # so check what replied
-            
-            # assuming we know what it is ask it to stay awake a little longer
-            
-            # show config screen
-            
+            if float(reply.replies[1][1][5:]) >= 2.0:
+                # valid apver
+                # so check what replied
+                for n in range(self.devices):
+                    if n['DEVTYPE'] == reply.replies[0][1]:
+                        # we have a match
+                        self.device = {'id': n,
+                                       'DEVTPYE': n['DEVTYPE'],
+                                       'devID': reply.replies[2][1][7:]
+                                      }
+                        # assuming we know what it is ask it to stay awake a little longer
+                        lcr = LLAPConfigRequest(devType=self.device['DEVTYPE'],
+                                                toQuery=["AWAKE005M"]
+                                                )
+                        self.lcm.requestQ.put(lcr)
+                        # show config screen
+                        self.displayConfig(self)
+            else:
+                # apver mismatch, show error screen
         else:
             # this was a config request
             # check replies were good and let user know device is now ready
