@@ -11,7 +11,7 @@
     
 """
 
-from Tkinter import *
+import Tkinter as tk
 import ttk
 import sys
 import os
@@ -22,9 +22,9 @@ import ConfigParser
 import tkMessageBox
 import threading
 import Queue
-import time as time_
+from time import sleep, asctime, time
 #import ImageTk
-from Tabs import *
+from LLAPConfigMeCore import *
 
 
 if sys.platform == 'darwin':
@@ -53,10 +53,20 @@ class LLAPCongfigMeClient:
         self.devFile = "LLAPConfigMeDevices.json"
         self.myNodesFile = "MyNodes.json"
         
-        self.widthMain = 750
-        self.heightMain = 600
-        self.heightTab = self.heightMain - 40
+        self.rows = 18
+        self.widthMain = 754
+        self.heightMain = (18*30)+4
+        self.widthSerial = 400
+        self.heightSerial = 200
+        
+        # how long to wait for a reply before asking user to press button again in seconds
+        self.timeout = 60
 
+        self.lcm = LLAPConfigMeCore()
+        
+        if self.debugArg or self.debug:
+            self.lcm.debug = True
+        
         self._running = False
 
     def on_excute(self):
@@ -69,6 +79,7 @@ class LLAPCongfigMeClient:
 
         self._running = True
 
+        # run the GUI's
         self.runConfigMe()
 
         self.cleanUp()
@@ -76,7 +87,7 @@ class LLAPCongfigMeClient:
     def runConfigMe(self):
         self.debugPrint("Running Main GUI")
         self.master = tk.Tk()
-        self.master.protocol("WM_DELETE_WINDOW", self.endLauncher)
+        self.master.protocol("WM_DELETE_WINDOW", self.endConfigMe)
         self.master.geometry(
                  "{}x{}+{}+{}".format(self.widthMain,
                                       self.heightMain,
@@ -89,51 +100,188 @@ class LLAPCongfigMeClient:
 
         self.master.title("LLAP Config Me v{}".format(self.currentVersion))
         self.master.resizable(0,0)
+        
+        self.initTkVariables()
+        
+        if self.debugArg or self.debug:
+            self.serialDebug()
 
-        self.tabFrame = tk.Frame(self.master, name='tabFrame')
-        self.tabFrame.pack(pady=2)
-
-        self.initTabBar()
-        self.initMain()
-
-        self.tBarFrame.show()
-                         
+        self.displayIntro()
+        
         self.master.mainloop()
 
-    def initTabBar(self):
-        self.debugPrint("Setting up TabBar")
-        # tab button frame
-        self.tBarFrame = TabBar(self.tabFrame, "Main", fname='tabBar')
-        self.tBarFrame.config(relief=tk.RAISED, pady=4)
+    def initTkVariables(self):
+        self.debugPrint("Init Tk Variables")
         
-        # tab buttons
-        tk.Button(self.tBarFrame, text='Quit', command=self.endLauncher
-                  ).pack(side=tk.RIGHT)
+        self.comport = tk.StringVar()
+        self.comport.set(port)
     
-    def initMain(self):
-        self.debugPrint("Setting up Main Tab")
-        iframe = Tab(self.tabFrame, "Main", fname='main')
-        iframe.config(relief=tk.RAISED, borderwidth=2, width=self.widthMain,
-                      height=self.heightTab)
-        self.tBarFrame.add(iframe)
+    def displayIntro(self):
+        self.debugPrint("Display Intro Page")
+        self.iframe = tk.Frame(self.master, name='introFrame', relief=tk.RAISED,
+                               borderwidth=2, width=self.widthMain,
+                               height=self.heightMain)
+        self.iframe.pack()
+        
+        self.buildGrid(self.iframe)
+
+        # com selection bits
+        tk.Label(self.iframe, text='Com Port').grid(row=self.rows-4,
+                                                    column=2, columnspan=2)
+        tk.Entry(self.iframe, textvariable=self.comport, width=20
+                 ).grid(row=self.rows-3, column=2, columnspan=2)
+
+
+
+        tk.Button(self.iframe, text='Back', state=tk.DISABLED
+                  ).grid(row=self.rows-2, column=4, sticky=tk.E)
+        tk.Button(self.iframe, text='Next', command=self.displayPair
+                  ).grid(row=self.rows-2, column=5, sticky=tk.W)
+                   
+    def displayPair(self):
+        self.debugPrint("Connecting and Displaying Pair window")
+        
+        if self.connect():
+            self.iframe.pack_forget()
+
+            self.pframe = tk.Frame(self.master, name='pairFrame', relief=tk.RAISED,
+                                   borderwidth=2, width=self.widthMain,
+                                   height=self.heightMain)
+            self.pframe.pack()
+        
+            self.buildGrid(self.pframe)
+        
+            tk.Button(self.pframe, text='Back', state=tk.DISABLED
+                      ).grid(row=self.rows-2, column=4, sticky=tk.E)
+            tk.Button(self.pframe, text='Next', command=self.queryType
+                      ).grid(row=self.rows-2, column=5, sticky=tk.W)
+
+    def displayConfig(self):
+        self.debugPrint("Displaying Decive type based config screen")
     
-                  
-        #canvas = tk.Canvas(iframe, bd=0, width=self.widthMain-4,
-        #                       height=self.heightTab-4, highlightthickness=0)
-        #canvas.grid(row=0, column=0, columnspan=3, rowspan=5)
+    def displayEnd(self):
+        self.debugPring("Displying end screen")
+    
 
-        tk.Canvas(iframe, bd=0, highlightthickness=0, width=self.widthMain-4,
-                  height=28).grid(row=1, column=1, columnspan=3)
-        tk.Canvas(iframe, bd=0, highlightthickness=0, width=150,
-                  height=self.heightTab-4).grid(row=1, column=1, rowspan=3)
-                  
-        tk.Label(iframe, text="Select an App to Launch").grid(row=1, column=1,
-                                                            sticky=tk.W)
+    def queryType(self):
+        """ Time to send a query to see if we have a device in pair mode
+            this is going to need time out's? posible retries
+            devtype and apver request
+        """
+        self.debugPrint("Query type")
+        
+        query = ["DEVTPY", "APVER", "CHDEVID"]
+        lcr = LLAPConfigRequest(toQuery=query)
+    
+        # start timer out (1min?)
+        # while wait for reply
+        # put resuest in que
+        # should only take 5-10s seconds at most
+        # poll replyQ,
+        # should display a waiting sign?
+        
+        self.starttime = time()
+        self.lcm.requestQ.put(query)
+        self.replyCheck()
+    
+    def processReply(self):
+        self.debugPrint("Processing reply")
+        reply = self.lcm.replyQ.get()
+    
+        if reply.devType == None:
+            # this was a query type request
+            # so check what replied
+            
+            # assuming we know what it is ask it to stay awake a little longer
+            
+            # show config screen
+            
+        else:
+            # this was a config request
+            # check replies were good and let user know device is now ready
+            
+            # show end screen
+            pass
 
-        lbframe = tk.Frame(iframe, bd=2, relief=tk.SUNKEN)
+    def processNoReply(self):
+        self.debugPrint("No Reply with in timeouts")
+        # ask user to press pair button and try again?
+        
+    
+    def replyCheck(self):
+        # look for a reply
+        if self.lcm.replyQ.empty():
+            if time()-self.starttime > self.timeout:
+                # if timeout passed, let user know no reply
+                # close wait diag
+                self.processNoReply()
+            else:
+                # update wait diag and check again
+                self.master.after(500, self.replyCheck)
+        else:
+            # close wait diag and return reply
+            self.processReply()
+    
+    def buildGrid(self, frame):
+        self.debugPrint("Building Grid for {}".format(frame.winfo_name()))
+        canvas = tk.Canvas(frame, bd=0, width=self.widthMain-4,
+                               height=30, highlightthickness=0)
+        canvas.grid(row=0, column=0, columnspan=6)
+        
+        for r in range(self.rows):
+            for c in range(6):
+                tk.Canvas(frame, bd=0, bg=("black" if r%2 and c%2 else "gray"),
+                          highlightthickness=0,
+                          width=(self.widthMain-4)/6,
+                          height=30
+                          ).grid(row=r, column=c)
+    
+        tk.Button(self.iframe, text='Quit', command=self.endConfigMe
+                  ).grid(row=self.rows-2, column=0, sticky=tk.E)
 
+    def connect(self):
+        self.debugPrint("Connecting Serial port")
+        self.lcm.set_baud(self.config.get('Serial', 'baudrate'))
+        self.lcm.set_port(self.comport.get())
+        
+        # wrap this in a try block and throw a dialog window and return False
+        self.lcm.connect_transport()
+        self.serialDebugUpdate()
+        return True
 
-    def endLauncher(self):
+    def serialDebug(self):
+        self.debugPrint("Setting up Serial debug window")
+        self.serialWindow = tk.Toplevel(self.master)
+        self.serialWindow.geometry(
+               "{}x{}+{}+{}".format(self.widthSerial,
+                                    self.heightSerial,
+                                    int(self.config.get('LLAPCM',
+                                                    'window_width_offset'))+self.widthMain+20,
+                                    self.config.get('LLAPCM',
+                                                    'window_height_offset')
+                                    )
+                                   )
+        self.serialWindow.title("LLAP Config Me Serial Debug")
+    
+        self.serialDebugText = tk.Text(self.serialWindow, state=tk.DISABLED,
+                                       relief=tk.RAISED, borderwidth=2,
+                                       )
+        self.serialDebugText.pack()
+        self.serialDebugText.tag_config('TX', foreground='red')
+        self.serialDebugText.tag_config('RX', foreground='blue')
+    
+    def serialDebugUpdate(self):
+        if not self.lcm.transportQ.empty():
+            txt = self.lcm.transportQ.get()
+            self.serialDebugText.config(state=tk.NORMAL)
+            self.serialDebugText.insert(tk.END, txt[0], txt[1])
+            self.serialDebugText.see(tk.END)
+            self.serialDebugText.config(state=tk.DISABLED)
+            self.lcm.transportQ.task_done()
+        
+        self.master.after(100, self.serialDebugUpdate)
+    
+    def endConfigMe(self):
         self.debugPrint("End Launcher")
         position = self.master.geometry().split("+")
         self.config.set('LLAPCM', 'window_width_offset', position[1])
@@ -144,7 +292,7 @@ class LLAPCongfigMeClient:
     def cleanUp(self):
         self.debugPrint("Clean up and exit")
         # disconnect resources
-
+        self.lcm.disconnect_transport()
         self.writeConfig()
         
     def debugPrint(self, msg):
@@ -155,7 +303,7 @@ class LLAPCongfigMeClient:
         self.debugPrint("Parse Args")
         parser = argparse.ArgumentParser(description='LLAP Config Me Client')
         parser.add_argument('-d', '--debug',
-                            help='Extra Debug Output, overrides wik.cfg setting',
+                            help='Extra Debug Output, overrides LLAPCM.cfg setting',
                             action='store_true')
         
         self.args = parser.parse_args()
