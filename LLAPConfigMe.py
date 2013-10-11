@@ -281,7 +281,6 @@ class LLAPCongfigMeClient:
     
     def sendConfigRequest(self):
         self.debugPrint("Sending config request to device")
-        self.displayProgress()
 
         # build config query from values in entry
         # generic commands first
@@ -302,12 +301,18 @@ class LLAPCongfigMeClient:
             query.append("WAKEC{}".format(self.entry['WAKEC'].get()))
             if self.entry['CYCLE'].get() == 1:
                 query.append("CYCLE")
-        else:
+            else:
                 query.append("WAKE")
         else:
             # append save and exits command?
             query.append("REBOOT")
-                        
+
+        lcr = LLAPConfigRequest(id=3,
+                                devType=self.device['DEVTYPE'],
+                                toQuery=query
+                                )
+                                
+        self.sendRequest(lcr)
 
     def queryType(self):
         """ Time to send a query to see if we have a device in pair mode
@@ -315,7 +320,6 @@ class LLAPCongfigMeClient:
             devtype and apver request
         """
         self.debugPrint("Query type")
-        self.displayProgress()
         query = ["DEVTYPE", "APVER", "CHDEVID"]
         lcr = LLAPConfigRequest(id=1, toQuery=query)
     
@@ -326,9 +330,7 @@ class LLAPCongfigMeClient:
         # poll replyQ,
         # should display a waiting sign?
         
-        self.starttime = time()
-        self.lcm.requestQ.put(lcr)
-        self.replyCheck()
+        self.sendRequest(lcr)
     
     def processReply(self):
         self.debugPrint("Processing reply")
@@ -357,16 +359,13 @@ class LLAPCongfigMeClient:
                             # create place to put the reply later
                             self.entry[n['Command']] = tk.StringVar()
                             query.append(n['Command'])
-                        
+
                         lcr = LLAPConfigRequest(id=2,
                                                 devType=self.device['DEVTYPE'],
                                                 toQuery=query
                                                 )
-                        
-                        self.displayProgress()
-                        self.starttime = time()
-                        self.lcm.requestQ.put(lcr)
-                        self.replyCheck()
+
+                        self.sendRequest(lcr)
                         
             else:
                 # apver mismatch, show error screen
@@ -388,7 +387,7 @@ class LLAPCongfigMeClient:
                 else:
                     if e[0] in self.entry:
                         self.entry[e[0]].set(e[1][len(e[0]):])
-                
+        
             # show config screen
             self.keepAwake()
             self.displayConfig()
@@ -405,6 +404,13 @@ class LLAPCongfigMeClient:
         self.debugPrint("No Reply with in timeouts")
         # ask user to press pair button and try again?
         
+    def sendRequest(self, lcr):
+        self.debugPrint("Sending Reueset to LCMC")
+        self.displayProgress()
+        self.starttime = time()
+        self.lcm.requestQ.put(lcr)
+        self.replyCheck()
+    
     def replyCheck(self):
         # look for a reply
         if self.lcm.replyQ.empty():
@@ -420,7 +426,7 @@ class LLAPCongfigMeClient:
             # close wait diag and return reply
             self.progressWindow.destroy()
             self.processReply()
-    
+                                                                
     def keepAwake(self):
         self.debugPrint("Sending Keep awake request")
     
