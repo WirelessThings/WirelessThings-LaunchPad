@@ -304,8 +304,9 @@ class LLAPCongfigMeClient:
                 query.append("CYCLE")
         else:
                 query.append("WAKE")
+        else:
             # append save and exits command?
-            query.append("SAVE")
+            query.append("REBOOT")
                         
 
     def queryType(self):
