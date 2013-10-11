@@ -143,7 +143,7 @@ class LLAPCongfigMeClient:
         self.iframe.pack()
         
         self.buildGrid(self.iframe)
-
+        
         tk.Label(self.iframe, text=INTRO).grid(row=1, column=0, columnspan=6,
                                                rowspan=self.rows-4)
         # com selection bits
@@ -171,7 +171,7 @@ class LLAPCongfigMeClient:
             self.pframe.pack()
         
             self.buildGrid(self.pframe)
-        
+
             tk.Label(self.pframe, text=PAIR).grid(row=1, column=0, columnspan=6,
                                                   rowspan=self.rows-4)
         
@@ -190,7 +190,7 @@ class LLAPCongfigMeClient:
         self.cframe.pack()
 
         self.buildGrid(self.cframe)
-        
+
         tk.Label(self.cframe, text=CONFIG).grid(row=0, column=0, columnspan=6)
         
         # generic config options
@@ -206,7 +206,7 @@ class LLAPCongfigMeClient:
         tk.Label(self.cframe, text="PANID").grid(row=5, column=0, sticky=tk.E)
         tk.Entry(self.cframe, textvariable=self.entry['PANID'], width=20
                  ).grid(row=5, column=1, columnspan=2, sticky=tk.W)
-                 
+         
         tk.Label(self.cframe, text="Retries for Announcements").grid(row=6, column=0, columnspan=3)
         tk.Label(self.cframe, text="RETRIES").grid(row=7, column=0, sticky=tk.E)
         tk.Entry(self.cframe, textvariable=self.entry['RETRIES'], width=20
@@ -321,13 +321,30 @@ class LLAPCongfigMeClient:
                                        'DEVTYPE': self.devices[n]['DEVTYPE'],
                                        'devID': reply.replies[2][1][7:]
                                       }
-                        # assuming we know what it is ask it to stay awake a little longer
-                        lcr = LLAPConfigRequest(devType=self.device['DEVTYPE'],
-                                                toQuery=["AWAKE005M"]
+                        # assuming we know what it is ask it to stay awake a little longer 
+                        # and asked for the current config
+                        query = ["AWAKE005M", "PANID", "RETRIES"]
+                        
+                        if self.devices[self.device['id']]['Cyclic']:
+                            query.append("INTVL")
+                            query.append("WAKEC")
+                        
+                        for n in self.devices[self.device['id']]['Options']:
+                            # create place to put the reply later
+                            self.entry[n['Command']] = tk.StringVar()
+                            query.append(n['Command'])
+                        
+                        lcr = LLAPConfigRequest(id=2,
+                                                devType=self.device['DEVTYPE'],
+                                                toQuery=query
                                                 )
+                        
                         self.lcm.requestQ.put(lcr)
-                        # show config screen
-                        self.displayConfig()
+                        self.displyProgress()
+                        self.starttime = time()
+                        self.lcm.requestQ.put(lcr)
+                        self.replyCheck()
+                        
             else:
                 # apver mismatch, show error screen
                 pass
@@ -342,7 +359,7 @@ class LLAPCongfigMeClient:
             for e in reply.replies:
                 if e[0] == "CHREMID" and e[1][len(e[0])] == '':
                     self.entry[e[0]].set("--")
-        else:
+                else:
                     if e[0] in self.entry:
                         self.entry[e[0]].set(e[1][len(e[0]):])
                 
