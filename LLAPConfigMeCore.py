@@ -20,10 +20,12 @@ class LLAPConfigRequest:
     
     Holder object for devType, Queries and replies
     """
-    def __init__(self, id, devType=None, toQuery=None, replies=[]):
+    def __init__(self, id, devType=None, toQuery=None, replies=None):
         self.id = id
         self.devType = devType
         self.toQuery = toQuery
+        if replies == None:
+            replies = []
         self.replies = replies
 
     
