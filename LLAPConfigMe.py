@@ -286,14 +286,14 @@ class LLAPCongfigMeClient:
         # build config query from values in entry
         # generic commands first
         query = [
-                 "CHDEVID{}".format(self.entry['CHDEVTYPE'].get()),
+                 "CHDEVID{}".format(self.entry['CHDEVID'].get()),
                  "PANID{}".format(self.entry['PANID'].get()),
-                 "RETRIES{}".formate(self.entry['RETRIES'].get())
+                 "RETRIES{}".format(self.entry['RETRIES'].get())
                 ]
                 
         # device specfic commands next
         for n in self.devices[self.device['id']]['Options']:
-            query.append("{}{}".format(n['Command'], self.entry[n['Command'].get()))
+            query.append("{}{}".format(n['Command'], self.entry[n['Command']].get()))
                                 
         
         # cyclic stuff last (cycle acts as save and exit)       
@@ -362,8 +362,7 @@ class LLAPCongfigMeClient:
                                                 toQuery=query
                                                 )
                         
-                        self.lcm.requestQ.put(lcr)
-                        self.displyProgress()
+                        self.displayProgress()
                         self.starttime = time()
                         self.lcm.requestQ.put(lcr)
                         self.replyCheck()
@@ -377,7 +376,7 @@ class LLAPCongfigMeClient:
             if self.device['devID'] == '':
                 self.entry['CHDEVID'].set("--")
             else:
-                self.entry['CHDEVID']set(self.device['devID'])
+                self.entry['CHDEVID'].set(self.device['devID'])
                 
             for e in reply.replies:
                 if e[0] == "CHREMID" and e[1][len(e[0])] == '':
