@@ -326,7 +326,7 @@ class LLAPCongfigMeClient:
     def processReply(self):
         self.debugPrint("Processing reply")
         reply = self.lcm.replyQ.get()
-    
+        self.debugPrint("id: {}, devType:{}, Replies:{}".format(reply.id, reply.devType, reply.replies))
         if reply.id == 1:
             # this was a query type request
             if float(reply.replies[1][1][5:]) >= 2.0:
@@ -480,7 +480,7 @@ class LLAPCongfigMeClient:
             self.serialDebugText.config(state=tk.DISABLED)
             self.lcm.transportQ.task_done()
         
-        self.master.after(100, self.serialDebugUpdate)
+        self.master.after(10, self.serialDebugUpdate)
     
     def endConfigMe(self):
         self.debugPrint("End Launcher")
