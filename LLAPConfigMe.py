@@ -34,6 +34,15 @@ elif sys.platform == 'win32':
 else:
     port = '/dev/ttyAMA0'
 
+INTRO = """Welcome to LLAP Config me wizard
+Please enter your com port below to continue"""
+
+PAIR = """Please press the Config Me button on your device"""
+
+CONFIG = """Selet your device config options"""
+
+END = """Your device has been configured"""
+
 
 class LLAPCongfigMeClient:
     """
@@ -53,9 +62,10 @@ class LLAPCongfigMeClient:
         self.devFile = "LLAPDevices.json"
         self.myNodesFile = "MyNodes.json"
         
-        self.rows = 18
-        self.widthMain = 754
-        self.heightMain = (18*30)+4
+        self.rows = 19
+        self.rowHeight = 28
+        self.widthMain = 604
+        self.heightMain = (self.rows*self.rowHeight)+4
         self.widthSerial = 400
         self.heightSerial = 200
         
@@ -134,6 +144,8 @@ class LLAPCongfigMeClient:
         
         self.buildGrid(self.iframe)
 
+        tk.Label(self.iframe, text=INTRO).grid(row=1, column=0, columnspan=6,
+                                               rowspan=self.rows-4)
         # com selection bits
         tk.Label(self.iframe, text='Com Port').grid(row=self.rows-4,
                                                     column=2, columnspan=2)
@@ -160,6 +172,9 @@ class LLAPCongfigMeClient:
         
             self.buildGrid(self.pframe)
         
+            tk.Label(self.pframe, text=PAIR).grid(row=1, column=0, columnspan=6,
+                                                  rowspan=self.rows-4)
+        
             tk.Button(self.pframe, text='Back', state=tk.DISABLED
                       ).grid(row=self.rows-2, column=4, sticky=tk.E)
             tk.Button(self.pframe, text='Next', command=self.queryType
@@ -176,39 +191,47 @@ class LLAPCongfigMeClient:
 
         self.buildGrid(self.cframe)
         
+        tk.Label(self.cframe, text=CONFIG).grid(row=0, column=0, columnspan=6)
+        
         # generic config options
         tk.Label(self.cframe, text="Generic Commands"
                  ).grid(row=1, column=0, columnspan=3)
                  
-        tk.Label(self.cframe, text="Device ID").grid(row=2, column=0, sticky=tk.E)
+        tk.Label(self.cframe, text="Device ID").grid(row=2, column=0, columnspan=3)
+        tk.Label(self.cframe, text="CHDEVID").grid(row=3, column=0, sticky=tk.E)
         tk.Entry(self.cframe, textvariable=self.entry['CHDEVID'], width=20
-                 ).grid(row=2, column=1, columnspan=2, sticky=tk.W)
-                 
-        tk.Label(self.cframe, text="Pan ID").grid(row=3, column=0, sticky=tk.E)
-        tk.Entry(self.cframe, textvariable=self.entry['PANID'], width=20
                  ).grid(row=3, column=1, columnspan=2, sticky=tk.W)
                  
-        tk.Label(self.cframe, text="Device ID").grid(row=4, column=0, sticky=tk.E)
-        tk.Entry(self.cframe, textvariable=self.entry['CHDEVID'], width=20
-                 ).grid(row=4, column=1, columnspan=2, sticky=tk.W)
+        tk.Label(self.cframe, text="Pan ID").grid(row=4, column=0, columnspan=3)
+        tk.Label(self.cframe, text="PANID").grid(row=5, column=0, sticky=tk.E)
+        tk.Entry(self.cframe, textvariable=self.entry['PANID'], width=20
+                 ).grid(row=5, column=1, columnspan=2, sticky=tk.W)
+                 
+        tk.Label(self.cframe, text="Retries for Announcements").grid(row=6, column=0, columnspan=3)
+        tk.Label(self.cframe, text="RETRIES").grid(row=7, column=0, sticky=tk.E)
+        tk.Entry(self.cframe, textvariable=self.entry['RETRIES'], width=20
+                 ).grid(row=7, column=1, columnspan=2, sticky=tk.W)
         
         # cyclic config options
         tk.Label(self.cframe, text="Cyclic Commands"
-                 ).grid(row=6, column=0, columnspan=3)
-        tk.Label(self.cframe, text="Sleep Interval").grid(row=7, column=0, sticky=tk.E)
+                 ).grid(row=9, column=0, columnspan=3)
+        tk.Label(self.cframe, text="Sleep Interval").grid(row=10, column=0, columnspan=3)
+        tk.Label(self.cframe, text="INTVL").grid(row=11, column=0, sticky=tk.E)
         tk.Entry(self.cframe, textvariable=self.entry['INTVL'], width=20,
                  state=(tk.NORMAL if self.devices[self.device['id']]['Cyclic'] else tk.DISABLED)
-                 ).grid(row=7, column=1, columnspan=2, sticky=tk.W)
+                 ).grid(row=11, column=1, columnspan=2, sticky=tk.W)
 
-        tk.Label(self.cframe, text="Battery Wake Count").grid(row=7, column=0, sticky=tk.E)
+        tk.Label(self.cframe, text="Battery Wake Count").grid(row=12, column=0, columnspan=3)
+        tk.Label(self.cframe, text="WAKEC").grid(row=13, column=0, sticky=tk.E)
         tk.Entry(self.cframe, textvariable=self.entry['WAKEC'], width=20,
                  state=(tk.NORMAL if self.devices[self.device['id']]['Cyclic'] else tk.DISABLED)
-                 ).grid(row=7, column=1, columnspan=2, sticky=tk.W)
+                 ).grid(row=13, column=1, columnspan=2, sticky=tk.W)
     
-        tk.Label(self.cframe, text="Enable Cyclic sleep").grid(row=7, column=0, sticky=tk.E)
-        tk.Checkbutton(self.cframe, textvariable=self.entry['CYCLE'], width=20,
+        tk.Label(self.cframe, text="Enable Cyclic Sleep").grid(row=14, column=0, columnspan=3)
+        tk.Label(self.cframe, text="CYCLE").grid(row=15, column=0, sticky=tk.E)
+        tk.Checkbutton(self.cframe, variable=self.entry['CYCLE'],
                        state=(tk.NORMAL if self.devices[self.device['id']]['Cyclic'] else tk.DISABLED)
-                       ).grid(row=7, column=1, columnspan=2, sticky=tk.W)
+                       ).grid(row=15, column=1, columnspan=2, sticky=tk.W)
         
         # device config options
         tk.Label(self.cframe,
@@ -216,12 +239,14 @@ class LLAPCongfigMeClient:
                  ).grid(row=1, column=3, columnspan=3)
         r = 0
         for n in self.devices[self.device['id']]['Options']:
-            self.entry[n['Command']] = tk.StringVar()
+            
             tk.Label(self.cframe, text=n['Description']
-                     ).grid(row=2+r, column=3, columnspan=3, sticky=tk.W)
+                     ).grid(row=2+r, column=3, columnspan=3)
+            tk.Label(self.cframe, text=n['Command']
+                     ).grid(row=3+r, column=3, sticky=tk.E)
             tk.Entry(self.cframe, textvariable=self.entry[n['Command']]
-                     ).grid(row=3+r, column=3, columnspan=3, sticky=tk.W)
-            r += 1
+                     ).grid(row=3+r, column=4, columnspan=2, sticky=tk.W)
+            r += 2
         
         # buttons
         tk.Button(self.cframe, text='Back', state=tk.DISABLED
@@ -320,7 +345,7 @@ class LLAPCongfigMeClient:
                 tk.Canvas(frame, bd=0, bg=("black" if r%2 and c%2 else "gray"),
                           highlightthickness=0,
                           width=(self.widthMain-4)/6,
-                          height=30
+                          height=self.rowHeight
                           ).grid(row=r, column=c)
     
         tk.Button(frame, text='Quit', command=self.endConfigMe
