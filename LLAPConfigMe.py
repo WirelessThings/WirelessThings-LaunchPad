@@ -74,9 +74,6 @@ class LLAPCongfigMeClient:
 
         self.lcm = LLAPConfigMeCore()
         
-        if self.debugArg or self.debug:
-            self.lcm.debug = True
-        
         self._running = False
 
     def on_excute(self):
@@ -87,6 +84,9 @@ class LLAPCongfigMeClient:
         self.readConfig()
         self.loadDevices()
 
+        if self.debugArg or self.debug:
+            self.lcm.debug = True
+        
         self._running = True
 
         # run the GUI's
