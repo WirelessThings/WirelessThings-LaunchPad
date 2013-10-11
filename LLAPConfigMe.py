@@ -269,7 +269,7 @@ class LLAPCongfigMeClient:
         self.debugPrint("Query type")
         
         query = ["DEVTYPE", "APVER", "CHDEVID"]
-        lcr = LLAPConfigRequest(toQuery=query)
+        lcr = LLAPConfigRequest(id=1, toQuery=query)
     
         # start timer out (1min?)
         # while wait for reply
@@ -286,7 +286,7 @@ class LLAPCongfigMeClient:
         self.debugPrint("Processing reply")
         reply = self.lcm.replyQ.get()
     
-        if reply.devType == None:
+        if reply.id == 1:
             # this was a query type request
             if float(reply.replies[1][1][5:]) >= 2.0:
                 # valid apver
@@ -308,12 +308,32 @@ class LLAPCongfigMeClient:
             else:
                 # apver mismatch, show error screen
                 pass
+        elif reply.id == 2
+            # this was and information request
+            # populate fields
+            if self.device['devID'] == '':
+                self.entry['CHDEVID'].set("--")
+            else:
+                self.entry['CHDEVID']set(self.device['devID'])
+                
+            for e in reply.replies:
+                if e[0] == "CHREMID" and e[1][len(e[0])] == '':
+                    self.entry[e[0]].set("--")
         else:
+                    if e[0] in self.entry:
+                        self.entry[e[0]].set(e[1][len(e[0]):])
+                
+                
+            # show config screen
+            self.displayConfig()
+            
+        elif reply.id == 3:
             # this was a config request
             # check replies were good and let user know device is now ready
             
             # show end screen
             pass
+        self.lcm.replyQ.task_done()
 
     def processNoReply(self):
         self.debugPrint("No Reply with in timeouts")

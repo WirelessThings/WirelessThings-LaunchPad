@@ -20,7 +20,8 @@ class LLAPConfigRequest:
     
     Holder object for devType, Queries and replies
     """
-    def __init__(self, devType=None, toQuery=None, replies=[]):
+    def __init__(self, id, devType=None, toQuery=None, replies=[]):
+        self.id = id
         self.devType = devType
         self.toQuery = toQuery
         self.replies = replies
@@ -123,6 +124,8 @@ class LLAPConfigMeCore(threading.Thread):
                         if not self.requestQ.empty():
                             request = self.requestQ.get()
                             # ok we got a request
+                            if self.debug:
+                                print("LCMC: Query commnads {}".format(request.toQuery))
                             # is it for a set devtype
                             if request.devType == None:
                                 # procces reuests
@@ -215,7 +218,7 @@ if __name__ == "__main__" :
         lcm.debug = True
     # build an example request, normall done via wizzards
     query = ["CHDEVIDAA", "INTVL005M", "CYCLE"]
-    lcr = LLAPConfigRequest("THERM001", toQuery=query)
+    lcr = LLAPConfigRequest(id=1, devType="THERM001", toQuery=query)
 
     lcm.connect_transport()
     running = True
