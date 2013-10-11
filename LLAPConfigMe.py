@@ -300,9 +300,10 @@ class LLAPCongfigMeClient:
         if self.devices[self.device['id']]['Cyclic']:
             query.append("INTVL{}".format(self.entry['INTVL'].get()))
             query.append("WAKEC{}".format(self.entry['WAKEC'].get()))
-            if self.entry['CYCLE'].get():
+            if self.entry['CYCLE'].get() == 1:
                 query.append("CYCLE")
         else:
+                query.append("WAKE")
             # append save and exits command?
             query.append("SAVE")
                         
