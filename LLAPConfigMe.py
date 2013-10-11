@@ -257,6 +257,24 @@ class LLAPCongfigMeClient:
     def displayEnd(self):
         self.debugPrint("Displying end screen")
     
+        self.cframe.pack_forget()
+
+        self.eframe = tk.Frame(self.master, name='endFrame', relief=tk.RAISED,
+                               borderwidth=2, width=self.widthMain,
+                               height=self.heightMain)
+        self.eframe.pack()
+        
+        self.buildGrid(self.eframe)
+        
+        tk.Label(self.eframe, text=END).grid(row=1, column=0, columnspan=6,
+                                              rowspan=self.rows-4)
+                                              
+        tk.Button(self.eframe, text='Back', state=tk.DISABLED
+                ).grid(row=self.rows-2, column=4, sticky=tk.E)
+        tk.Button(self.eframe, text='Start Over', command=self.displayPair
+                  ).grid(row=self.rows-2, column=5, sticky=tk.W)
+
+    
     def displayProgress(self):
         self.debugPrint("Displaying progress pop up")
         
