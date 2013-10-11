@@ -346,9 +346,8 @@ class LLAPCongfigMeClient:
                                        'DEVTYPE': self.devices[n]['DEVTYPE'],
                                        'devID': reply.replies[2][1][7:]
                                       }
-                        # assuming we know what it is ask it to stay awake a little longer 
-                        # and asked for the current config
-                        query = ["AWAKE005M", "PANID", "RETRIES"]
+                        # assuming we know what it is ask for the current config
+                        query = ["PANID", "RETRIES"]
                         
                         if self.devices[self.device['id']]['Cyclic']:
                             query.append("INTVL")
@@ -381,14 +380,17 @@ class LLAPCongfigMeClient:
                 self.entry['CHDEVID'].set(self.device['devID'])
                 
             for e in reply.replies:
-                if e[0] == "CHREMID" and e[1][len(e[0])] == '':
+                if e[0] == "CHREMID" and e[1][len(e[0]):] == '':
                     self.entry[e[0]].set("--")
+                elif e[0] == "INTVL" and e[1][len(e[0]):] != "000":
+                    self.entry['CYCLE'].set(1)
+                    self.entry[e[0]].set(e[1][len(e[0]):])
                 else:
                     if e[0] in self.entry:
                         self.entry[e[0]].set(e[1][len(e[0]):])
                 
-                
             # show config screen
+            self.keepAwake()
             self.displayConfig()
             
         elif reply.id == 3:
@@ -403,7 +405,6 @@ class LLAPCongfigMeClient:
         self.debugPrint("No Reply with in timeouts")
         # ask user to press pair button and try again?
         
-    
     def replyCheck(self):
         # look for a reply
         if self.lcm.replyQ.empty():
@@ -419,6 +420,9 @@ class LLAPCongfigMeClient:
             # close wait diag and return reply
             self.progressWindow.destroy()
             self.processReply()
+    
+    def keepAwake(self):
+        self.debugPrint("Sending Keep awake request")
     
     def buildGrid(self, frame):
         self.debugPrint("Building Grid for {}".format(frame.winfo_name()))
