@@ -283,6 +283,29 @@ class LLAPCongfigMeClient:
         self.debugPrint("Sending config request to device")
         self.displayProgress()
 
+        # build config query from values in entry
+        # generic commands first
+        query = [
+                 "CHDEVID{}".format(self.entry['CHDEVTYPE'].get()),
+                 "PANID{}".format(self.entry['PANID'].get()),
+                 "RETRIES{}".formate(self.entry['RETRIES'].get())
+                ]
+                
+        # device specfic commands next
+        for n in self.devices[self.device['id']]['Options']:
+            query.append("{}{}".format(n['Command'], self.entry[n['Command'].get()))
+                                
+        
+        # cyclic stuff last (cycle acts as save and exit)       
+        if self.devices[self.device['id']]['Cyclic']:
+            query.append("INTVL{}".format(self.entry['INTVL'].get()))
+            query.append("WAKEC{}".format(self.entry['WAKEC'].get()))
+            if self.entry['CYCLE'].get():
+                query.append("CYCLE")
+        else:
+            # append save and exits command?
+            query.append("SAVE")
+                        
 
     def queryType(self):
         """ Time to send a query to see if we have a device in pair mode
