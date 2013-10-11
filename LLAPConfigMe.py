@@ -371,7 +371,7 @@ class LLAPCongfigMeClient:
             else:
                 # apver mismatch, show error screen
                 pass
-        elif reply.id == 2
+        elif reply.id == 2:
             # this was and information request
             # populate fields
             if self.device['devID'] == '':
