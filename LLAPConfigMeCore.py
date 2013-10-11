@@ -132,7 +132,7 @@ class LLAPConfigMeCore(threading.Thread):
                                         llapMsg += '-'
                                     
                                     self.transport.write(llapMsg)
-                                    self.transportq.put([llapMsg, "TX"])
+                                    self.transportQ.put([llapMsg, "TX"])
                                     
                                     llapReply = ""
                                     while llapReply[1:3] != "??" :

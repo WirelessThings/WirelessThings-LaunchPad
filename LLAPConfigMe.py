@@ -160,7 +160,7 @@ class LLAPCongfigMeClient:
         self.debugPrint("Displaying Decive type based config screen")
     
     def displayEnd(self):
-        self.debugPring("Displying end screen")
+        self.debugPrint("Displying end screen")
     
 
     def queryType(self):
@@ -181,7 +181,7 @@ class LLAPCongfigMeClient:
         # should display a waiting sign?
         
         self.starttime = time()
-        self.lcm.requestQ.put(query)
+        self.lcm.requestQ.put(lcr)
         self.replyCheck()
     
     def processReply(self):
@@ -206,9 +206,10 @@ class LLAPCongfigMeClient:
                                                 )
                         self.lcm.requestQ.put(lcr)
                         # show config screen
-                        self.displayConfig(self)
+                        self.displayConfig()
             else:
                 # apver mismatch, show error screen
+                pass
         else:
             # this was a config request
             # check replies were good and let user know device is now ready
@@ -249,7 +250,7 @@ class LLAPCongfigMeClient:
                           height=30
                           ).grid(row=r, column=c)
     
-        tk.Button(self.iframe, text='Quit', command=self.endConfigMe
+        tk.Button(frame, text='Quit', command=self.endConfigMe
                   ).grid(row=self.rows-2, column=0, sticky=tk.E)
 
     def connect(self):
