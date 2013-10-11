@@ -258,8 +258,31 @@ class LLAPCongfigMeClient:
     def displayEnd(self):
         self.debugPrint("Displying end screen")
     
+    def displayProgress(self):
+        self.debugPrint("Displaying progress pop up")
+        
+        position = self.master.geometry().split("+")
+        
+        self.progressWindow = tk.Toplevel()
+        self.progressWindow.geometry("+{}+{}".format(
+                                             int(position[1])+self.widthMain/4,
+                                             int(position[2])+self.heightMain/4
+                                                     )
+                                     )
+            
+        self.progressWindow.title("Working")
+
+        tk.Label(self.progressWindow, text="Comunicating with device please wait").pack()
+
+        self.progressBar = ttk.Progressbar(self.progressWindow, orient="horizontal",
+                                           length=200, mode="indeterminate")
+        self.progressBar.pack()
+        self.progressBar.start()
+    
     def sendConfigRequest(self):
         self.debugPrint("Sending config request to device")
+        self.displayProgress()
+
 
     def queryType(self):
         """ Time to send a query to see if we have a device in pair mode
@@ -267,7 +290,7 @@ class LLAPCongfigMeClient:
             devtype and apver request
         """
         self.debugPrint("Query type")
-        
+        self.displayProgress()
         query = ["DEVTYPE", "APVER", "CHDEVID"]
         lcr = LLAPConfigRequest(id=1, toQuery=query)
     
@@ -346,12 +369,14 @@ class LLAPCongfigMeClient:
             if time()-self.starttime > self.timeout:
                 # if timeout passed, let user know no reply
                 # close wait diag
+                self.progressWindow.destroy()
                 self.processNoReply()
             else:
                 # update wait diag and check again
                 self.master.after(500, self.replyCheck)
         else:
             # close wait diag and return reply
+            self.progressWindow.destroy()
             self.processReply()
     
     def buildGrid(self, frame):
