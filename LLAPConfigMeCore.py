@@ -47,6 +47,7 @@ class LLAPConfigMeCore(threading.Thread):
         self.baud = 9600
         self.port = "/dev/ttyAMA0" # could be IP for UDP layer
         self.debug = False
+        self.keepAwake = False
 
         self.t_stop = threading.Event()
         
@@ -175,6 +176,17 @@ class LLAPConfigMeCore(threading.Thread):
                 
                             self.replyQ.put(request)
                             self.requestQ.task_done()
+                        elif self.keepAwake:
+                            # nothing in the que but have been asked to keep device awake
+                            if self.debug:
+                                print("LCMC: Sending keepAwake HELLO")
+                            llapMsg = "a??HELLO----"
+                            self.transport.write(llapMsg)
+                            self.transportQ.put([llapMsg, "TX"])
+                            llapReply = ""
+                            while llapReply[1:] != "??HELLO----" :
+                                llapReply = self.read_12()
+                
                     else:
                         #not a CONFIGME llap
                         pass

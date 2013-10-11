@@ -71,7 +71,7 @@ class LLAPCongfigMeClient:
         
         # how long to wait for a reply before asking user to press button again in seconds
         self.timeout = 60
-
+    
         self.lcm = LLAPConfigMeCore()
         
         self._running = False
@@ -254,7 +254,6 @@ class LLAPCongfigMeClient:
         tk.Button(self.cframe, text='Next', command=self.sendConfigRequest
                   ).grid(row=self.rows-2, column=5, sticky=tk.W)
 
-    
     def displayEnd(self):
         self.debugPrint("Displying end screen")
     
@@ -293,7 +292,6 @@ class LLAPCongfigMeClient:
         # device specfic commands next
         for n in self.devices[self.device['id']]['Options']:
             query.append("{}{}".format(n['Command'], self.entry[n['Command']].get()))
-                                
         
         # cyclic stuff last (cycle acts as save and exit)       
         if self.devices[self.device['id']]['Cyclic']:
@@ -311,7 +309,7 @@ class LLAPCongfigMeClient:
                                 devType=self.device['DEVTYPE'],
                                 toQuery=query
                                 )
-                                
+
         self.sendRequest(lcr)
 
     def queryType(self):
@@ -322,14 +320,7 @@ class LLAPCongfigMeClient:
         self.debugPrint("Query type")
         query = ["DEVTYPE", "APVER", "CHDEVID"]
         lcr = LLAPConfigRequest(id=1, toQuery=query)
-    
-        # start timer out (1min?)
-        # while wait for reply
-        # put resuest in que
-        # should only take 5-10s seconds at most
-        # poll replyQ,
-        # should display a waiting sign?
-        
+
         self.sendRequest(lcr)
     
     def processReply(self):
@@ -389,7 +380,8 @@ class LLAPCongfigMeClient:
                         self.entry[e[0]].set(e[1][len(e[0]):])
         
             # show config screen
-            self.keepAwake()
+            self.debugPrint("Setting keepAwake")
+            self.lcm.keepAwake = True
             self.displayConfig()
             
         elif reply.id == 3:
@@ -397,7 +389,8 @@ class LLAPCongfigMeClient:
             # check replies were good and let user know device is now ready
             
             # show end screen
-            pass
+            self.displayEnd()
+            
         self.lcm.replyQ.task_done()
 
     def processNoReply(self):
@@ -407,6 +400,9 @@ class LLAPCongfigMeClient:
     def sendRequest(self, lcr):
         self.debugPrint("Sending Reueset to LCMC")
         self.displayProgress()
+        self.debugPrint("Stopping keepAwake")
+        if self.lcm.keepAwake:
+            self.lcm.keepAwake = False
         self.starttime = time()
         self.lcm.requestQ.put(lcr)
         self.replyCheck()
@@ -426,9 +422,6 @@ class LLAPCongfigMeClient:
             # close wait diag and return reply
             self.progressWindow.destroy()
             self.processReply()
-                                                                
-    def keepAwake(self):
-        self.debugPrint("Sending Keep awake request")
     
     def buildGrid(self, frame):
         self.debugPrint("Building Grid for {}".format(frame.winfo_name()))
@@ -438,7 +431,7 @@ class LLAPCongfigMeClient:
         
         for r in range(self.rows):
             for c in range(6):
-                tk.Canvas(frame, bd=0, bg=("black" if r%2 and c%2 else "gray"),
+                tk.Canvas(frame, bd=0, #bg=("black" if r%2 and c%2 else "gray"),
                           highlightthickness=0,
                           width=(self.widthMain-4)/6,
                           height=self.rowHeight
