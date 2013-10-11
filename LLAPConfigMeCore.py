@@ -127,7 +127,7 @@ class LLAPConfigMeCore(threading.Thread):
                             request = self.requestQ.get()
                             # ok we got a request
                             if self.debug:
-                                print("LCMC: Query commnads {}".format(request.toQuery))
+                                print("LCMC: ID: {} devType: {} Query commnads {}".format(request.id, request.devType, request.toQuery))
                             # is it for a set devtype
                             if request.devType == None:
                                 # procces reuests
