@@ -6,16 +6,18 @@
                "Name":"Thermistor",
                "Description":"LLAP Thermistor",
                "Cyclic":true,
-               "Commands":[
+               "Actions":[
                            {
                            "Command":"TEMP",
                            "Description":"Request Temperature",
-                           "Format":"Float"
+                           "Format":"Float",
+                           "Type":"Both"
                            },
                            {
                            "Command":"TMPA",
                            "Description":"Request Temperature",
-                           "Format":"Float"
+                           "Format":"Float",
+                           "Type":"Both"
                            }
                            ],
                "Options":[
@@ -47,7 +49,7 @@
                "Name":"Button V2",
                "Description":"LLAP Button",
                "Cyclic":false,
-               "Commands":[
+               "Actions":[
                ],
                "Options":[
                           {
