@@ -116,6 +116,15 @@ class LLAPCongfigMeClient:
         self.comport = tk.StringVar()
         self.comport.set(port)
     
+        self.entry = {
+                      "CHDEVID" : tk.StringVar(),
+                      "PANID" : tk.StringVar(),
+                      "RETRIES" : tk.StringVar(),
+                      "INTVL" : tk.StringVar(),
+                      "WAKEC" : tk.StringVar(),
+                      "CYCLE" : tk.IntVar()
+                     }
+    
     def displayIntro(self):
         self.debugPrint("Display Intro Page")
         self.iframe = tk.Frame(self.master, name='introFrame', relief=tk.RAISED,
@@ -158,10 +167,74 @@ class LLAPCongfigMeClient:
 
     def displayConfig(self):
         self.debugPrint("Displaying Decive type based config screen")
+        self.pframe.pack_forget()
+                
+        self.cframe = tk.Frame(self.master, name='configFrame', relief=tk.RAISED,
+                               borderwidth=2, width=self.widthMain,
+                               height=self.heightMain)
+        self.cframe.pack()
+
+        self.buildGrid(self.cframe)
+        
+        # generic config options
+        tk.Label(self.cframe, text="Generic Commands"
+                 ).grid(row=1, column=0, columnspan=3)
+                 
+        tk.Label(self.cframe, text="Device ID").grid(row=2, column=0, sticky=tk.E)
+        tk.Entry(self.cframe, textvariable=self.entry['CHDEVID'], width=20
+                 ).grid(row=2, column=1, columnspan=2, sticky=tk.W)
+                 
+        tk.Label(self.cframe, text="Pan ID").grid(row=3, column=0, sticky=tk.E)
+        tk.Entry(self.cframe, textvariable=self.entry['PANID'], width=20
+                 ).grid(row=3, column=1, columnspan=2, sticky=tk.W)
+                 
+        tk.Label(self.cframe, text="Device ID").grid(row=4, column=0, sticky=tk.E)
+        tk.Entry(self.cframe, textvariable=self.entry['CHDEVID'], width=20
+                 ).grid(row=4, column=1, columnspan=2, sticky=tk.W)
+        
+        # cyclic config options
+        tk.Label(self.cframe, text="Cyclic Commands"
+                 ).grid(row=6, column=0, columnspan=3)
+        tk.Label(self.cframe, text="Sleep Interval").grid(row=7, column=0, sticky=tk.E)
+        tk.Entry(self.cframe, textvariable=self.entry['INTVL'], width=20,
+                 state=(tk.NORMAL if self.devices[self.device['id']]['Cyclic'] else tk.DISABLED)
+                 ).grid(row=7, column=1, columnspan=2, sticky=tk.W)
+
+        tk.Label(self.cframe, text="Battery Wake Count").grid(row=7, column=0, sticky=tk.E)
+        tk.Entry(self.cframe, textvariable=self.entry['WAKEC'], width=20,
+                 state=(tk.NORMAL if self.devices[self.device['id']]['Cyclic'] else tk.DISABLED)
+                 ).grid(row=7, column=1, columnspan=2, sticky=tk.W)
+    
+        tk.Label(self.cframe, text="Enable Cyclic sleep").grid(row=7, column=0, sticky=tk.E)
+        tk.Checkbutton(self.cframe, textvariable=self.entry['CYCLE'], width=20,
+                       state=(tk.NORMAL if self.devices[self.device['id']]['Cyclic'] else tk.DISABLED)
+                       ).grid(row=7, column=1, columnspan=2, sticky=tk.W)
+        
+        # device config options
+        tk.Label(self.cframe,
+                 text="{} Options".format(self.devices[self.device['id']]['Name'])
+                 ).grid(row=1, column=3, columnspan=3)
+        r = 0
+        for n in self.devices[self.device['id']]['Options']:
+            self.entry[n['Command']] = tk.StringVar()
+            tk.Label(self.cframe, text=n['Description']
+                     ).grid(row=2+r, column=3, columnspan=3, sticky=tk.W)
+            tk.Entry(self.cframe, textvariable=self.entry[n['Command']]
+                     ).grid(row=3+r, column=3, columnspan=3, sticky=tk.W)
+            r += 1
+        
+        # buttons
+        tk.Button(self.cframe, text='Back', state=tk.DISABLED
+                  ).grid(row=self.rows-2, column=4, sticky=tk.E)
+        tk.Button(self.cframe, text='Next', command=self.sendConfigRequest
+                  ).grid(row=self.rows-2, column=5, sticky=tk.W)
+
     
     def displayEnd(self):
         self.debugPrint("Displying end screen")
     
+    def sendConfigRequest(self):
+        self.debugPrint("Sending config request to device")
 
     def queryType(self):
         """ Time to send a query to see if we have a device in pair mode
@@ -193,11 +266,11 @@ class LLAPCongfigMeClient:
             if float(reply.replies[1][1][5:]) >= 2.0:
                 # valid apver
                 # so check what replied
-                for n in range(self.devices):
-                    if n['DEVTYPE'] == reply.replies[0][1]:
+                for n in range(len(self.devices)):
+                    if self.devices[n]['DEVTYPE'] == reply.replies[0][1]:
                         # we have a match
                         self.device = {'id': n,
-                                       'DEVTPYE': n['DEVTYPE'],
+                                       'DEVTYPE': self.devices[n]['DEVTYPE'],
                                        'devID': reply.replies[2][1][7:]
                                       }
                         # assuming we know what it is ask it to stay awake a little longer
