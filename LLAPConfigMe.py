@@ -337,7 +337,7 @@ class LLAPCongfigMeClient:
     def buildGrid(self, frame):
         self.debugPrint("Building Grid for {}".format(frame.winfo_name()))
         canvas = tk.Canvas(frame, bd=0, width=self.widthMain-4,
-                               height=30, highlightthickness=0)
+                               height=self.rowHeight, highlightthickness=0)
         canvas.grid(row=0, column=0, columnspan=6)
         
         for r in range(self.rows):
