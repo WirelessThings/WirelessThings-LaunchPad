@@ -48,7 +48,8 @@ class LLAPConfigMeCore(threading.Thread):
         self.port = "/dev/ttyAMA0" # could be IP for UDP layer
         self.debug = False
         self.keepAwake = False
-
+        
+        self.disconnectFlag = threading.Event()
         self.t_stop = threading.Event()
         
         self.replyQ = Queue.Queue()
@@ -100,12 +101,9 @@ class LLAPConfigMeCore(threading.Thread):
     def disconnect_transport(self):
         """Disconnet transport
         
-        should be no running thread using the open connection
+        Will cause the thread to close on next loop
         """
-        if self.transport.isOpen() == True:
-            if self.debug:
-                print("LCMC: Disconnecting Transport")
-            self.transport.close()
+        self.disconnectFlag.set()
             
     def run(self):
         """Thread loop for processing serial input and actual items in a ConfigRequest
@@ -190,6 +188,9 @@ class LLAPConfigMeCore(threading.Thread):
                     else:
                         #not a CONFIGME llap
                         pass
+            if self.disconnectFlag.isSet():
+                self.transport.close()
+                self.disconnectFlag.clear()
             self.t_stop.wait(0.01)
 
     def read_12(self):
