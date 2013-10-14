@@ -1,4 +1,89 @@
 {
+    "Version":2.0,
+    "Generic Commands":[
+                        {
+                        "Command":"ACK"
+                        },
+                        {
+                        "Command":"APVER"
+                        },
+                        {
+                        "Command":"DEVTYPE"
+                        },
+                        {
+                        "Command":"DEVNAME"
+                        },
+                        {
+                        "Command":"HELLO"
+                        },
+                        {
+                        "Command":"SER"
+                        },
+                        {
+                        "Command":"$ER"
+                        },
+                        {
+                        "Command":"FVER"
+                        },
+                        {
+                        "Command":"CHDEVID"
+                        },
+                        {
+                        "Command":"PANID"
+                        },
+                        {
+                        "Command":"REBOOT"
+                        },
+                        {
+                        "Command":"RETRIES"
+                        },
+                        {
+                        "Command":"BATT"
+                        },
+                        {
+                        "Command":"SLEEP"
+                        },
+                        {
+                        "Command":"SAVE"
+                        },
+                        {
+                        "Command":"LLAPRESET"
+                        }
+                        ],
+    "Cyclic Commands":[
+                       {
+                       "Command":"INTVL"
+                       },
+                       {
+                       "Command":"CYCLE"
+                       },
+                       {
+                       "Command":"WAKE"
+                       },
+                       {
+                       "Command":"WAKEC"
+                       }
+                       ],
+    "Announcements":[
+                     {
+                     "Command":"STARTED"
+                     },
+                     {
+                     "Command":"ERROR"
+                     },
+                     {
+                     "Command":"SLEEPING"
+                     },
+                     {
+                     "Command":"AWAKE"
+                     },
+                     {
+                     "Command":"BATTLOW"
+                     },
+                     {
+                     "Command":"CONFIGME"
+                     }
+                     ],
     "Devices":[
                {
                "id":0,
@@ -7,19 +92,19 @@
                "Description":"LLAP Thermistor",
                "Cyclic":true,
                "Actions":[
-                           {
-                           "Command":"TEMP",
-                           "Description":"Request Temperature",
-                           "Format":"Float",
-                           "Type":"Both"
-                           },
-                           {
-                           "Command":"TMPA",
-                           "Description":"Request Temperature",
-                           "Format":"Float",
-                           "Type":"Both"
-                           }
-                           ],
+                          {
+                          "Command":"TEMP",
+                          "Description":"Request Temperature",
+                          "Format":"Float",
+                          "Type":"Both"
+                          },
+                          {
+                          "Command":"TMPA",
+                          "Description":"Request Temperature",
+                          "Format":"Float",
+                          "Type":"Both"
+                          }
+                          ],
                "Options":[
                           {
                           "Command":"BVAL",
@@ -50,6 +135,7 @@
                "Description":"LLAP Button",
                "Cyclic":false,
                "Actions":[
+               
                ],
                "Options":[
                           {
