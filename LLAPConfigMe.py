@@ -271,9 +271,13 @@ class LLAPCongfigMeClient:
                                               
         tk.Button(self.eframe, text='Back', state=tk.DISABLED
                 ).grid(row=self.rows-2, column=4, sticky=tk.E)
-        tk.Button(self.eframe, text='Start Over', command=self.displayPair
+        tk.Button(self.eframe, text='Start Over', command=self.startOver
                   ).grid(row=self.rows-2, column=5, sticky=tk.W)
 
+    def startOver(self):
+        self.debugPrint("Starting over")
+        self.eframe.pack_forget()
+        self.pframe.pack()
     
     def displayProgress(self):
         self.debugPrint("Displaying progress pop up")
