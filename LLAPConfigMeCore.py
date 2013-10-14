@@ -148,7 +148,7 @@ class LLAPConfigMeCore(threading.Thread):
                         
                             else:
                                 # got a need to check devtype first
-                                llapMsg = "a??DEVTYEP--"
+                                llapMsg = "a??DEVTYPE--"
                                 self.transport.write(llapMsg)
                                 self.transportQ.put([llapMsg, "TX"])
 
