@@ -37,7 +37,7 @@ else:
 INTRO = """Welcome to LLAP Config me wizard
 Please enter your com port below to continue"""
 
-PAIR = """Please press the Config Me button on your device"""
+PAIR = """Please press the Config Me button on your device and click next"""
 
 CONFIG = """Selet your device config options"""
 
@@ -207,7 +207,8 @@ class LLAPCongfigMeClient:
         tk.Entry(self.cframe, textvariable=self.entry['PANID'], width=20
                  ).grid(row=5, column=1, columnspan=2, sticky=tk.W)
          
-        tk.Label(self.cframe, text="Retries for Announcements").grid(row=6, column=0, columnspan=3)
+        tk.Label(self.cframe, text="Retries for Announcements"
+                 ).grid(row=6, column=0, columnspan=3)
         tk.Label(self.cframe, text="RETRIES").grid(row=7, column=0, sticky=tk.E)
         tk.Entry(self.cframe, textvariable=self.entry['RETRIES'], width=20
                  ).grid(row=7, column=1, columnspan=2, sticky=tk.W)
@@ -215,19 +216,22 @@ class LLAPCongfigMeClient:
         # cyclic config options
         tk.Label(self.cframe, text="Cyclic Commands"
                  ).grid(row=9, column=0, columnspan=3)
-        tk.Label(self.cframe, text="Sleep Interval").grid(row=10, column=0, columnspan=3)
+        tk.Label(self.cframe, text="Sleep Interval"
+                 ).grid(row=10, column=0, columnspan=3)
         tk.Label(self.cframe, text="INTVL").grid(row=11, column=0, sticky=tk.E)
         tk.Entry(self.cframe, textvariable=self.entry['INTVL'], width=20,
                  state=(tk.NORMAL if self.devices[self.device['id']]['Cyclic'] else tk.DISABLED)
                  ).grid(row=11, column=1, columnspan=2, sticky=tk.W)
 
-        tk.Label(self.cframe, text="Battery Wake Count").grid(row=12, column=0, columnspan=3)
+        tk.Label(self.cframe, text="Battery Wake Count"
+                 ).grid(row=12, column=0, columnspan=3)
         tk.Label(self.cframe, text="WAKEC").grid(row=13, column=0, sticky=tk.E)
         tk.Entry(self.cframe, textvariable=self.entry['WAKEC'], width=20,
                  state=(tk.NORMAL if self.devices[self.device['id']]['Cyclic'] else tk.DISABLED)
                  ).grid(row=13, column=1, columnspan=2, sticky=tk.W)
     
-        tk.Label(self.cframe, text="Enable Cyclic Sleep").grid(row=14, column=0, columnspan=3)
+        tk.Label(self.cframe, text="Enable Cyclic Sleep"
+                 ).grid(row=14, column=0, columnspan=3)
         tk.Label(self.cframe, text="CYCLE").grid(row=15, column=0, sticky=tk.E)
         tk.Checkbutton(self.cframe, variable=self.entry['CYCLE'],
                        state=(tk.NORMAL if self.devices[self.device['id']]['Cyclic'] else tk.DISABLED)
@@ -293,10 +297,12 @@ class LLAPCongfigMeClient:
             
         self.progressWindow.title("Working")
 
-        tk.Label(self.progressWindow, text="Comunicating with device please wait").pack()
+        tk.Label(self.progressWindow,
+                 text="Comunicating with device please wait").pack()
 
-        self.progressBar = ttk.Progressbar(self.progressWindow, orient="horizontal",
-                                           length=200, mode="indeterminate")
+        self.progressBar = ttk.Progressbar(self.progressWindow,
+                                           orient="horizontal", length=200,
+                                           mode="indeterminate")
         self.progressBar.pack()
         self.progressBar.start()
     
@@ -313,7 +319,8 @@ class LLAPCongfigMeClient:
                 
         # device specfic commands next
         for n in self.devices[self.device['id']]['Options']:
-            query.append("{}{}".format(n['Command'], self.entry[n['Command']].get()))
+            query.append("{}{}".format(n['Command'],
+                                       self.entry[n['Command']].get()))
         
         # cyclic stuff last (cycle acts as save and exit)       
         if self.devices[self.device['id']]['Cyclic']:
@@ -348,7 +355,9 @@ class LLAPCongfigMeClient:
     def processReply(self):
         self.debugPrint("Processing reply")
         reply = self.lcm.replyQ.get()
-        self.debugPrint("id: {}, devType:{}, Replies:{}".format(reply.id, reply.devType, reply.replies))
+        self.debugPrint("id: {}, devType:{}, Replies:{}".format(reply.id,
+                                                                reply.devType,
+                                                                reply.replies))
         if reply.id == 1:
             # this was a query type request
             if float(reply.replies[1][1][5:]) >= 2.0:
@@ -481,7 +490,8 @@ class LLAPCongfigMeClient:
                "{}x{}+{}+{}".format(self.widthSerial,
                                     self.heightSerial,
                                     int(self.config.get('LLAPCM',
-                                                    'window_width_offset'))+self.widthMain+20,
+                                                        'window_width_offset')
+                                        )+self.widthMain+20,
                                     self.config.get('LLAPCM',
                                                     'window_height_offset')
                                     )

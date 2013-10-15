@@ -142,7 +142,8 @@ class LLAPConfigMeCore(threading.Thread):
                                     while llapReply[1:3] != "??" :
                                         llapReply = self.read_12()
                                     
-                                    request.replies.append([llapMsg[3:].strip('-'),llapReply[3:].strip('-')])
+                                    request.replies.append([llapMsg[3:].strip('-'),
+                                                            llapReply[3:].strip('-')])
                         
                             else:
                                 # got a need to check devtype first
@@ -154,7 +155,8 @@ class LLAPConfigMeCore(threading.Thread):
                                 while llapReply[1:3] != "??" :
                                     llapReply = self.read_12()
                                 
-                                request.replies.append([llapMsg[3:].strip('-'),llapReply[3:].strip('-')])
+                                request.replies.append([llapMsg[3:].strip('-'),
+                                                        llapReply[3:].strip('-')])
                                 
                                 if llapReply[3:].strip('-') == request.devType:
                                     # got a matching devtype, time to send all the requests
@@ -170,7 +172,8 @@ class LLAPConfigMeCore(threading.Thread):
                                         while llapReply[1:3] != "??" :
                                             llapReply = self.read_12()
                                         
-                                        request.replies.append([llapMsg[3:].strip('-'),llapReply[3:].strip('-')])
+                                        request.replies.append([llapMsg[3:].strip('-'),
+                                                                llapReply[3:].strip('-')])
                 
                             self.replyQ.put(request)
                             self.requestQ.task_done()
@@ -249,7 +252,8 @@ if __name__ == "__main__" :
                 reply = lcm.replyQ.get()
                 print("For DEVTYPE {} got:".format(reply.devType))
                 for n in range(len(reply.replies)):
-                    print("Asked {} got {}".format(reply.replies[n][0], reply.replies[n][1]))
+                    print("Asked {} got {}".format(reply.replies[n][0],
+                                                   reply.replies[n][1]))
                 lcm.replyQ.task_done()
                 lcm.disconnect_transport()
                 running = False
