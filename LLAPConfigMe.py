@@ -469,7 +469,9 @@ class LLAPCongfigMeClient:
         
         # wrap this in a try block and throw a dialog window and return False
         self.lcm.connect_transport()
+        if self.debugArg or self.debug:
         self.serialDebugUpdate()
+        
         return True
 
     def serialDebug(self):
