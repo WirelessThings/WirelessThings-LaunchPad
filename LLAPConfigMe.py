@@ -479,7 +479,7 @@ class LLAPCongfigMeClient:
         # wrap this in a try block and throw a dialog window and return False
         self.lcm.connect_transport()
         if self.debugArg or self.debug:
-        self.serialDebugUpdate()
+            self.serialDebugUpdate()
         
         return True
 
@@ -538,7 +538,7 @@ class LLAPCongfigMeClient:
         self.debugPrint("Parse Args")
         parser = argparse.ArgumentParser(description='LLAP Config Me Client')
         parser.add_argument('-d', '--debug',
-                            help='Extra Debug Output, overrides LLAPCM.cfg setting',
+                       help='Extra Debug Output, overrides LLAPCM.cfg setting',
                             action='store_true')
         
         self.args = parser.parse_args()
