@@ -14,6 +14,8 @@ import serial
 import threading
 
 
+SERIAL = 'serial'
+MQTT = 'mqtt'
 
 class LLAPConfigRequest:
     """Config Request object
@@ -36,28 +38,28 @@ class LLAPConfigMeCore(threading.Thread):
         the requested exchanges returning a LLAPConfigReqesut complete with 
         replies to the calling application
     """
+    # serial based defualts
+    _mode = SERIAL
+    _baud = 9600
+    _port = "/dev/ttyAMA0" # could be IP for UDP layer
+        
     
+    _debug = False
+    keepAwake = False
+
     def __init__(self):
         """Instantiation
             
         Setup basic transport, Queue's, Threads etc
         """
         threading.Thread.__init__(self)
-        
-        self.baud = 9600
-        self.port = "/dev/ttyAMA0" # could be IP for UDP layer
-        self.debug = False
-        self.keepAwake = False
-        
+
         self.disconnectFlag = threading.Event()
         self.t_stop = threading.Event()
         
         self.replyQ = Queue.Queue()
         self.requestQ = Queue.Queue()
         self.transportQ = Queue.Queue()
-        
-        #setup transport bits
-        self.transport = serial.Serial()
     
     def __del__(self):
         """Destructor
@@ -66,37 +68,49 @@ class LLAPConfigMeCore(threading.Thread):
         """
         self.disconnect_transport()
     
+    def set_mode(self, mode):
+        """Set the transport mode
+            
+        mode SERIAL or MQTT
+        """
+        self._mode = mode
+    
     def set_port(self, port):
         """Set port for use by transport
-            
-        determine transport based on port type
-        setup serial connection basics ??
+        
+        port
         """
-        self.port = port
+        if self._mode == SERIAL:
+            self._serialPort = port
     
     def set_baud(self, baud):
         """Set buad for use by transport
         
         """
-        self.baud = baud
+        if self._mode == SERIAL:
+            self._baud = baud
     
     def connect_transport(self):
-        if self.transport.isOpen() == False:
-            self.transport.baud = self.baud
-            self.transport.timeout = 45       # for 45 second timeout reads
-            self.transport.port = self.port
-            try:
-                self.transport.open()
-                if self.debug:
-                    print("LCMC: Transport open")
-                self.start()
-            except serial.SerialException, e:
-                sys.stderr.write("LCMC: could not open port %r: %s\n" % (self.port, e))
-                sys.exit(1)
-            # start the read thread
-            return True
-        else:
-            return False
+        """Connet to the selected mode of tansport and start the thread running
+        """
+        if self._mode == SERIAL:
+            self.transport = serial.Serial()
+            if self.transport.isOpen() == False:
+                self.transport._baud = self._baud
+                self.transport.timeout = 45       # for 45 second timeout reads
+                self.transport.port = self._serialPort
+                try:
+                    self.transport.open()
+                    if self.debug:
+                        print("LCMC: Transport open")
+                    self.start()
+                except serial.SerialException, e:
+                    sys.stderr.write("LCMC: could not open port %r: %s\n" % (self._port, e))
+                    sys.exit(1)
+                # start the read thread
+                return True
+            else:
+                return False
 
     def disconnect_transport(self):
         """Disconnet transport
@@ -220,7 +234,7 @@ if __name__ == "__main__" :
     t = threading.Event()
     parser = argparse.ArgumentParser(
                              description='LLAP ConfigMe Core logic test code')
-    parser.add_argument('-p', '--port', help='Serial Port to Use for testing')
+    parser.add_argument('-p', '--port', help='Port to Use for testing')
     parser.add_argument('-d', '--debug', help='Extra Debug Output',
                         action='store_true'
                         )
@@ -234,7 +248,7 @@ if __name__ == "__main__" :
     
     if args.debug:
         lcm.debug = True
-    # build an example request, normall done via wizzards
+    # build an example request, normall done via wizards
     query = ["CHDEVIDAA", "INTVL005M", "CYCLE"]
     lcr = LLAPConfigRequest(id=1, devType="THERM001", toQuery=query)
 
