@@ -119,12 +119,12 @@
                           {
                           "Command":"IR",
                           "Description":"Internal Resistance",
-                          "Format":"int"
+                          "Format":"Int"
                           },
                           {
                           "Command":"SRES",
                           "Description":"Series Resistance",
-                          "Format":"int"
+                          "Format":"Int"
                           }
                           ]
                },
@@ -161,7 +161,7 @@
                           {
                           "Command":"DEB",
                           "Description":"Button debounce",
-                          "Format":"INT"
+                          "Format":"Int"
                           }
                           ]
                }
