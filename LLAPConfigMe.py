@@ -71,6 +71,7 @@ class LLAPCongfigMeClient:
         
         # how long to wait for a reply before asking user to press button again in seconds
         self.timeout = 60
+        self.devIDInputs = []
     
         self.lcm = LLAPConfigMeCore()
         
@@ -112,6 +113,7 @@ class LLAPCongfigMeClient:
         self.master.resizable(0,0)
         
         self.initTkVariables()
+        self.initValidationRules()
         
         if self.debugArg or self.debug:
             self.serialDebug()
@@ -179,7 +181,7 @@ class LLAPCongfigMeClient:
                       ).grid(row=self.rows-2, column=4, sticky=tk.E)
             tk.Button(self.pframe, text='Next', command=self.queryType
                       ).grid(row=self.rows-2, column=5, sticky=tk.W)
-
+                
     def displayConfig(self):
         self.debugPrint("Displaying Decive type based config screen")
         self.pframe.pack_forget()
@@ -199,12 +201,21 @@ class LLAPCongfigMeClient:
                  
         tk.Label(self.cframe, text="Device ID").grid(row=2, column=0, columnspan=3)
         tk.Label(self.cframe, text="CHDEVID").grid(row=3, column=0, sticky=tk.E)
-        tk.Entry(self.cframe, textvariable=self.entry['CHDEVID'], width=20
-                 ).grid(row=3, column=1, columnspan=2, sticky=tk.W)
+        self.devIDInputs.append(tk.Entry(self.cframe, textvariable=self.entry['CHDEVID'], width=20,
+                                         validate='key',
+                                         invalidcommand='bell',
+                                         validatecommand=self.vDevID,
+                                         name='chdevid'
+                                         )
+                                )
+        self.devIDInputs[-1].grid(row=3, column=1, columnspan=2, sticky=tk.W)
                  
         tk.Label(self.cframe, text="Pan ID").grid(row=4, column=0, columnspan=3)
         tk.Label(self.cframe, text="PANID").grid(row=5, column=0, sticky=tk.E)
-        tk.Entry(self.cframe, textvariable=self.entry['PANID'], width=20
+        tk.Entry(self.cframe, textvariable=self.entry['PANID'], width=20,
+                 validate='key',
+                 invalidcommand='bell',
+                 validatecommand=self.vUpper,
                  ).grid(row=5, column=1, columnspan=2, sticky=tk.W)
          
         tk.Label(self.cframe, text="Retries for Announcements"
@@ -220,6 +231,9 @@ class LLAPCongfigMeClient:
                  ).grid(row=10, column=0, columnspan=3)
         tk.Label(self.cframe, text="INTVL").grid(row=11, column=0, sticky=tk.E)
         tk.Entry(self.cframe, textvariable=self.entry['INTVL'], width=20,
+                 validate='key',
+                 invalidcommand='bell',
+                 validatecommand=self.vUpper,
                  state=(tk.NORMAL if self.devices[self.device['id']]['Cyclic'] else tk.DISABLED)
                  ).grid(row=11, column=1, columnspan=2, sticky=tk.W)
 
@@ -248,8 +262,31 @@ class LLAPCongfigMeClient:
                      ).grid(row=2+r, column=3, columnspan=3)
             tk.Label(self.cframe, text=n['Command']
                      ).grid(row=3+r, column=3, sticky=tk.E)
-            tk.Entry(self.cframe, textvariable=self.entry[n['Command']]
-                     ).grid(row=3+r, column=4, columnspan=2, sticky=tk.W)
+            if n['Format'] == "ONOFF":
+                e = tk.Checkbutton(self.cframe, variable=self.entry[n['Command']],
+                                   onvalue="ON", offvalue="OFF",
+                                   name=n['Command'].lower()
+                                   )
+                e.grid(row=3+r, column=4, columnspan=2, sticky=tk.W)
+            else:
+                e = tk.Entry(self.cframe, textvariable=self.entry[n['Command']],
+                             name=n['Command'].lower()
+                             )
+                e.grid(row=3+r, column=4, columnspan=2, sticky=tk.W)
+                if n['Format'] == "Int":
+                    e.config(validate='key',
+                             invalidcommand='bell',
+                             validatecommand=self.vInt)
+                elif n['Format'] == "String":
+                    e.config(validate='key',
+                             invalidcommand='bell',
+                             validatecommand=self.vUpper)
+                elif n['Format'] == "ID":
+                    e.config(validate='key',
+                             invalidcommand='bell',
+                             validatecommand=self.vDevID)
+                    self.devIDInputs.append(e)
+                    
             r += 2
         
         # buttons
@@ -278,11 +315,67 @@ class LLAPCongfigMeClient:
         tk.Button(self.eframe, text='Start Over', command=self.startOver
                   ).grid(row=self.rows-2, column=5, sticky=tk.W)
 
+    # validation rules
+
+    # valid percent substitutions (from the Tk entry man page)
+    # %d = Type of action (1=insert, 0=delete, -1 for others)
+    # %i = index of char string to be inserted/deleted, or -1
+    # %P = value of the entry if the edit is allowed
+    # %s = value of entry prior to editing
+    # %S = the text string being inserted or deleted, if any
+    # %v = the type of validation that is currently set
+    # %V = the type of validation that triggered the callback
+    #      (key, focusin, focusout, forced)
+    # %W = the tk name of the widget
+
+    def initValidationRules(self):
+        self.debugPrint("Setting up GUI validation Rules")
+        self.vUpper = (self.master.register(self.validUpper), '%d', '%P', '%S')
+        self.vDevID = (self.master.register(self.validDevID), '%d',
+                       '%P', '%W', '%P', '%S')
+        self.vInt = (self.master.register(self.validInt), '%d', '%s', '%S')
+    
+    def validUpper(self, d, P, S):
+        if S.islower():
+            return False
+        return True
+            
+    def validInt(self, d, s, S):
+        if d == '0':
+            return True
+        if S.isdigit():
+            return True
+        else:
+            return False
+
+    def validDevID(self, d, P, W, s, S):
+        print(W)
+        valid = False
+        validChar = ['#', '@', '\\', '*'] # as of llap 2.0 - and ? cannot be set
+        for c in validChar:
+            if S.startswith(c):
+                valid = True
+        
+        if d == '0' or d == '-1':
+            return True
+        elif S.islower() and (len(P) <= 2):
+            self.entry[W.split('.')[-1].upper()].set(P.upper())
+            self.master.after_idle(self.vdevSet)
+        elif (S.isupper() or valid) and (len(P) <= 2):
+            return True
+        else:
+            return False
+    
+    def vdevSet(self):
+        for e in self.devIDInputs:
+            e.icursor(e.index(tk.INSERT)+1)
+            e.config(validate='key')
+    
     def startOver(self):
         self.debugPrint("Starting over")
         self.eframe.pack_forget()
         self.pframe.pack()
-    
+
     def displayProgress(self):
         self.debugPrint("Displaying progress pop up")
         
