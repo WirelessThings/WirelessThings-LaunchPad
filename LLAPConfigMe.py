@@ -427,6 +427,14 @@ class LLAPCongfigMeClient:
     def processNoReply(self):
         self.debugPrint("No Reply with in timeouts")
         # ask user to press pair button and try again?
+        if tkMessageBox.askyesno("Comunications Timeout", ("Unable to connect to device, \n"
+                                                           "To try again check the deivce power,\n"
+                                                           "press the ConfigMe button and click yes")
+                                 ):
+            self.displayProgress()
+            self.starttime = time()
+            self.replyCheck()
+    
         
     def sendRequest(self, lcr):
         self.debugPrint("Sending Reueset to LCMC")
