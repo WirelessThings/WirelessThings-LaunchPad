@@ -50,30 +50,29 @@ class LLAPCongfigMeClient:
         Handels display of wizzard interface for configuring devices
         pass reuestes onto LLAPConfigMeCore
     """
+    _debug = False # until we read config
+    _debugArg = False # or get command line
+    _configFileDefault = "LLAPCM_defaults.cfg"
+    _configFile = "LLAPCM.cfg"
+    _devFile = "LLAPDevices.json"
+    _myNodesFile = "MyNodes.json"
+    
+    _rows = 19
+    _rowHeight = 28
+    _widthMain = 604
+    _heightMain = (_rows*_rowHeight)+4
+    _widthSerial = 400
+    _heightSerial = 200
+    
+    # how long to wait for a reply before asking user to press button again in seconds
+    _timeout = 60
+    _devIDInputs = []
 
     def __init__(self):
         """
             setup variables
         """
-        self.debug = False # until we read config
-        self.debugArg = False # or get command line
-        self.configFileDefault = "LLAPCM_defaults.cfg"
-        self.configFile = "LLAPCM.cfg"
-        self.devFile = "LLAPDevices.json"
-        self.myNodesFile = "MyNodes.json"
-        
-        self.rows = 19
-        self.rowHeight = 28
-        self.widthMain = 604
-        self.heightMain = (self.rows*self.rowHeight)+4
-        self.widthSerial = 400
-        self.heightSerial = 200
-        
-        # how long to wait for a reply before asking user to press button again in seconds
-        self.timeout = 60
-        self.devIDInputs = []
-    
-        self.lcm = LLAPConfigMeCore()
+        self._lcm = LLAPConfigMeCore()
         
         self._running = False
 
@@ -81,27 +80,27 @@ class LLAPCongfigMeClient:
         """
             entry point for running
         """
-        self.checkArgs()
-        self.readConfig()
-        self.loadDevices()
+        self._checkArgs()
+        self._readConfig()
+        self._loadDevices()
 
-        if self.debugArg or self.debug:
-            self.lcm.debug = True
+        if self._debugArg or self._debug:
+            self._lcm.debug = True
         
         self._running = True
 
         # run the GUI's
-        self.runConfigMe()
+        self._runConfigMe()
 
-        self.cleanUp()
+        self._cleanUp()
 
-    def runConfigMe(self):
-        self.debugPrint("Running Main GUI")
+    def _runConfigMe(self):
+        self._debugPrint("Running Main GUI")
         self.master = tk.Tk()
-        self.master.protocol("WM_DELETE_WINDOW", self.endConfigMe)
+        self.master.protocol("WM_DELETE_WINDOW", self._endConfigMe)
         self.master.geometry(
-                 "{}x{}+{}+{}".format(self.widthMain,
-                                      self.heightMain,
+                 "{}x{}+{}+{}".format(self._widthMain,
+                                      self._heightMain,
                                       self.config.get('LLAPCM',
                                                       'window_width_offset'),
                                       self.config.get('LLAPCM',
@@ -112,18 +111,18 @@ class LLAPCongfigMeClient:
         self.master.title("LLAP Config Me v{}".format(self.currentVersion))
         self.master.resizable(0,0)
         
-        self.initTkVariables()
-        self.initValidationRules()
+        self._initTkVariables()
+        self._initValidationRules()
         
-        if self.debugArg or self.debug:
-            self.serialDebug()
+        if self._debugArg or self._debug:
+            self._serialDebug()
 
-        self.displayIntro()
+        self._displayIntro()
         
         self.master.mainloop()
 
-    def initTkVariables(self):
-        self.debugPrint("Init Tk Variables")
+    def _initTkVariables(self):
+        self._debugPrint("Init Tk Variables")
         
         self.comport = tk.StringVar()
         self.comport.set(port)
@@ -137,61 +136,61 @@ class LLAPCongfigMeClient:
                       "CYCLE" : tk.IntVar()
                      }
     
-    def displayIntro(self):
-        self.debugPrint("Display Intro Page")
+    def _displayIntro(self):
+        self._debugPrint("Display Intro Page")
         self.iframe = tk.Frame(self.master, name='introFrame', relief=tk.RAISED,
-                               borderwidth=2, width=self.widthMain,
-                               height=self.heightMain)
+                               borderwidth=2, width=self._widthMain,
+                               height=self._heightMain)
         self.iframe.pack()
         
-        self.buildGrid(self.iframe)
+        self._buildGrid(self.iframe)
         
         tk.Label(self.iframe, text=INTRO).grid(row=1, column=0, columnspan=6,
-                                               rowspan=self.rows-4)
+                                               rowspan=self._rows-4)
         # com selection bits
-        tk.Label(self.iframe, text='Com Port').grid(row=self.rows-4,
+        tk.Label(self.iframe, text='Com Port').grid(row=self._rows-4,
                                                     column=2, columnspan=2)
         tk.Entry(self.iframe, textvariable=self.comport, width=20
-                 ).grid(row=self.rows-3, column=2, columnspan=2)
+                 ).grid(row=self._rows-3, column=2, columnspan=2)
 
 
 
         tk.Button(self.iframe, text='Back', state=tk.DISABLED
-                  ).grid(row=self.rows-2, column=4, sticky=tk.E)
-        tk.Button(self.iframe, text='Next', command=self.displayPair
-                  ).grid(row=self.rows-2, column=5, sticky=tk.W)
+                  ).grid(row=self._rows-2, column=4, sticky=tk.E)
+        tk.Button(self.iframe, text='Next', command=self._displayPair
+                  ).grid(row=self._rows-2, column=5, sticky=tk.W)
                    
-    def displayPair(self):
-        self.debugPrint("Connecting and Displaying Pair window")
+    def _displayPair(self):
+        self._debugPrint("Connecting and Displaying Pair window")
         
-        if self.connect():
+        if self._connect():
             self.iframe.pack_forget()
 
             self.pframe = tk.Frame(self.master, name='pairFrame', relief=tk.RAISED,
-                                   borderwidth=2, width=self.widthMain,
-                                   height=self.heightMain)
+                                   borderwidth=2, width=self._widthMain,
+                                   height=self._heightMain)
             self.pframe.pack()
         
-            self.buildGrid(self.pframe)
+            self._buildGrid(self.pframe)
 
             tk.Label(self.pframe, text=PAIR).grid(row=1, column=0, columnspan=6,
-                                                  rowspan=self.rows-4)
+                                                  rowspan=self._rows-4)
         
             tk.Button(self.pframe, text='Back', state=tk.DISABLED
-                      ).grid(row=self.rows-2, column=4, sticky=tk.E)
-            tk.Button(self.pframe, text='Next', command=self.queryType
-                      ).grid(row=self.rows-2, column=5, sticky=tk.W)
+                      ).grid(row=self._rows-2, column=4, sticky=tk.E)
+            tk.Button(self.pframe, text='Next', command=self._queryType
+                      ).grid(row=self._rows-2, column=5, sticky=tk.W)
                 
-    def displayConfig(self):
-        self.debugPrint("Displaying Decive type based config screen")
+    def _displayConfig(self):
+        self._debugPrint("Displaying Decive type based config screen")
         self.pframe.pack_forget()
                 
         self.cframe = tk.Frame(self.master, name='configFrame', relief=tk.RAISED,
-                               borderwidth=2, width=self.widthMain,
-                               height=self.heightMain)
+                               borderwidth=2, width=self._widthMain,
+                               height=self._heightMain)
         self.cframe.pack()
 
-        self.buildGrid(self.cframe)
+        self._buildGrid(self.cframe)
 
         tk.Label(self.cframe, text=CONFIG).grid(row=0, column=0, columnspan=6)
         
@@ -201,14 +200,14 @@ class LLAPCongfigMeClient:
                  
         tk.Label(self.cframe, text="Device ID").grid(row=2, column=0, columnspan=3)
         tk.Label(self.cframe, text="CHDEVID").grid(row=3, column=0, sticky=tk.E)
-        self.devIDInputs.append(tk.Entry(self.cframe, textvariable=self.entry['CHDEVID'], width=20,
+        self._devIDInputs.append(tk.Entry(self.cframe, textvariable=self.entry['CHDEVID'], width=20,
                                          validate='key',
                                          invalidcommand='bell',
                                          validatecommand=self.vDevID,
                                          name='chdevid'
                                          )
                                 )
-        self.devIDInputs[-1].grid(row=3, column=1, columnspan=2, sticky=tk.W)
+        self._devIDInputs[-1].grid(row=3, column=1, columnspan=2, sticky=tk.W)
                  
         tk.Label(self.cframe, text="Pan ID").grid(row=4, column=0, columnspan=3)
         tk.Label(self.cframe, text="PANID").grid(row=5, column=0, sticky=tk.E)
@@ -285,35 +284,35 @@ class LLAPCongfigMeClient:
                     e.config(validate='key',
                              invalidcommand='bell',
                              validatecommand=self.vDevID)
-                    self.devIDInputs.append(e)
+                    self._devIDInputs.append(e)
                     
             r += 2
         
         # buttons
         tk.Button(self.cframe, text='Back', state=tk.DISABLED
-                  ).grid(row=self.rows-2, column=4, sticky=tk.E)
-        tk.Button(self.cframe, text='Next', command=self.sendConfigRequest
-                  ).grid(row=self.rows-2, column=5, sticky=tk.W)
+                  ).grid(row=self._rows-2, column=4, sticky=tk.E)
+        tk.Button(self.cframe, text='Next', command=self._sendConfigRequest
+                  ).grid(row=self._rows-2, column=5, sticky=tk.W)
 
-    def displayEnd(self):
-        self.debugPrint("Displying end screen")
+    def _displayEnd(self):
+        self._debugPrint("Displying end screen")
     
         self.cframe.pack_forget()
 
         self.eframe = tk.Frame(self.master, name='endFrame', relief=tk.RAISED,
-                               borderwidth=2, width=self.widthMain,
-                               height=self.heightMain)
+                               borderwidth=2, width=self._widthMain,
+                               height=self._heightMain)
         self.eframe.pack()
         
-        self.buildGrid(self.eframe)
+        self._buildGrid(self.eframe)
         
         tk.Label(self.eframe, text=END).grid(row=1, column=0, columnspan=6,
-                                              rowspan=self.rows-4)
+                                              rowspan=self._rows-4)
                                               
         tk.Button(self.eframe, text='Back', state=tk.DISABLED
-                ).grid(row=self.rows-2, column=4, sticky=tk.E)
-        tk.Button(self.eframe, text='Start Over', command=self.startOver
-                  ).grid(row=self.rows-2, column=5, sticky=tk.W)
+                ).grid(row=self._rows-2, column=4, sticky=tk.E)
+        tk.Button(self.eframe, text='Start Over', command=self._startOver
+                  ).grid(row=self._rows-2, column=5, sticky=tk.W)
 
     # validation rules
 
@@ -328,8 +327,8 @@ class LLAPCongfigMeClient:
     #      (key, focusin, focusout, forced)
     # %W = the tk name of the widget
 
-    def initValidationRules(self):
-        self.debugPrint("Setting up GUI validation Rules")
+    def _initValidationRules(self):
+        self._debugPrint("Setting up GUI validation Rules")
         self.vUpper = (self.master.register(self.validUpper), '%d', '%P', '%S')
         self.vDevID = (self.master.register(self.validDevID), '%d',
                        '%P', '%W', '%P', '%S')
@@ -367,24 +366,24 @@ class LLAPCongfigMeClient:
             return False
     
     def vdevSet(self):
-        for e in self.devIDInputs:
+        for e in self._devIDInputs:
             e.icursor(e.index(tk.INSERT)+1)
             e.config(validate='key')
     
-    def startOver(self):
-        self.debugPrint("Starting over")
+    def _startOver(self):
+        self._debugPrint("Starting over")
         self.eframe.pack_forget()
         self.pframe.pack()
 
-    def displayProgress(self):
-        self.debugPrint("Displaying progress pop up")
+    def _displayProgress(self):
+        self._debugPrint("Displaying progress pop up")
         
         position = self.master.geometry().split("+")
         
         self.progressWindow = tk.Toplevel()
         self.progressWindow.geometry("+{}+{}".format(
-                                             int(position[1])+self.widthMain/4,
-                                             int(position[2])+self.heightMain/4
+                                             int(position[1])+self._widthMain/4,
+                                             int(position[2])+self._heightMain/4
                                                      )
                                      )
             
@@ -399,8 +398,8 @@ class LLAPCongfigMeClient:
         self.progressBar.pack()
         self.progressBar.start()
     
-    def sendConfigRequest(self):
-        self.debugPrint("Sending config request to device")
+    def _sendConfigRequest(self):
+        self._debugPrint("Sending config request to device")
 
         # build config query from values in entry
         # generic commands first
@@ -420,7 +419,7 @@ class LLAPCongfigMeClient:
             query.append("INTVL{}".format(self.entry['INTVL'].get()))
             query.append("WAKEC{}".format(self.entry['WAKEC'].get()))
             if self.entry['CYCLE'].get() == 1:
-                query.append("CYCLE")
+                query.append("REBOOT")
             else:
                 query.append("WAKE")
         else:
@@ -432,23 +431,23 @@ class LLAPCongfigMeClient:
                                 toQuery=query
                                 )
 
-        self.sendRequest(lcr)
+        self._sendRequest(lcr)
 
-    def queryType(self):
+    def _queryType(self):
         """ Time to send a query to see if we have a device in pair mode
             this is going to need time out's? posible retries
             devtype and apver request
         """
-        self.debugPrint("Query type")
+        self._debugPrint("Query type")
         query = ["DEVTYPE", "APVER", "CHDEVID"]
         lcr = LLAPConfigRequest(id=1, toQuery=query)
 
-        self.sendRequest(lcr)
+        self._sendRequest(lcr)
     
-    def processReply(self):
-        self.debugPrint("Processing reply")
-        reply = self.lcm.replyQ.get()
-        self.debugPrint("id: {}, devType:{}, Replies:{}".format(reply.id,
+    def _processReply(self):
+        self._debugPrint("Processing reply")
+        reply = self._lcm.replyQ.get()
+        self._debugPrint("id: {}, devType:{}, Replies:{}".format(reply.id,
                                                                 reply.devType,
                                                                 reply.replies))
         if reply.id == 1:
@@ -480,7 +479,7 @@ class LLAPCongfigMeClient:
                                                 toQuery=query
                                                 )
 
-                        self.sendRequest(lcr)
+                        self._sendRequest(lcr)
                         
             else:
                 # apver mismatch, show error screen
@@ -504,95 +503,95 @@ class LLAPCongfigMeClient:
                         self.entry[e[0]].set(e[1][len(e[0]):])
         
             # show config screen
-            self.debugPrint("Setting keepAwake")
-            self.lcm.keepAwake = True
-            self.displayConfig()
+            self._debugPrint("Setting keepAwake")
+            self._lcm.keepAwake = True
+            self._displayConfig()
             
         elif reply.id == 3:
             # this was a config request
             # check replies were good and let user know device is now ready
             
             # show end screen
-            self.displayEnd()
+            self._displayEnd()
             
-        self.lcm.replyQ.task_done()
+        self._lcm.replyQ.task_done()
 
-    def processNoReply(self):
-        self.debugPrint("No Reply with in timeouts")
+    def _processNoReply(self):
+        self._debugPrint("No Reply with in timeouts")
         # ask user to press pair button and try again?
         if tkMessageBox.askyesno("Comunications Timeout", ("Unable to connect to device, \n"
                                                            "To try again check the deivce power,\n"
                                                            "press the ConfigMe button and click yes")
                                  ):
-            self.displayProgress()
-            self.starttime = time()
-            self.replyCheck()
+            self._displayProgress()
+            self._starttime = time()
+            self._replyCheck()
     
         
-    def sendRequest(self, lcr):
-        self.debugPrint("Sending Reueset to LCMC")
-        self.displayProgress()
-        self.debugPrint("Stopping keepAwake")
-        if self.lcm.keepAwake:
-            self.lcm.keepAwake = False
-        self.starttime = time()
-        self.lcm.requestQ.put(lcr)
-        self.replyCheck()
+    def _sendRequest(self, lcr):
+        self._debugPrint("Sending Reueset to LCMC")
+        self._displayProgress()
+        self._debugPrint("Stopping keepAwake")
+        if self._lcm.keepAwake:
+            self._lcm.keepAwake = False
+        self._starttime = time()
+        self._lcm.requestQ.put(lcr)
+        self._replyCheck()
     
-    def replyCheck(self):
+    def _replyCheck(self):
         # look for a reply
-        if self.lcm.replyQ.empty():
-            if time()-self.starttime > self.timeout:
+        if self._lcm.replyQ.empty():
+            if time()-self._starttime > self._timeout:
                 # if timeout passed, let user know no reply
                 # close wait diag
                 self.progressWindow.destroy()
-                self.processNoReply()
+                self._processNoReply()
             else:
                 # update wait diag and check again
-                self.master.after(500, self.replyCheck)
+                self.master.after(500, self._replyCheck)
         else:
             # close wait diag and return reply
             self.progressWindow.destroy()
-            self.processReply()
+            self._processReply()
     
-    def buildGrid(self, frame):
-        self.debugPrint("Building Grid for {}".format(frame.winfo_name()))
-        canvas = tk.Canvas(frame, bd=0, width=self.widthMain-4,
-                               height=self.rowHeight, highlightthickness=0)
+    def _buildGrid(self, frame):
+        self._debugPrint("Building Grid for {}".format(frame.winfo_name()))
+        canvas = tk.Canvas(frame, bd=0, width=self._widthMain-4,
+                               height=self._rowHeight, highlightthickness=0)
         canvas.grid(row=0, column=0, columnspan=6)
         
-        for r in range(self.rows):
+        for r in range(self._rows):
             for c in range(6):
                 tk.Canvas(frame, bd=0, #bg=("black" if r%2 and c%2 else "gray"),
                           highlightthickness=0,
-                          width=(self.widthMain-4)/6,
-                          height=self.rowHeight
+                          width=(self._widthMain-4)/6,
+                          height=self._rowHeight
                           ).grid(row=r, column=c)
     
-        tk.Button(frame, text='Quit', command=self.endConfigMe
-                  ).grid(row=self.rows-2, column=0, sticky=tk.E)
+        tk.Button(frame, text='Quit', command=self._endConfigMe
+                  ).grid(row=self._rows-2, column=0, sticky=tk.E)
 
-    def connect(self):
-        self.debugPrint("Connecting Serial port")
-        self.lcm.set_baud(self.config.get('Serial', 'baudrate'))
-        self.lcm.set_port(self.comport.get())
+    def _connect(self):
+        self._debugPrint("Connecting Serial port")
+        self._lcm.set_baud(self.config.get('Serial', 'baudrate'))
+        self._lcm.set_port(self.comport.get())
         
         # wrap this in a try block and throw a dialog window and return False
-        self.lcm.connect_transport()
-        if self.debugArg or self.debug:
-            self.serialDebugUpdate()
+        self._lcm.connect_transport()
+        if self._debugArg or self._debug:
+            self._serialDebugUpdate()
         
         return True
 
-    def serialDebug(self):
-        self.debugPrint("Setting up Serial debug window")
+    def _serialDebug(self):
+        self._debugPrint("Setting up Serial debug window")
         self.serialWindow = tk.Toplevel(self.master)
         self.serialWindow.geometry(
-               "{}x{}+{}+{}".format(self.widthSerial,
-                                    self.heightSerial,
+               "{}x{}+{}+{}".format(self._widthSerial,
+                                    self._heightSerial,
                                     int(self.config.get('LLAPCM',
                                                         'window_width_offset')
-                                        )+self.widthMain+20,
+                                        )+self._widthMain+20,
                                     self.config.get('LLAPCM',
                                                     'window_height_offset')
                                     )
@@ -606,37 +605,37 @@ class LLAPCongfigMeClient:
         self.serialDebugText.tag_config('TX', foreground='red')
         self.serialDebugText.tag_config('RX', foreground='blue')
     
-    def serialDebugUpdate(self):
-        if not self.lcm.transportQ.empty():
-            txt = self.lcm.transportQ.get()
+    def _serialDebugUpdate(self):
+        if not self._lcm.transportQ.empty():
+            txt = self._lcm.transportQ.get()
             self.serialDebugText.config(state=tk.NORMAL)
             self.serialDebugText.insert(tk.END, txt[0], txt[1])
             self.serialDebugText.see(tk.END)
             self.serialDebugText.config(state=tk.DISABLED)
-            self.lcm.transportQ.task_done()
+            self._lcm.transportQ.task_done()
         
-        self.master.after(10, self.serialDebugUpdate)
+        self.master.after(10, self._serialDebugUpdate)
     
-    def endConfigMe(self):
-        self.debugPrint("End Launcher")
+    def _endConfigMe(self):
+        self._debugPrint("End Launcher")
         position = self.master.geometry().split("+")
         self.config.set('LLAPCM', 'window_width_offset', position[1])
         self.config.set('LLAPCM', 'window_height_offset', position[2])
         self.master.destroy()
         self._running = False
 
-    def cleanUp(self):
-        self.debugPrint("Clean up and exit")
+    def _cleanUp(self):
+        self._debugPrint("Clean up and exit")
         # disconnect resources
-        self.lcm.disconnect_transport()
-        self.writeConfig()
+        self._lcm.disconnect_transport()
+        self._writeConfig()
         
-    def debugPrint(self, msg):
-        if self.debugArg or self.debug:
+    def _debugPrint(self, msg):
+        if self._debugArg or self._debug:
             print(msg)
     
-    def checkArgs(self):
-        self.debugPrint("Parse Args")
+    def _checkArgs(self):
+        self._debugPrint("Parse Args")
         parser = argparse.ArgumentParser(description='LLAP Config Me Client')
         parser.add_argument('-d', '--debug',
                        help='Extra Debug Output, overrides LLAPCM.cfg setting',
@@ -645,31 +644,31 @@ class LLAPCongfigMeClient:
         self.args = parser.parse_args()
         
         if self.args.debug:
-            self.debugArg = True
+            self._debugArg = True
         else:
-            self.debugArg = False
+            self._debugArg = False
 
 
-    def readConfig(self):
-        self.debugPrint("Reading Config")
+    def _readConfig(self):
+        self._debugPrint("Reading Config")
         
         self.config = ConfigParser.SafeConfigParser()
         
         # load defaults
         try:
-            self.config.readfp(open(self.configFileDefault))
+            self.config.readfp(open(self._configFileDefault))
         except:
-            self.debugPrint("Could Not Load Default Settings File")
+            self._debugPrint("Could Not Load Default Settings File")
         
         # read the user config file
-        if not self.config.read(self.configFile):
-            self.debugPrint("Could Not Load User Config, One Will be Created on Exit")
+        if not self.config.read(self._configFile):
+            self._debugPrint("Could Not Load User Config, One Will be Created on Exit")
         
         if not self.config.sections():
-            self.debugPrint("No Config Loaded, Quitting")
+            self._debugPrint("No Config Loaded, Quitting")
             sys.exit()
         
-        self.debug = self.config.getboolean('Shared', 'debug')
+        self._debug = self.config.getboolean('Shared', 'debug')
         
         try:
             f = open(self.config.get('Shared', 'versionfile'))
@@ -678,22 +677,22 @@ class LLAPCongfigMeClient:
         except:
             pass
 
-    def writeConfig(self):
-        self.debugPrint("Writing Config")
-        with open(self.configFile, 'wb') as configfile:
-            self.config.write(configfile)
+    def _writeConfig(self):
+        self._debugPrint("Writing Config")
+        with open(self._configFile, 'wb') as _configFile:
+            self.config.write(_configFile)
 
-    def loadDevices(self):
-        self.debugPrint("Loading device List")
+    def _loadDevices(self):
+        self._debugPrint("Loading device List")
         try:
-            with open(self.devFile, 'r') as f:
+            with open(self._devFile, 'r') as f:
                 read_data = f.read()
             f.closed
             
             self.devices = json.loads(read_data)['Devices']
     
         except IOError:
-            self.debugPrint("Could Not Load DevList File")
+            self._debugPrint("Could Not Load DevList File")
             self.devices = [
                             {'id': 0,
                              'Description': 'Error loading DevList file'
