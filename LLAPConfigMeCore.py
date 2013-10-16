@@ -8,11 +8,12 @@ replies to the calling application
 """
 import sys
 import time as time_
+import os
 import Queue
 import argparse
 import serial
 import threading
-
+import mosquitto
 
 SERIAL = 'serial'
 MQTT = 'mqtt'
@@ -43,6 +44,10 @@ class LLAPConfigMeCore(threading.Thread):
     _baud = 9600
     _port = "/dev/ttyAMA0" # could be IP for UDP layer
         
+    # mqtt defualts
+    clientName = "LLAPConfigmeCore"
+    _mqttServer = 'localhost'
+    _mqttPort = 1833
     
     _debug = False
     keepAwake = False
@@ -82,6 +87,13 @@ class LLAPConfigMeCore(threading.Thread):
         """
         if self._mode == SERIAL:
             self._serialPort = port
+        elif self._mode == MQTT:
+            port = port.split(':')
+            self._mqttServer = port[0]
+            if len(port) == 2:
+                self._mqttPort = port[1]
+            else:
+                self._mqttPort = 1833    # defualt port for mqtt if not given
     
     def set_baud(self, baud):
         """Set buad for use by transport
@@ -111,6 +123,10 @@ class LLAPConfigMeCore(threading.Thread):
                 return True
             else:
                 return False
+        elif self._mode == MQTT:
+            """MQTT based trasnport using mosquitto
+            """
+            self.transport = mosquitto.Mosquitto(self.clientName)
 
     def disconnect_transport(self):
         """Disconnet transport
@@ -120,11 +136,23 @@ class LLAPConfigMeCore(threading.Thread):
         self.disconnectFlag.set()
             
     def run(self):
+        """Run correct loop based on mode
+        """
+        if self._mode == SERIAL:
+            self.runSerial()
+        elif self._mode == MQTT:
+            self.runMqtt()
+
+    def runMqtt(self):
+        """MQTT based run loop
+        """
+        pass
+    
+    def runSerial(self):
         """Thread loop for processing serial input and actual items in a ConfigRequest
             
             
         """
-    
         while self.transport.isOpen():
             if self.transport.inWaiting():
                 char = self.transport.read()
