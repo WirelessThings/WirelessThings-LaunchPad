@@ -84,6 +84,9 @@ class LLAPCongfigMeClient:
         self._readConfig()
         self._loadDevices()
 
+        if self.args.mqtt:
+            self.lcm.set_mode(MQTT)
+
         if self._debugArg or self._debug:
             self._lcm.debug = True
         
@@ -91,7 +94,6 @@ class LLAPCongfigMeClient:
 
         # run the GUI's
         self._runConfigMe()
-
         self._cleanUp()
 
     def _runConfigMe(self):
@@ -127,6 +129,9 @@ class LLAPCongfigMeClient:
         self.comport = tk.StringVar()
         self.comport.set(port)
     
+        if self.args.mqtt:
+            self.comport.set('localhost')
+        
         self.entry = {
                       "CHDEVID" : tk.StringVar(),
                       "PANID" : tk.StringVar(),
@@ -527,7 +532,6 @@ class LLAPCongfigMeClient:
             self._starttime = time()
             self._replyCheck()
     
-        
     def _sendRequest(self, lcr):
         self._debugPrint("Sending Reueset to LCMC")
         self._displayProgress()
@@ -639,7 +643,12 @@ class LLAPCongfigMeClient:
         parser = argparse.ArgumentParser(description='LLAP Config Me Client')
         parser.add_argument('-d', '--debug',
                        help='Extra Debug Output, overrides LLAPCM.cfg setting',
-                            action='store_true')
+                            action='store_true'
+                            )
+        parser.add_argument('-m', '--mqtt', help='Use MQTT for transport',
+                            action='store_true'
+                            )
+                            
         
         self.args = parser.parse_args()
         
@@ -647,7 +656,6 @@ class LLAPCongfigMeClient:
             self._debugArg = True
         else:
             self._debugArg = False
-
 
     def _readConfig(self):
         self._debugPrint("Reading Config")
