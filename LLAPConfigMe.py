@@ -473,7 +473,7 @@ class LLAPCongfigMeClient:
                         for n in self.devices[self.device['id']]['Options']:
                             # create place to put the reply later
                             self.entry[n['Command']] = tk.StringVar()
-                            query.append(n['Command'])
+                            query.append(n['Command'].encode('ascii', 'ignore'))
 
                         lcr = LLAPConfigRequest(id=2,
                                                 devType=self.device['DEVTYPE'],
