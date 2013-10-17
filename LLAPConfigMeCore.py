@@ -130,6 +130,14 @@ class LLAPConfigMeCore(threading.Thread):
             """MQTT based trasnport using mosquitto
             """
             self.transport = mosquitto.Mosquitto(self.clientName)
+            self.transport.on_message = self.mqttOnMessage
+            self.transport.connect(host=self._mqttServer, port=self._mqttPort)
+            self.transport.loop_start()
+            self.transport.subscribe(self._mqttSub_rx)
+            if self.debug:
+                print("LCMC: Transport open")
+            self.start()
+            return True
 
     def disconnect_transport(self):
         """Disconnet transport
@@ -150,6 +158,13 @@ class LLAPConfigMeCore(threading.Thread):
         """MQTT based run loop
         """
         pass
+    def mqttOnMessage(self, mosq, obj, msg):
+        """Recieved Message from MQTT
+        """
+        if self.debug:
+            print("LCMC: Received on topic {} with QoS {}  and payload {}".format(msg.topic, msg.qos, msg.payload))
+        self.transportQ.put(["{}:{}".format(msg.topic, msg.payload), "RX"])
+        self._mqttQ.put(msg)
     
     def runSerial(self):
         """Thread loop for processing serial input and actual items in a ConfigRequest
