@@ -7,7 +7,7 @@ the requested exchanges returning a LLAPConfigReqesut complete with
 replies to the calling application
 """
 import sys
-import time as time_
+from time import time, sleep
 import os
 import Queue
 import argparse
@@ -304,6 +304,7 @@ if __name__ == "__main__" :
     except KeyboardInterrupt:
         print("Keyboard Interrupt")
         lcm.disconnect_transport()
+        sleep(1)
         sys.exit()
         
 
