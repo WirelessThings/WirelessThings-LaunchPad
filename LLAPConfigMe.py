@@ -84,6 +84,9 @@ class LLAPCongfigMeClient:
         self.checkArgs()
         self.readConfig()
         self.loadDevices()
+        
+        if self.args.mqtt:
+            self.lcm.set_mode(MQTT)
 
         if self.debugArg or self.debug:
             self.lcm.debug = True
@@ -128,6 +131,9 @@ class LLAPCongfigMeClient:
         self.comport = tk.StringVar()
         self.comport.set(port)
     
+        if self.args.mqtt:
+            self.comport.set('localhost')
+        
         self.entry = {
                       "CHDEVID" : tk.StringVar(),
                       "PANID" : tk.StringVar(),
@@ -530,7 +536,7 @@ class LLAPCongfigMeClient:
     
         
     def sendRequest(self, lcr):
-        self.debugPrint("Sending Reueset to LCMC")
+        self.debugPrint("Sending Requeset to LCMC")
         self.displayProgress()
         self.debugPrint("Stopping keepAwake")
         if self.lcm.keepAwake:
@@ -640,7 +646,12 @@ class LLAPCongfigMeClient:
         parser = argparse.ArgumentParser(description='LLAP Config Me Client')
         parser.add_argument('-d', '--debug',
                        help='Extra Debug Output, overrides LLAPCM.cfg setting',
-                            action='store_true')
+                            action='store_true'
+                            )
+        parser.add_argument('-m', '--mqtt', help='Use MQTT for transport',
+                            action='store_true'
+                            )
+                            
         
         self.args = parser.parse_args()
         
@@ -648,7 +659,6 @@ class LLAPCongfigMeClient:
             self.debugArg = True
         else:
             self.debugArg = False
-
 
     def readConfig(self):
         self.debugPrint("Reading Config")
