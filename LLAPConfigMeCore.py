@@ -68,6 +68,7 @@ class LLAPConfigMeCore(threading.Thread):
         self.replyQ = Queue.Queue()
         self.requestQ = Queue.Queue()
         self.transportQ = Queue.Queue()
+        self._mqttQ = Queue.Queue()
     
     def __del__(self):
         """Destructor
@@ -96,7 +97,7 @@ class LLAPConfigMeCore(threading.Thread):
             if len(port) == 2:
                 self._mqttPort = port[1]
             else:
-                self._mqttPort = 1833    # defualt port for mqtt if not given
+                self._mqttPort = 1883    # defualt port for mqtt if not given
     
     def set_baud(self, baud):
         """Set buad for use by transport
@@ -157,12 +158,91 @@ class LLAPConfigMeCore(threading.Thread):
     def runMqtt(self):
         """MQTT based run loop
         """
-        pass
+        while not self.disconnectFlag.isSet():
+            if not self._mqttQ.empty():
+                msg = self._mqttQ.get()
+                if msg.payload == "CONFIGME":
+                    # start of a CONFIGME Cycle
+                    # lets check the requesst queue
+                    if not self.requestQ.empty():
+                        request = self.requestQ.get()
+                        # ok we got a request
+                        if self.debug:
+                            print("LCMC: ID:{}, devType:{}, toQuery:{}".format(request.id,
+                                                                               request.devType,
+                                                                               request.toQuery))
+                        # is it for a set devtype
+                        if request.devType == None:
+                            # procces reuests
+                            for query in request.toQuery:
+                                self.transport.publish(self._mqttPub_tx, query)
+                                self.transportQ.put(["{}:{}".format(self._mqttPub_tx,
+                                                                    query), "TX"])
+                                
+                                while self._mqttQ.empty():
+                                    self.t_stop.wait(0.01)
+                                
+                                reply = self._mqttQ.get()
+                                request.replies.append([query, reply.payload])
+                                self._mqttQ.task_done()
+                        
+                        else:
+                            # got a need to check devtype first
+                            query = "DEVTYPE"
+                            self.transport.publish(self._mqttPub_tx, query)
+                            self.transportQ.put(["{}:{}".format(self._mqttPub_tx,
+                                                                query), "TX"])
+                            
+                            while self._mqttQ.empty():
+                                self.t_stop.wait(0.01)
+                                    
+                            reply = self._mqttQ.get()
+                            request.replies.append([query, reply.payload])
+                            self._mqttQ.task_done()
+                            
+                            if reply.payload == request.devType:
+                                # got a matching devtype, time to send all the requests
+                                for query in request.toQuery:
+                                    self.transport.publish(self._mqttPub_tx, query)
+                                    self.transportQ.put(["{}:{}".format(self._mqttPub_tx,
+                                                                        query), "TX"])
+                                                                        
+                                    while self._mqttQ.empty():
+                                        self.t_stop.wait(0.01)
+                                    
+                                    reply = self._mqttQ.get()
+                                    request.replies.append([query, reply.payload])
+                                    self._mqttQ.task_done()
+                        
+                        self.replyQ.put(request)
+                        self.requestQ.task_done()
+                    elif self.keepAwake:
+                        # nothing in the que but have been asked to keep device awake
+                        if self.debug:
+                            print("LCMC: Sending keepAwake HELLO")
+                        llapMsg = "a??HELLO----"
+                        self.transport.publish(self._mqttPub_tx, "HELLO")
+                        self.transportQ.put(["{}:HELLO".format(self._mqttPub_tx), "TX"])
+                        while self._mqttQ.empty():
+                            self.t_stop.wait(0.01)
+                                
+                        reply = self._mqttQ.get()
+                        self._mqttQ.task_done()
+                else:
+                    #not a CONFIGME llap
+                    pass
+
+                self._mqttQ.task_done()
+            self.t_stop.wait(0.01)
+        self.transport.disconnect()
+    
     def mqttOnMessage(self, mosq, obj, msg):
         """Recieved Message from MQTT
         """
         if self.debug:
-            print("LCMC: Received on topic {} with QoS {}  and payload {}".format(msg.topic, msg.qos, msg.payload))
+            print("LCMC: Received on topic {} with QoS {}  and payload {}".format(msg.topic,
+                                                                                  msg.qos,
+                                                                                  msg.payload))
         self.transportQ.put(["{}:{}".format(msg.topic, msg.payload), "RX"])
         self._mqttQ.put(msg)
     
