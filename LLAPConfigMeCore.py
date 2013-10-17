@@ -186,7 +186,9 @@ class LLAPConfigMeCore(threading.Thread):
                             request = self.requestQ.get()
                             # ok we got a request
                             if self.debug:
-                                print("LCMC: ID:{}, devType:{}, toQuery:{}".format(request.id, request.devType, request.toQuery))
+                                print("LCMC: ID:{}, devType:{}, toQuery:{}".format(request.id,
+                                                                                   request.devType,
+                                                                                   request.toQuery))
                             # is it for a set devtype
                             if request.devType == None:
                                 # procces reuests
@@ -202,12 +204,15 @@ class LLAPConfigMeCore(threading.Thread):
                                     while llapReply[1:3] != "??" :
                                         llapReply = self.read_12()
                                     
-                                    request.replies.append([llapMsg[3:].strip('-'),
+                                    request.replies.append([query,
                                                             llapReply[3:].strip('-')])
                         
                             else:
                                 # got a need to check devtype first
-                                llapMsg = "a??DEVTYPE--"
+                                query = "DEVTYPE"
+                                llapMsg = "a??{}".format(query)
+                                while len(llapMsg) <12:
+                                    llapMsg += '-'
                                 self.transport.write(llapMsg)
                                 self.transportQ.put([llapMsg, "TX"])
 
@@ -215,7 +220,7 @@ class LLAPConfigMeCore(threading.Thread):
                                 while llapReply[1:3] != "??" :
                                     llapReply = self.read_12()
                                 
-                                request.replies.append([llapMsg[3:].strip('-'),
+                                request.replies.append([query,
                                                         llapReply[3:].strip('-')])
                                 
                                 if llapReply[3:].strip('-') == request.devType:
@@ -232,7 +237,7 @@ class LLAPConfigMeCore(threading.Thread):
                                         while llapReply[1:3] != "??" :
                                             llapReply = self.read_12()
                                         
-                                        request.replies.append([llapMsg[3:].strip('-'),
+                                        request.replies.append([query,
                                                                 llapReply[3:].strip('-')])
                 
                             self.replyQ.put(request)
