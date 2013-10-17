@@ -42,14 +42,17 @@ class LLAPConfigMeCore(threading.Thread):
     # serial based defualts
     _mode = SERIAL
     _baud = 9600
-    _port = "/dev/ttyAMA0" # could be IP for UDP layer
-        
+    _serialPort = "/dev/ttyAMA0"
+    
     # mqtt defualts
     clientName = "LLAPConfigmeCore"
     _mqttServer = 'localhost'
-    _mqttPort = 1833
+    _mqttPort = 1883
+    _mqttSub_rx = 'llap/rx/??'
+    #_mqttSub_rx_mask = 'llap/rx/'
+    _mqttPub_tx = 'llap/tx/??'
     
-    _debug = False
+    debug = False
     keepAwake = False
 
     def __init__(self):
@@ -117,7 +120,7 @@ class LLAPConfigMeCore(threading.Thread):
                         print("LCMC: Transport open")
                     self.start()
                 except serial.SerialException, e:
-                    sys.stderr.write("LCMC: could not open port %r: %s\n" % (self._port, e))
+                    sys.stderr.write("LCMC: could not open port %r: %s\n" % (self._serialPort, e))
                     sys.exit(1)
                 # start the read thread
                 return True
@@ -163,7 +166,7 @@ class LLAPConfigMeCore(threading.Thread):
                     self.transportQ.put([llapMsg[1:], "RX"])
                     if llapMsg == "a??CONFIGME-":
                         # start of a CONFIGME cycle
-                        # ets check the reuest queue
+                        # lets check the request queue
                         if not self.requestQ.empty():
                             request = self.requestQ.get()
                             # ok we got a request
