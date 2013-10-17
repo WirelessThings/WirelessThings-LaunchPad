@@ -280,6 +280,9 @@ if __name__ == "__main__" :
     t = threading.Event()
     parser = argparse.ArgumentParser(
                              description='LLAP ConfigMe Core logic test code')
+    parser.add_argument('-m', '--mqtt', help='Use MQTT for transport',
+                        action='store_true'
+                        )
     parser.add_argument('-p', '--port', help='Port to Use for testing')
     parser.add_argument('-d', '--debug', help='Extra Debug Output',
                         action='store_true'
@@ -288,6 +291,9 @@ if __name__ == "__main__" :
     args = parser.parse_args()
     
     lcm = LLAPConfigMeCore()
+    
+    if args.mqtt:
+        lcm.set_mode(MQTT)
     
     if args.port:
         lcm.set_port(args.port)    # argphrase this???
