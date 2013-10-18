@@ -386,8 +386,8 @@ if __name__ == "__main__" :
     if args.debug:
         lcm.debug = True
     # build an example request, normall done via wizards
-    query = ["CHDEVIDAA", "INTVL005M", "CYCLE"]
-    lcr = LLAPConfigRequest(id=1, devType="THERM001", toQuery=query)
+    query = ["DEVID", "CHDEVID", "INTVL"]
+    lcr = LLAPConfigRequest(id=1, toQuery=query)
 
     lcm.connect_transport()
     running = True

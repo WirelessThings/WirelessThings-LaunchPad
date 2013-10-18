@@ -353,7 +353,6 @@ class LLAPCongfigMeClient:
             return False
 
     def validDevID(self, d, P, W, s, S):
-        print(W)
         valid = False
         validChar = ['#', '@', '\\', '*'] # as of llap 2.0 - and ? cannot be set
         for c in validChar:
