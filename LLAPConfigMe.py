@@ -85,7 +85,7 @@ class LLAPCongfigMeClient:
         self._loadDevices()
 
         if self.args.mqtt:
-            self.lcm.set_mode(MQTT)
+            self._lcm.set_mode(MQTT)
 
         if self._debugArg or self._debug:
             self._lcm.debug = True
