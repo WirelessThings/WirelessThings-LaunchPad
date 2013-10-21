@@ -229,29 +229,29 @@ class LLAPCongfigMeClient:
                  ).grid(row=7, column=1, columnspan=2, sticky=tk.W)
         
         if self.devices[self.device['id']]['SleepMode'] == "Cyclic":
-        # cyclic config options
-        tk.Label(self.cframe, text="Cyclic Commands"
-                 ).grid(row=9, column=0, columnspan=3)
-        tk.Label(self.cframe, text="Sleep Interval"
-                 ).grid(row=10, column=0, columnspan=3)
-        tk.Label(self.cframe, text="INTVL").grid(row=11, column=0, sticky=tk.E)
-        tk.Entry(self.cframe, textvariable=self.entry['INTVL'], width=20,
-                 validate='key',
-                 invalidcommand='bell',
-                 validatecommand=self.vUpper,
-                 ).grid(row=11, column=1, columnspan=2, sticky=tk.W)
-
-        tk.Label(self.cframe, text="Battery Wake Count"
-                 ).grid(row=12, column=0, columnspan=3)
-        tk.Label(self.cframe, text="WAKEC").grid(row=13, column=0, sticky=tk.E)
-        tk.Entry(self.cframe, textvariable=self.entry['WAKEC'], width=20,
-                 ).grid(row=13, column=1, columnspan=2, sticky=tk.W)
+            # cyclic config options
+            tk.Label(self.cframe, text="Cyclic Commands"
+                     ).grid(row=9, column=0, columnspan=3)
+            tk.Label(self.cframe, text="Sleep Interval"
+                     ).grid(row=10, column=0, columnspan=3)
+            tk.Label(self.cframe, text="INTVL").grid(row=11, column=0, sticky=tk.E)
+            tk.Entry(self.cframe, textvariable=self.entry['INTVL'], width=20,
+                     validate='key',
+                     invalidcommand='bell',
+                     validatecommand=self.vUpper,
+                    ).grid(row=11, column=1, columnspan=2, sticky=tk.W)
     
-        tk.Label(self.cframe, text="Enable Cyclic Sleep"
-                 ).grid(row=14, column=0, columnspan=3)
-        tk.Label(self.cframe, text="CYCLE").grid(row=15, column=0, sticky=tk.E)
+            tk.Label(self.cframe, text="Battery Wake Count"
+                     ).grid(row=12, column=0, columnspan=3)
+            tk.Label(self.cframe, text="WAKEC").grid(row=13, column=0, sticky=tk.E)
+            tk.Entry(self.cframe, textvariable=self.entry['WAKEC'], width=20,
+                    ).grid(row=13, column=1, columnspan=2, sticky=tk.W)
+        
+            tk.Label(self.cframe, text="Enable Cyclic Sleep"
+                     ).grid(row=14, column=0, columnspan=3)
+            tk.Label(self.cframe, text="CYCLE").grid(row=15, column=0, sticky=tk.E)
             tk.Checkbutton(self.cframe, variable=self.entry['SLEEPM']
-                       ).grid(row=15, column=1, columnspan=2, sticky=tk.W)
+                          ).grid(row=15, column=1, columnspan=2, sticky=tk.W)
         elif self.devices[sellf.device['id']]['SleepMode'] == "Cyclic":
             # Interupt sleep decivces
             tk.Label(self.cframe, text="Interupt Sleep"
@@ -434,7 +434,7 @@ class LLAPCongfigMeClient:
             # append save and exits command?
             pass
         # always finish with reboot to save and apply
-            query.append("REBOOT")
+        query.append("REBOOT")
 
         lcr = LLAPConfigRequest(id=3,
                                 devType=self.device['DEVTYPE'],
@@ -531,7 +531,7 @@ class LLAPCongfigMeClient:
             self._displayEnd()
         elif reply.id == 4:
             pass
-            
+        
         self._lcm.replyQ.task_done()
 
     def _processNoReply(self):
@@ -548,8 +548,8 @@ class LLAPCongfigMeClient:
     def _sendRequest(self, lcr):
         self._debugPrint("Sending Reueset to LCMC")
         self._displayProgress()
-        self._debugPrint("Stopping keepAwake")
         if self._lcm.keepAwake:
+            self._debugPrint("Stopping keepAwake")
             self._lcm.keepAwake = False
         self._starttime = time()
         self._lcm.requestQ.put(lcr)
@@ -644,8 +644,23 @@ class LLAPCongfigMeClient:
     def _cleanUp(self):
         self._debugPrint("Clean up and exit")
         # if we were talking to a device we should send a CONFIGEND
-        
-        
+        if self._lcm.keepAwake:
+            query = ["CONFIGEND"]
+            lcr = LLAPConfigRequest(id=4,
+                                    devType=self.device['DEVTYPE'],
+                                    toQuery=query
+                                    )
+                                    
+            self._debugPrint("Sending ConfigEnd LCMC")
+            if self._lcm.keepAwake:
+                self._debugPrint("Stopping keepAwake")
+                self._lcm.keepAwake = False
+            self._starttime = time()
+            self._lcm.requestQ.put(lcr)
+            while self._lcm.replyQ.empty() and time()-self._starttime < 15:
+                sleep(0.1)
+    
+
         # disconnect resources
         self._lcm.disconnect_transport()
         self._writeConfig()
