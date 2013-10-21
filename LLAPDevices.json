@@ -5,54 +5,72 @@
                         "Command":"ACK"
                         },
                         {
-                        "Command":"APVER"
+                        "Command":"APVER",
+                        "Format":"Float"
                         },
                         {
-                        "Command":"DEVTYPE"
+                        "Command":"DEVTYPE",
+                        "Format":"String"
                         },
                         {
-                        "Command":"DEVNAME"
+                        "Command":"DEVNAME",
+                        "Format":"String"
                         },
                         {
                         "Command":"HELLO"
                         },
                         {
-                        "Command":"SER"
+                        "Command":"SER",
+                        "Format":"String"
                         },
                         {
                         "Command":"$ER"
                         },
                         {
-                        "Command":"FVER"
+                        "Command":"FVER",
+                        "Format":"Float"
                         },
                         {
-                        "Command":"CHDEVID"
+                        "Command":"CHDEVID",
+                        "Format":"ID"
                         },
                         {
-                        "Command":"PANID"
+                        "Command":"PANID",
+                        "Format":"Hex"
                         },
                         {
                         "Command":"REBOOT"
                         },
                         {
-                        "Command":"RETRIES"
+                        "Command":"RETRIES",
+                        "Format":"Int"
                         },
                         {
-                        "Command":"BATT"
+                        "Command":"BATT",
+                        "Format":"Float"
                         },
                         {
-                        "Command":"SLEEP"
+                        "Command":"SLEEP",
+                        "Format":"Period"
                         },
                         {
                         "Command":"SAVE"
                         },
                         {
                         "Command":"LLAPRESET"
+                        },
+                        {
+                        "Command":"CONFIGEND"
+                        },
+                        {
+                        "Command":"SLEPM",
+                        "Format":"Int"
                         }
                         ],
     "Cyclic Commands":[
                        {
-                       "Command":"INTVL"
+                       "Command":"INTVL",
+                       "Format":"Period"
                        },
                        {
                        "Command":"CYCLE"
@@ -61,7 +79,8 @@
                        "Command":"WAKE"
                        },
                        {
-                       "Command":"WAKEC"
+                       "Command":"WAKEC",
+                       "Format":"Int"
                        }
                        ],
     "Announcements":[
@@ -90,7 +109,7 @@
                "DEVTYPE":"THERM001",
                "Name":"Thermistor",
                "Description":"LLAP Thermistor",
-               "Cyclic":true,
+               "SleepMode":"Cyclic",
                "Actions":[
                           {
                           "Command":"TEMP",
@@ -133,10 +152,52 @@
                "DEVTYPE":"BUT00002",
                "Name":"Button V2",
                "Description":"LLAP Button",
-               "Cyclic":false,
+               "SleepMode":"Interupt",
                "Actions":[
                
-               ],
+                          ],
+               "Options":[
+                          {
+                          "Command":"MSG",
+                          "Description":"Message",
+                          "Format":"String"
+                          },
+                          {
+                          "Command":"TYP",
+                          "Description":"Mode of Operation",
+                          "Format":"Int"
+                          },
+                          {
+                          "Command":"INVERT",
+                          "Description":"Invert inputs",
+                          "Format":"ONOFF"
+                          },
+                          {
+                          "Command":"CHREMID",
+                          "Description":"Remote ID, Tageet of button presses",
+                          "Format":"ID"
+                          },
+                          {
+                          "Command":"DEB",
+                          "Description":"Button debounce",
+                          "Format":"Int"
+                          }
+                          ]
+               },
+               {
+               "id":2,
+               "DEVTYPE":"RLY00002",
+               "Name":"Relay",
+               "Description":"LLAP Relay",
+               "SleepMode":"Polled",
+               "Actions":[
+                          {
+                          "Command":"RELAY",
+                          "Description":"RELAY",
+                          "Format":"ONOFFTOG",
+                          "Type":"Polled"
+                          }
+                         ],
                "Options":[
                           {
                           "Command":"MSG",
