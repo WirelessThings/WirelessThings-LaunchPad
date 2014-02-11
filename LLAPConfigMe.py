@@ -563,7 +563,7 @@ class LLAPCongfigMeClient:
                                        'devID': reply.replies[2][1][7:]
                                       }
                         # assuming we know what it is ask for the current config
-                        query = ["PANID", "RETRIES"]
+                            query = ["PANID", "RETRIES", "SNL", "SNH", "ENC"]
                         
                         if self.devices[self.device['id']]['SleepMode'] == "Cyclic":
                             query.append("INTVL")
