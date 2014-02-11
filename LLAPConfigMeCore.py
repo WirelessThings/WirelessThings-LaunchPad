@@ -42,7 +42,13 @@ class LLAPConfigMeCore(threading.Thread):
     # serial based defualts
     _mode = SERIAL
     _baud = 9600
-    _serialPort = "/dev/ttyAMA0"
+    if sys.platform == 'darwin':
+        #port = '/dev/tty.usbserial-B002'
+        _serialPort = "/dev/tty.usbserial-A600L03S"
+    elif sys.platform == 'win32':
+        _serialPort = "COM1"
+    else:
+        _serialPort = "/dev/ttyAMA0"
     
     # mqtt defualts
     clientName = "LLAPConfigmeCore"

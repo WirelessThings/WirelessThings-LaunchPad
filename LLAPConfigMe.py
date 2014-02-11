@@ -28,7 +28,8 @@ from LLAPConfigMeCore import *
 
 
 if sys.platform == 'darwin':
-    port = '/dev/tty.usbmodem000001'
+    #port = '/dev/tty.usbserial-B002'
+    port = '/dev/tty.usbserial-A600L03S'
 elif sys.platform == 'win32':
     port = ''
 else:
