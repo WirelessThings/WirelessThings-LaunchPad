@@ -123,7 +123,7 @@ class LLAPCongfigMeClient:
         self._displayIntro()
         
         self.master.mainloop()
-
+    
     def _initTkVariables(self):
         self._debugPrint("Init Tk Variables")
         
@@ -152,7 +152,7 @@ class LLAPCongfigMeClient:
                       "EN5" : tk.StringVar(),
                       "EN6" : tk.StringVar()
                      }
-    
+
     def _displayIntro(self):
         self._debugPrint("Display Intro Page")
         self.iframe = tk.Frame(self.master, name='introFrame', relief=tk.RAISED,
@@ -220,10 +220,10 @@ class LLAPCongfigMeClient:
         self._devIDInputs.append(tk.Entry(self.cframe,
                                           textvariable=self.entry['CHDEVID'],
                                           width=20,
-                                         validate='key',
-                                         invalidcommand='bell',
-                                         validatecommand=self.vDevID,
-                                         name='chdevid'
+                                          validate='key',
+                                          invalidcommand='bell',
+                                          validatecommand=self.vDevID,
+                                          name='chdevid'
                                          )
                                 )
         self._devIDInputs[-1].grid(row=3, column=1, columnspan=2, sticky=tk.W)
@@ -320,7 +320,7 @@ class LLAPCongfigMeClient:
                   ).grid(row=self._rows-2, column=4, sticky=tk.E)
         tk.Button(self.cframe, text='Next', command=self._sendConfigRequest
                   ).grid(row=self._rows-2, column=5, sticky=tk.W)
-
+    
     def _displayAdvance(self):
         """Advacne config diag to show Serial number and set ENC"""
         # TODO: rearange to find long ENKEY box
@@ -498,7 +498,7 @@ class LLAPCongfigMeClient:
         self._debugPrint("Sending config request to device")
         # TODO: add a line here to disable NEXT button on cfame and advance
         
-
+        
         # build config query from values in entry
         # generic commands first
         query = [
@@ -506,7 +506,7 @@ class LLAPCongfigMeClient:
                  "PANID{}".format(self.entry['PANID'].get()),
                  "RETRIES{}".format(self.entry['RETRIES'].get())
                 ]
-                
+        
         # Set encryption on/off
         if self.entry["ENC"].get() == 1:
             query.append("ENCON")
@@ -585,27 +585,39 @@ class LLAPCongfigMeClient:
                                        'DTY': self.devices[n]['DTY'],
                                        'devID': reply.replies[2][1][7:]
                                       }
-                        # assuming we know what it is ask for the current config
-                            query = ["PANID", "RETRIES", "SNL", "SNH", "ENC"]
                         
-                        if self.devices[self.device['id']]['SleepMode'] == "Cyclic":
-                            query.append("INTVL")
-                            query.append("WAKEC")
-                            query.append("SLEEPM")
-                        elif self.devices[self.defice['id']]['SleepMode'] == "Interupt":
-                            query.append("SLEEPM")
+                        # ask user about reseting device if devID is not ??
+                        # for testing lets just reset if devID is MB
+                        if self.device['devID'] == "MB":
+                            query = ["LLAPRESET", "CHDEVID"]
                         
-                        for n in self.devices[self.device['id']]['Options']:
-                            # create place to put the reply later
-                            self.entry[n['Command']] = tk.StringVar()
-                            query.append(n['Command'].encode('ascii', 'ignore'))
-
-                        lcr = LLAPConfigRequest(id=2,
+                            lcr = LLAPConfigRequest(id=5,
                                                     devType=self.device['DTY'],
-                                                toQuery=query
-                                                )
+                                                    toQuery=query)
+                            self._sendRequest(lcr)
+                        
+                        else:
+                            # assuming we know what it is ask for the current config
+                            query = ["PANID", "RETRIES", "SNL", "SNH", "ENC"]
+                            
+                            if self.devices[self.device['id']]['SleepMode'] == "Cyclic":
+                                query.append("INTVL")
+                                query.append("WAKEC")
+                                query.append("SLEEPM")
+                            elif self.devices[self.defice['id']]['SleepMode'] == "Interupt":
+                                query.append("SLEEPM")
+                            
+                            for n in self.devices[self.device['id']]['Options']:
+                                # create place to put the reply later
+                                self.entry[n['Command']] = tk.StringVar()
+                                query.append(n['Command'].encode('ascii', 'ignore'))
 
-                        self._sendRequest(lcr)
+                            lcr = LLAPConfigRequest(id=2,
+                                                    devType=self.device['DTY'],
+                                                    toQuery=query
+                                                    )
+
+                            self._sendRequest(lcr)
                         
             else:
                 # apver mismatch, show error screen
@@ -638,7 +650,7 @@ class LLAPCongfigMeClient:
                 else:
                     if e[0] in self.entry:
                         self.entry[e[0]].set(e[1][len(e[0]):])
-        
+
             # show config screen
             self._debugPrint("Setting keepAwake")
             self._lcm.keepAwake = True
@@ -652,6 +664,29 @@ class LLAPCongfigMeClient:
             self._displayEnd()
         elif reply.id == 4:
             pass
+        elif reply.id == 5:
+            # have done a reset so should get back factory settings
+            self.device["devID"] = reply.replies[2][1][7:]
+            query = ["PANID", "RETRIES", "SNL", "SNH", "ENC"]
+            
+            if self.devices[self.device['id']]['SleepMode'] == "Cyclic":
+                query.append("INTVL")
+                query.append("WAKEC")
+                query.append("SLEEPM")
+            elif self.devices[self.defice['id']]['SleepMode'] == "Interupt":
+                query.append("SLEEPM")
+            
+            for n in self.devices[self.device['id']]['Options']:
+                # create place to put the reply later
+                self.entry[n['Command']] = tk.StringVar()
+                query.append(n['Command'].encode('ascii', 'ignore'))
+            
+            lcr = LLAPConfigRequest(id=2,
+                                    devType=self.device['DTY'],
+                                    toQuery=query
+                                    )
+                                    
+            self._sendRequest(lcr)
         
         self._lcm.replyQ.task_done()
 
@@ -712,7 +747,7 @@ class LLAPCongfigMeClient:
                           height=self._rowHeight
                           ).grid(row=r, column=c)
         if (quit):
-        tk.Button(frame, text='Quit', command=self._endConfigMe
+            tk.Button(frame, text='Quit', command=self._endConfigMe
                       ).grid(row=rows-2, column=0, sticky=tk.E)
 
     def _connect(self):
