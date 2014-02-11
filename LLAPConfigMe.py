@@ -437,7 +437,7 @@ class LLAPCongfigMeClient:
         query.append("REBOOT")
 
         lcr = LLAPConfigRequest(id=3,
-                                devType=self.device['DEVTYPE'],
+                                devType=self.device['DTY'],
                                 toQuery=query
                                 )
 
@@ -449,7 +449,8 @@ class LLAPCongfigMeClient:
             devtype and apver request
         """
         self._debugPrint("Query type")
-        query = ["DEVTYPE", "APVER", "CHDEVID"]
+        # TODO: add a line here to disable NEXT button on pfame
+        query = ["DTY", "APVER", "CHDEVID"]
         lcr = LLAPConfigRequest(id=1, toQuery=query)
 
         self._sendRequest(lcr)
@@ -466,10 +467,10 @@ class LLAPCongfigMeClient:
                 # valid apver
                 # so check what replied
                 for n in range(len(self.devices)):
-                    if self.devices[n]['DEVTYPE'] == reply.replies[0][1]:
+                    if self.devices[n]['DTY'] == reply.replies[0][1]:
                         # we have a match
                         self.device = {'id': n,
-                                       'DEVTYPE': self.devices[n]['DEVTYPE'],
+                                       'DTY': self.devices[n]['DTY'],
                                        'devID': reply.replies[2][1][7:]
                                       }
                         # assuming we know what it is ask for the current config
@@ -488,7 +489,7 @@ class LLAPCongfigMeClient:
                             query.append(n['Command'].encode('ascii', 'ignore'))
 
                         lcr = LLAPConfigRequest(id=2,
-                                                devType=self.device['DEVTYPE'],
+                                                    devType=self.device['DTY'],
                                                 toQuery=query
                                                 )
 
@@ -498,7 +499,7 @@ class LLAPCongfigMeClient:
                 # apver mismatch, show error screen
                 pass
         elif reply.id == 2:
-            # this was and information request
+            # this was an information request
             # populate fields
             if self.device['devID'] == '':
                 self.entry['CHDEVID'].set("--")
@@ -647,7 +648,7 @@ class LLAPCongfigMeClient:
         if self._lcm.keepAwake:
             query = ["CONFIGEND"]
             lcr = LLAPConfigRequest(id=4,
-                                    devType=self.device['DEVTYPE'],
+                                    devType=self.device['DTY'],
                                     toQuery=query
                                     )
                                     

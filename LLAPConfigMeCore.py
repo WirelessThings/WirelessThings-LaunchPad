@@ -141,7 +141,7 @@ class LLAPConfigMeCore(threading.Thread):
             return True
 
     def disconnect_transport(self):
-        """Disconnet transport
+        """Disconnect transport
         
         Will cause the thread to close on next loop
         """
@@ -188,7 +188,7 @@ class LLAPConfigMeCore(threading.Thread):
                         
                         else:
                             # got a need to check devtype first
-                            query = "DEVTYPE"
+                            query = "DTY"
                             self.transport.publish(self._mqttPub_tx, query)
                             self.transportQ.put(["{}:{}".format(self._mqttPub_tx,
                                                                 query), "TX"])
@@ -289,7 +289,7 @@ class LLAPConfigMeCore(threading.Thread):
                         
                             else:
                                 # got a need to check devtype first
-                                query = "DEVTYPE"
+                                query = "DTY"
                                 llapMsg = "a??{}".format(query)
                                 while len(llapMsg) <12:
                                     llapMsg += '-'
@@ -386,7 +386,7 @@ if __name__ == "__main__" :
     if args.debug:
         lcm.debug = True
     # build an example request, normall done via wizards
-    query = ["DEVID", "CHDEVID", "INTVL"]
+    query = ["DTY", "LLAPRESET", "CONFIGEND"]
     lcr = LLAPConfigRequest(id=1, toQuery=query)
 
     lcm.connect_transport()
@@ -401,7 +401,7 @@ if __name__ == "__main__" :
                 lcm.transportQ.task_done()
             if not lcm.replyQ.empty():
                 reply = lcm.replyQ.get()
-                print("For DEVTYPE {} got:".format(reply.devType))
+                print("For DTY {} got:".format(reply.devType))
                 for n in range(len(reply.replies)):
                     print("Asked {} got {}".format(reply.replies[n][0],
                                                    reply.replies[n][1]))
