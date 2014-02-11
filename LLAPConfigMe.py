@@ -507,6 +507,29 @@ class LLAPCongfigMeClient:
                  "RETRIES{}".format(self.entry['RETRIES'].get())
                 ]
                 
+        # Set encryption on/off
+        if self.entry["ENC"].get() == 1:
+            query.append("ENCON")
+        else:
+            query.append("ENCOFF")
+        
+        # set encryption key
+        # TODO: validate full length set on encryption entry box
+        # need check we have enough charachter then split into each EN[1-6]
+        # Test keys
+        #      ><    ><    ><    ><    ><>
+        # 12345678901234567890123456789012
+        # A1B2C3D4E5F6A2B3C4DE6F7A3B4C5D6E
+        self._debugPrint("ENKEY Length: {}".format(len(self.entry["ENKEY"].get())))
+        if len(self.entry["ENKEY"].get()) == 32:
+            # key is long enough
+            query.append("EN1{}".format(self.entry["ENKEY"].get()[0:6]))
+            query.append("EN2{}".format(self.entry["ENKEY"].get()[6:12]))
+            query.append("EN3{}".format(self.entry["ENKEY"].get()[12:18]))
+            query.append("EN4{}".format(self.entry["ENKEY"].get()[18:24]))
+            query.append("EN5{}".format(self.entry["ENKEY"].get()[24:30]))
+            query.append("EN6{}".format(self.entry["ENKEY"].get()[30:32]))
+        
         # device specfic commands next
         for n in self.devices[self.device['id']]['Options']:
             query.append("{}{}".format(n['Command'],
