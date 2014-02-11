@@ -217,7 +217,9 @@ class LLAPCongfigMeClient:
                  
         tk.Label(self.cframe, text="Device ID").grid(row=2, column=0, columnspan=3)
         tk.Label(self.cframe, text="CHDEVID").grid(row=3, column=0, sticky=tk.E)
-        self._devIDInputs.append(tk.Entry(self.cframe, textvariable=self.entry['CHDEVID'], width=20,
+        self._devIDInputs.append(tk.Entry(self.cframe,
+                                          textvariable=self.entry['CHDEVID'],
+                                          width=20,
                                          validate='key',
                                          invalidcommand='bell',
                                          validatecommand=self.vDevID,
@@ -311,11 +313,74 @@ class LLAPCongfigMeClient:
             r += 2
         
         # buttons
+        tk.Button(self.cframe, text='Advanced', command=self._displayAdvance
+                  ).grid(row=self._rows-2, column=2, columnspan=2,
+                         sticky=tk.E+tk.W)
         tk.Button(self.cframe, text='Back', state=tk.DISABLED
                   ).grid(row=self._rows-2, column=4, sticky=tk.E)
         tk.Button(self.cframe, text='Next', command=self._sendConfigRequest
                   ).grid(row=self._rows-2, column=5, sticky=tk.W)
 
+    def _displayAdvance(self):
+        """Advacne config diag to show Serial number and set ENC"""
+        # TODO: rearange to find long ENKEY box
+        self._debugPrint("Display advance config screen")
+    
+        position = self.master.geometry().split("+")
+            
+        self.advanceWindow = tk.Toplevel()
+        self.advanceWindow.geometry("+{}+{}".format(
+                                                     int(position[1])+self._widthMain/6,
+                                                     int(position[2])+self._heightMain/6
+                                                     )
+                                     )
+                                     
+        self.advanceWindow.title("Advance config")
+    
+        self.aframe = tk.Frame(self.advanceWindow, name='configFrame', relief=tk.RAISED,
+                               borderwidth=2, width=self._widthMain/6,
+                               height=self._heightMain/6)
+        self.aframe.pack()
+        
+        self._buildGrid(self.aframe, False, True)
+
+        tk.Label(self.aframe, text="Advance configureation options").grid(row=0, column=0, columnspan=6)
+        
+        tk.Label(self.aframe, text="Serial Number (read only)"
+                 ).grid(row=1, column=0, columnspan=3)
+    
+        tk.Label(self.aframe, text="High Bytes").grid(row=2, column=0, columnspan=3)
+        tk.Label(self.aframe, text="SNH").grid(row=3, column=0, sticky=tk.E)
+        tk.Entry(self.aframe, textvariable=self.entry['SNH'], width=20,
+                 state=tk.DISABLED
+                 ).grid(row=3, column=1, columnspan=2, sticky=tk.W)
+    
+        tk.Label(self.aframe, text="Low Bytes").grid(row=4, column=0, columnspan=3)
+        tk.Label(self.aframe, text="SNL").grid(row=5, column=0, sticky=tk.E)
+        tk.Entry(self.aframe, textvariable=self.entry['SNL'], width=20,
+                 state=tk.DISABLED
+                 ).grid(row=5, column=1, columnspan=2, sticky=tk.W)
+                 
+        tk.Label(self.aframe, text="Encryption Options"
+                 ).grid(row=1, column=3, columnspan=3)
+    
+        tk.Label(self.aframe, text="Enable Encryption"
+                 ).grid(row=2, column=3, columnspan=3)
+        tk.Label(self.aframe, text="ENC").grid(row=3, column=3, sticky=tk.E)
+        tk.Checkbutton(self.aframe, variable=self.entry['ENC']
+                       ).grid(row=3, column=4, columnspan=2, sticky=tk.W)
+    
+        tk.Label(self.aframe, text="Encryption Key (set Only)"
+                 ).grid(row=4, column=3, columnspan=3)
+        tk.Label(self.aframe, text="EN[1-6]").grid(row=5, column=3, sticky=tk.E)
+        # TODO: add validation for encryption key
+        tk.Entry(self.aframe, textvariable=self.entry['ENKEY'], width=33,
+                 ).grid(row=5, column=4, columnspan=2, sticky=tk.W)
+
+
+        tk.Button(self.aframe, text="Done", command=self._checkAdvance
+                  ).grid(row=7, column=2, columnspan=2)
+    
     def _displayEnd(self):
         self._debugPrint("Displying end screen")
     
@@ -424,8 +489,15 @@ class LLAPCongfigMeClient:
         self.progressBar.pack()
         self.progressBar.start()
     
+    def _checkAdvance(self):
+        self._debugPrint("Checking advance input")
+        # TODO: check encryption key legnth is valid
+        self.advanceWindow.destroy()
+    
     def _sendConfigRequest(self):
         self._debugPrint("Sending config request to device")
+        # TODO: add a line here to disable NEXT button on cfame and advance
+        
 
         # build config query from values in entry
         # generic commands first
@@ -555,6 +627,8 @@ class LLAPCongfigMeClient:
     def _processNoReply(self):
         self._debugPrint("No Reply with in timeouts")
         # ask user to press pair button and try again?
+        # TODO: add a line here to enable NEXT button on cfame or pframe as needed
+        
         if tkMessageBox.askyesno("Comunications Timeout", ("Unable to connect to device, \n"
                                                            "To try again check the deivce power,\n"
                                                            "press the ConfigMe button and click yes")
