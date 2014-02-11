@@ -139,7 +139,18 @@ class LLAPCongfigMeClient:
                       "RETRIES" : tk.StringVar(),
                       "INTVL" : tk.StringVar(),
                       "WAKEC" : tk.StringVar(),
-                      "SLEEPM" : tk.IntVar()
+                      "SLEEPM" : tk.IntVar(),
+                      "SN" : tk.StringVar(),
+                      "SNL" : tk.StringVar(),
+                      "SNH" : tk.StringVar(),
+                      "ENC" : tk.StringVar(),
+                      "ENKEY" : tk.StringVar(),
+                      "EN1" : tk.StringVar(),
+                      "EN2" : tk.StringVar(),
+                      "EN3" : tk.StringVar(),
+                      "EN4" : tk.StringVar(),
+                      "EN5" : tk.StringVar(),
+                      "EN6" : tk.StringVar()
                      }
     
     def _displayIntro(self):
