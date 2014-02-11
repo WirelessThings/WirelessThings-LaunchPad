@@ -589,22 +589,26 @@ class LLAPCongfigMeClient:
             self.progressWindow.destroy()
             self._processReply()
     
-    def _buildGrid(self, frame):
+    def _buildGrid(self, frame, quit=True, halfSize=False):
         self._debugPrint("Building Grid for {}".format(frame.winfo_name()))
         canvas = tk.Canvas(frame, bd=0, width=self._widthMain-4,
                                height=self._rowHeight, highlightthickness=0)
         canvas.grid(row=0, column=0, columnspan=6)
         
-        for r in range(self._rows):
+        if halfSize:
+            rows=self._rows/2
+        else:
+            rows=self._rows
+        for r in range(rows):
             for c in range(6):
                 tk.Canvas(frame, bd=0, #bg=("black" if r%2 and c%2 else "gray"),
                           highlightthickness=0,
                           width=(self._widthMain-4)/6,
                           height=self._rowHeight
                           ).grid(row=r, column=c)
-    
+        if (quit):
         tk.Button(frame, text='Quit', command=self._endConfigMe
-                  ).grid(row=self._rows-2, column=0, sticky=tk.E)
+                      ).grid(row=rows-2, column=0, sticky=tk.E)
 
     def _connect(self):
         self._debugPrint("Connecting Serial port")
