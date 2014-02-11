@@ -604,6 +604,14 @@ class LLAPCongfigMeClient:
                         self.entry[e[0]].set(1)
                     else:
                         self.entry[e[0]].set(0)
+                elif e[0] == "ENC":
+                    if e[1][len(e[0]):].startswith("OFF"):
+                        self.entry[e[0]].set(0)
+                    elif e[1][len(e[0]):].startswith("ON"):
+                        self.entry[e[0]].set(1)
+                    else:
+                        #should not get here
+                        self._debugPrint("Error in reply to ENC")
                 else:
                     if e[0] in self.entry:
                         self.entry[e[0]].set(e[1][len(e[0]):])
