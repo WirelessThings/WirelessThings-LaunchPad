@@ -355,6 +355,7 @@ class LLAPCongfigMeClient:
         self.vDevID = (self.master.register(self.validDevID), '%d',
                        '%P', '%W', '%P', '%S')
         self.vInt = (self.master.register(self.validInt), '%d', '%s', '%S')
+        self.vHex = (self.master.register(self.validHex), '%d', '%s', '%S')
     
     def validUpper(self, d, P, S):
         if S.islower():
@@ -368,6 +369,10 @@ class LLAPCongfigMeClient:
             return True
         else:
             return False
+
+    def validHex(self, d, s, S):
+        # TODO: Validate for HEX only CHARS
+        return True
 
     def validDevID(self, d, P, W, s, S):
         valid = False
