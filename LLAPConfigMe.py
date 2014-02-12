@@ -444,8 +444,12 @@ class LLAPCongfigMeClient:
             return False
 
     def validHex(self, d, s, S):
-        # TODO: Validate for HEX only CHARS
+        try:
+            int(S, 16)          # is is a valid hex char
             return True
+        except ValueError:
+            return False
+        return False
     
     def validEncryptionKey(self, d, P, W, s, S):
         valid = False
