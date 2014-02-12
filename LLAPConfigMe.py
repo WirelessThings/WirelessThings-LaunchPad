@@ -22,6 +22,7 @@ import ConfigParser
 import tkMessageBox
 import threading
 import Queue
+import string
 from time import sleep, asctime, time
 #import ImageTk
 from LLAPConfigMeCore import *
@@ -68,6 +69,7 @@ class LLAPCongfigMeClient:
     # how long to wait for a reply before asking user to press button again in seconds
     _timeout = 60
     _devIDInputs = []
+    _encryptionKeyInput = 0
 
     def __init__(self):
         """
@@ -335,7 +337,7 @@ class LLAPCongfigMeClient:
                                      
         self.advanceWindow.title("Advance config")
     
-        self.aframe = tk.Frame(self.advanceWindow, name='configFrame', relief=tk.RAISED,
+        self.aframe = tk.Frame(self.advanceWindow, name='advanceFrame', relief=tk.RAISED,
                                borderwidth=2, width=self._widthMain/6,
                                height=self._heightMain/6)
         self.aframe.pack()
@@ -372,8 +374,13 @@ class LLAPCongfigMeClient:
                  ).grid(row=4, column=3, columnspan=3)
         tk.Label(self.aframe, text="EN[1-6]").grid(row=5, column=3, sticky=tk.E)
         # TODO: add validation for encryption key
-        tk.Entry(self.aframe, textvariable=self.entry['ENKEY'], width=33,
-                 ).grid(row=5, column=4, columnspan=2, sticky=tk.W)
+        self._encryptionKeyInput = tk.Entry(self.aframe, textvariable=self.entry['ENKEY'], width=33,
+                 validate='key',
+                 invalidcommand='bell',
+                 validatecommand=self.vEnKey,
+                 name='enkey'
+                 )
+        self._encryptionKeyInput.grid(row=5, column=4, columnspan=2, sticky=tk.W)
 
 
         tk.Button(self.aframe, text="Done", command=self._checkAdvance
@@ -419,6 +426,8 @@ class LLAPCongfigMeClient:
                        '%P', '%W', '%P', '%S')
         self.vInt = (self.master.register(self.validInt), '%d', '%s', '%S')
         self.vHex = (self.master.register(self.validHex), '%d', '%s', '%S')
+        self.vEnKey = (self.master.register(self.validEncryptionKey), '%d',
+                       '%P', '%W', '%P', '%S')
     
     def validUpper(self, d, P, S):
         if S.islower():
@@ -436,7 +445,26 @@ class LLAPCongfigMeClient:
     def validHex(self, d, s, S):
         # TODO: Validate for HEX only CHARS
         return True
-
+    
+    def validEncryptionKey(self, d, P, W, s, S):
+        valid = False
+        # TODO: Validate Encyption key (32 long HEX only)
+        if d == '0' or d == '-1':
+            return True
+        try:
+            int(S, 16)          # is is a valid hex char
+            valid = True
+        except ValueError:
+            return False
+        
+        if S.islower() and (len(P) <= 32):  # we allready know is a HEX digit
+            self.entry[W.split('.')[-1].upper()].set(P.upper())
+            self.master.after_idle(self.vEnKeySet)
+        elif valid and (len(P) <= 32):
+            return True
+        else:
+            return False
+    
     def validDevID(self, d, P, W, s, S):
         valid = False
         validChar = ['#', '@', '\\', '*'] # as of llap 2.0 - and ? cannot be set
@@ -458,7 +486,11 @@ class LLAPCongfigMeClient:
         for e in self._devIDInputs:
             e.icursor(e.index(tk.INSERT)+1)
             e.config(validate='key')
-    
+
+    def vEnKeySet(self):
+        self._encryptionKeyInput.icursor(self._encryptionKeyInput.index(tk.INSERT)+1)
+        self._encryptionKeyInput.config(validate='key')
+
     def _startOver(self):
         self._debugPrint("Starting over")
         self.eframe.pack_forget()
@@ -489,7 +521,7 @@ class LLAPCongfigMeClient:
     
     def _checkAdvance(self):
         self._debugPrint("Checking advance input")
-        # TODO: check encryption key legnth is valid
+        # TODO: check encryption key legnth is 32
         self.advanceWindow.destroy()
     
     def _sendConfigRequest(self):
