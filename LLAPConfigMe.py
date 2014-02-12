@@ -70,6 +70,7 @@ class LLAPCongfigMeClient:
     _timeout = 60
     _devIDInputs = []
     _encryptionKeyInput = 0
+    _lastLCR = []
 
     def __init__(self):
         """
@@ -444,11 +445,10 @@ class LLAPCongfigMeClient:
 
     def validHex(self, d, s, S):
         # TODO: Validate for HEX only CHARS
-        return True
+            return True
     
     def validEncryptionKey(self, d, P, W, s, S):
         valid = False
-        # TODO: Validate Encyption key (32 long HEX only)
         if d == '0' or d == '-1':
             return True
         try:
@@ -582,7 +582,8 @@ class LLAPCongfigMeClient:
                                 devType=self.device['DTY'],
                                 toQuery=query
                                 )
-
+                                
+        self._lastLCR.append(lcr)
         self._sendRequest(lcr)
 
     def _queryType(self):
@@ -594,7 +595,8 @@ class LLAPCongfigMeClient:
         # TODO: add a line here to disable NEXT button on pfame
         query = ["DTY", "APVER", "CHDEVID"]
         lcr = LLAPConfigRequest(id=1, toQuery=query)
-
+        
+        self._lastLCR.append(lcr)
         self._sendRequest(lcr)
     
     def _processReply(self):
@@ -619,7 +621,6 @@ class LLAPCongfigMeClient:
                         # ask user about reseting device if devID is not ??
                         # for testing lets just reset if devID is MB
                         if self.device['devID'] != "??":
-                            # TODO: ask user if they wish to do a LLAPREST
                             if tkMessageBox.askyesno("Device Previously configured",
                                                      ("This device has been previously configured, \n"
                                                       "Do you wish to reset the device to defaults (Yes),\n"
@@ -630,6 +631,8 @@ class LLAPCongfigMeClient:
                                 lcr = LLAPConfigRequest(id=5,
                                                         devType=self.device['DTY'],
                                                         toQuery=query)
+                                
+                                self._lastLCR.append(lcr)
                                 self._sendRequest(lcr)
                             else:
                                 self._askCurrentConfig()
@@ -672,7 +675,7 @@ class LLAPCongfigMeClient:
             self._debugPrint("Setting keepAwake")
             self._lcm.keepAwake = True
             self._displayConfig()
-            
+
         elif reply.id == 3:
             # this was a config request
             # check replies were good and let user know device is now ready
@@ -703,8 +706,9 @@ class LLAPCongfigMeClient:
                                     toQuery=query
                                     )
                                     
+            self._lastLCR.append(lcr)
             self._sendRequest(lcr)
-        
+
         self._lcm.replyQ.task_done()
 
     def _askCurrentConfig(self):
@@ -727,7 +731,8 @@ class LLAPCongfigMeClient:
                                 devType=self.device['DTY'],
                                 toQuery=query
                                 )
-                                
+                             
+        self._lastLCR.append(lcr)
         self._sendRequest(lcr)
 
     def _processNoReply(self):
