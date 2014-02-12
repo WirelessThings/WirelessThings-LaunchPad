@@ -525,8 +525,11 @@ class LLAPCongfigMeClient:
     
     def _checkAdvance(self):
         self._debugPrint("Checking advance input")
-        # TODO: check encryption key legnth is 32
-        self.advanceWindow.destroy()
+        if len(self.entry["ENKEY"].get()) == 32 or len(self.entry["ENKEY"].get()) == 0:
+            self.advanceWindow.destroy()
+        else:
+            # let user know KEY needs to be 0 or 32
+            tkMessageBox.showerror("Encryption Key Lenght", "Encryption key needs to be 32 charcters long to set a new one or empty to leave unchanged")
     
     def _sendConfigRequest(self):
         self._debugPrint("Sending config request to device")
