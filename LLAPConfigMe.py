@@ -563,6 +563,7 @@ class LLAPCongfigMeClient:
             query.append("EN4{}".format(self.entry["ENKEY"].get()[18:24]))
             query.append("EN5{}".format(self.entry["ENKEY"].get()[24:30]))
             query.append("EN6{}".format(self.entry["ENKEY"].get()[30:32]))
+            self.entry["ENKEY"].set("") # clear encryption key box
         
         # device specfic commands next
         for n in self.devices[self.device['id']]['Options']:
