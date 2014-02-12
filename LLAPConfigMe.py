@@ -588,36 +588,23 @@ class LLAPCongfigMeClient:
                         
                         # ask user about reseting device if devID is not ??
                         # for testing lets just reset if devID is MB
-                        if self.device['devID'] == "MB":
-                            query = ["LLAPRESET", "CHDEVID"]
-                        
-                            lcr = LLAPConfigRequest(id=5,
-                                                    devType=self.device['DTY'],
-                                                    toQuery=query)
-                            self._sendRequest(lcr)
-                        
+                        if self.device['devID'] != "??":
+                            # TODO: ask user if they wish to do a LLAPREST
+                            if tkMessageBox.askyesno("Device Previously configured",
+                                                     ("This device has been previously configured, \n"
+                                                      "Do you wish to reset the device to defaults (Yes),\n"
+                                                      "Or to alter the current configuration (No)")
+                                                     ):
+                                query = ["LLAPRESET", "CHDEVID"]
+                            
+                                lcr = LLAPConfigRequest(id=5,
+                                                        devType=self.device['DTY'],
+                                                        toQuery=query)
+                                self._sendRequest(lcr)
+                            else:
+                                self._askCurrentConfig()
                         else:
-                            # assuming we know what it is ask for the current config
-                            query = ["PANID", "RETRIES", "SNL", "SNH", "ENC"]
-                            
-                            if self.devices[self.device['id']]['SleepMode'] == "Cyclic":
-                                query.append("INTVL")
-                                query.append("WAKEC")
-                                query.append("SLEEPM")
-                            elif self.devices[self.defice['id']]['SleepMode'] == "Interupt":
-                                query.append("SLEEPM")
-                            
-                            for n in self.devices[self.device['id']]['Options']:
-                                # create place to put the reply later
-                                self.entry[n['Command']] = tk.StringVar()
-                                query.append(n['Command'].encode('ascii', 'ignore'))
-
-                            lcr = LLAPConfigRequest(id=2,
-                                                    devType=self.device['DTY'],
-                                                    toQuery=query
-                                                    )
-
-                            self._sendRequest(lcr)
+                            self._askCurrentConfig()
                         
             else:
                 # apver mismatch, show error screen
@@ -689,6 +676,29 @@ class LLAPCongfigMeClient:
             self._sendRequest(lcr)
         
         self._lcm.replyQ.task_done()
+
+    def _askCurrentConfig(self):
+        # assuming we know what it is ask for the current config
+        query = ["PANID", "RETRIES", "SNL", "SNH", "ENC"]
+        
+        if self.devices[self.device['id']]['SleepMode'] == "Cyclic":
+            query.append("INTVL")
+            query.append("WAKEC")
+            query.append("SLEEPM")
+        elif self.devices[self.defice['id']]['SleepMode'] == "Interupt":
+            query.append("SLEEPM")
+        
+        for n in self.devices[self.device['id']]['Options']:
+            # create place to put the reply later
+            self.entry[n['Command']] = tk.StringVar()
+            query.append(n['Command'].encode('ascii', 'ignore'))
+        
+        lcr = LLAPConfigRequest(id=2,
+                                devType=self.device['DTY'],
+                                toQuery=query
+                                )
+                                
+        self._sendRequest(lcr)
 
     def _processNoReply(self):
         self._debugPrint("No Reply with in timeouts")
