@@ -167,10 +167,8 @@ class LLAPCongfigMeClient:
         # com selection bits
         tk.Label(self.iframe, text='Com Port').grid(row=self._rows-4,
                                                     column=2, columnspan=2)
-        tk.Entry(self.iframe, textvariable=self.comport, width=20
-                 ).grid(row=self._rows-3, column=2, columnspan=2)
-
-
+        tk.Entry(self.iframe, textvariable=self.comport, width=25
+                 ).grid(row=self._rows-3, column=2, columnspan=2,)
 
         tk.Button(self.iframe, text='Back', state=tk.DISABLED
                   ).grid(row=self._rows-2, column=4, sticky=tk.E)
