@@ -11,7 +11,7 @@
                },
                {
                "Name":"Int",
-               "Description":"Whole Integer numeber"
+               "Description":"Whole Integer number"
                },
                {
                "Name":"ONOFF",
@@ -19,7 +19,7 @@
                },
                {
                "Name":"ONOFFTOG",
-               "Description":"Boolean type either ON or OFF, TOG switchs the current value"
+               "Description":"Boolean type either ON or OFF, TOG switches the current value"
                },
                {
                "Name":"ID",
@@ -31,13 +31,13 @@
                },
                {
                "Name":"Period",
-               "Description":"Period of time represnted as 3 digit value and period mutipler of T(milli seconds), S(seconds), M(minutes), H(hours), D(days)"
+               "Description":"Period of time represented as 3 digit value and period multiplier of T(milli seconds), S(seconds), M(minutes), H(hours), D(days)"
                }
                ],
     "Generic Commands":[
                         {
                         "Command":"ACK",
-                        "Description":"Sent as a general acknowledgment of an incomming anoucment message."
+                        "Description":"Sent as a general acknowledgment of an incoming announcement message."
                         },
                         {
                         "Command":"APVER",
@@ -81,42 +81,42 @@
                         {
                         "Command":"SNL",
                         "Format":"String",
-                        "Description":"Request the manufacturer serial number LOW Byter (LLAP 2.0"
+                        "Description":"Request the manufacturer serial number LOW Bytes (LLAP 2.0"
                         },
                         {
                         "Command":"ENC",
                         "Format":"ONOFF",
-                        "Description":"Turn Encrytpiton "
+                        "Description":"Turn Encryption "
                         },
                         {
                         "Command":"EN1",
                         "Format":"HEX",
-                        "Description":"Turn Encrytpiton "
+                        "Description":"Turn Encryption "
                         },
                         {
                         "Command":"EN2",
                         "Format":"HEX",
-                        "Description":"Turn Encrytpiton "
+                        "Description":"Turn Encryption "
                         },
                         {
                         "Command":"EN3",
                         "Format":"HEX",
-                        "Description":"Turn Encrytpiton "
+                        "Description":"Turn Encryption "
                         },
                         {
                         "Command":"EN4",
                         "Format":"HEX",
-                        "Description":"Turn Encrytpiton "
+                        "Description":"Turn Encryption "
                         },
                         {
                         "Command":"EN5",
                         "Format":"HEX",
-                        "Description":"Turn Encrytpiton "
+                        "Description":"Turn Encryption "
                         },
                         {
                         "Command":"EN6",
                         "Format":"HEX",
-                        "Description":"Turn Encrytpiton "
+                        "Description":"Turn Encryption "
                         },
                         {
                         "Command":"$ER",
@@ -154,7 +154,7 @@
                         {
                         "Command":"SLEEP",
                         "Format":"Period",
-                        "Description":"Requests the device go into low power mode (only applies to sleeping devices) \n aXXSLEEP999P \n Request that the device sleep for 999 “periods”, the response echos the command, the device will then send the notification aXXSLEEPING- when going to sleep, and the announcement aXXAWAKE---- when the device reawakens. Periods can be S(seconds), M(minutes), H(hours), D(days) T(milliseconds) \n aXXSLEEP---- (only applies to interrupt sleeping devices) . Sleep until an interrupt is received. Only the Button firmware behaves like this at present. \n Every (default 10) times it will send aXXAWAKE---- aXXBATTv.vv- wait for 100mS incase there is a command for the unit and then send aXXSLEEPING-. This is configurable by using aXXWAKECnnn- whenre nnn is the count of transmits before it will wake and send the battery reading."
+                        "Description":"Requests the device go into low power mode (only applies to sleeping devices) \n aXXSLEEP999P \n Request that the device sleep for 999 “periods”, the response echoes the command, the device will then send the notification aXXSLEEPING- when going to sleep, and the announcement aXXAWAKE---- when the device reawakens. Periods can be S(seconds), M(minutes), H(hours), D(days) T(milliseconds) \n aXXSLEEP---- (only applies to interrupt sleeping devices) . Sleep until an interrupt is received. Only the Button firmware behaves like this at present. \n Every (default 10) times it will send aXXAWAKE---- aXXBATTv.vv- wait for 100mS incase there is a command for the unit and then send aXXSLEEPING-. This is configurable by using aXXWAKECnnn- where nnn is the count of transmits before it will wake and send the battery reading."
                         },
                         {
                         "Command":"SAVE",
@@ -166,7 +166,7 @@
                         },
                         {
                         "Command":"CONFIGEND",
-                        "Description":"Exit config mode restting working ID to the stored ID, any config changes are not saved"
+                        "Description":"Exit config mode resetting working ID to the stored ID, any config changes are not saved"
                         },
                         {
                         "Command":"SLEEPM",
@@ -182,7 +182,7 @@
                        },
                        {
                        "Command":"CYCLE",
-                       "Description":"Start cyclic mode (only applies to cyclic sleeping devices) \nRequest that the device starts a cyclic sleep – the device should sleep for the sleep interval, awaken and send any reading. The device wiull then go back to sleep. Every (default 10) times it will send aXXAWAKE---- aXXBATTv.vv- wait for 100mS incase there is a command for the unit and then send aXXSLEEPING-. This is configurable by using aXXWAKECnnn- whenre nnn is the count of transmits before it will wake and send the battery reading."
+                       "Description":"Start cyclic mode (only applies to cyclic sleeping devices) \nRequest that the device starts a cyclic sleep – the device should sleep for the sleep interval, awaken and send any reading. The device will then go back to sleep. Every (default 10) times it will send aXXAWAKE---- aXXBATTv.vv- wait for 100mS incase there is a command for the unit and then send aXXSLEEPING-. This is configurable by using aXXWAKECnnn- where nnn is the count of transmits before it will wake and send the battery reading."
                        },
                        {
                        "Command":"WAKE",
@@ -191,7 +191,7 @@
                        {
                        "Command":"WAKEC",
                        "Format":"Int",
-                       "Description":"Change how often a sleeping device reports its battery reading and wake opertunity"
+                       "Description":"Change how often a sleeping device reports its battery reading and wake opportunity"
                        }
                        ],
     "Announcements":[
@@ -210,7 +210,7 @@
                      },
                      {
                      "Command":"AWAKE",
-                     "Description":"Device is now awake, for a breif period, can be kept awake via a WAKE command"
+                     "Description":"Device is now awake, for a brief period, can be kept awake via a WAKE command"
                      },
                      {
                      "Command":"BATTLOW",
@@ -272,7 +272,7 @@
                "DTY":"",
                "Name":"Button V2",
                "Description":"LLAP Button",
-               "SleepMode":"Interupt",
+               "SleepMode":"Interrupt",
                "Actions":[
                
                           ],
@@ -294,7 +294,7 @@
                           },
                           {
                           "Command":"CHREMID",
-                          "Description":"Remote ID, Tageet of button presses",
+                          "Description":"Remote ID, Target of button presses",
                           "Format":"ID"
                           },
                           {
@@ -337,7 +337,7 @@
                           },
                           {
                           "Command":"CHREMID",
-                          "Description":"Remote ID, Tageet of button presses",
+                          "Description":"Remote ID, Target of button presses",
                           "Format":"ID"
                           },
                           {

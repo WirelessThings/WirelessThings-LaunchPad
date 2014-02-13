@@ -41,7 +41,7 @@ Please enter your com port below to continue"""
 
 PAIR = """Please press the Config Me button on your device and click next"""
 
-CONFIG = """Selet your device config options"""
+CONFIG = """Select your device config options"""
 
 END = """Your device has been configured"""
 
@@ -49,8 +49,8 @@ END = """Your device has been configured"""
 class LLAPCongfigMeClient:
     """
         LLAP ConfigMe Client Class
-        Handels display of wizzard interface for configuring devices
-        pass reuestes onto LLAPConfigMeCore
+        Handles display of wizard interface for configuring devices
+        pass requests onto LLAPConfigMeCore
     """
     _debug = False # until we read config
     _debugArg = False # or get command line
@@ -200,7 +200,7 @@ class LLAPCongfigMeClient:
                       ).grid(row=self._rows-2, column=5, sticky=tk.W)
                 
     def _displayConfig(self):
-        self._debugPrint("Displaying Decive type based config screen")
+        self._debugPrint("Displaying Deceive type based config screen")
         self.pframe.pack_forget()
                 
         self.cframe = tk.Frame(self.master, name='configFrame', relief=tk.RAISED,
@@ -268,8 +268,8 @@ class LLAPCongfigMeClient:
             tk.Checkbutton(self.cframe, variable=self.entry['SLEEPM']
                           ).grid(row=15, column=1, columnspan=2, sticky=tk.W)
         elif self.devices[sellf.device['id']]['SleepMode'] == "Cyclic":
-            # Interupt sleep decivces
-            tk.Label(self.cframe, text="Interupt Sleep"
+            # Interrupt sleep devices
+            tk.Label(self.cframe, text="Interrupt Sleep"
                      ).grid(row=9, column=0, columnspan=3)
             tk.Label(self.cframe, text="SLEEP").grid(row=10, column=0, sticky=tk.E)
             tk.Checkbutton(self.cframe, variable=self.entry['SLEEPM']
@@ -323,8 +323,8 @@ class LLAPCongfigMeClient:
                   ).grid(row=self._rows-2, column=5, sticky=tk.W)
     
     def _displayAdvance(self):
-        """Advacne config diag to show Serial number and set ENC"""
-        # TODO: rearange to find long ENKEY box
+        """Advance config diag to show Serial number and set ENC"""
+        # TODO: rearrange to fit long ENKEY box
         self._debugPrint("Display advance config screen")
     
         position = self.master.geometry().split("+")
@@ -345,7 +345,7 @@ class LLAPCongfigMeClient:
         
         self._buildGrid(self.aframe, False, True)
 
-        tk.Label(self.aframe, text="Advance configureation options").grid(row=0, column=0, columnspan=6)
+        tk.Label(self.aframe, text="Advance configuration options").grid(row=0, column=0, columnspan=6)
         
         tk.Label(self.aframe, text="Serial Number (read only)"
                  ).grid(row=1, column=0, columnspan=3)
@@ -388,7 +388,7 @@ class LLAPCongfigMeClient:
                   ).grid(row=7, column=2, columnspan=2)
     
     def _displayEnd(self):
-        self._debugPrint("Displying end screen")
+        self._debugPrint("Displaying end screen")
     
         self.cframe.pack_forget()
 
@@ -461,7 +461,7 @@ class LLAPCongfigMeClient:
         except ValueError:
             return False
         
-        if S.islower() and (len(P) <= 32):  # we allready know is a HEX digit
+        if S.islower() and (len(P) <= 32):  # we already know is a HEX digit
             self.entry[W.split('.')[-1].upper()].set(P.upper())
             self.master.after_idle(self.vEnKeySet)
         elif valid and (len(P) <= 32):
@@ -515,7 +515,7 @@ class LLAPCongfigMeClient:
         self.progressWindow.title("Working")
 
         tk.Label(self.progressWindow,
-                 text="Comunicating with device please wait").pack()
+                 text="Communicating with device please wait").pack()
 
         self.progressBar = ttk.Progressbar(self.progressWindow,
                                            orient="horizontal", length=200,
@@ -529,7 +529,7 @@ class LLAPCongfigMeClient:
             self.advanceWindow.destroy()
         else:
             # let user know KEY needs to be 0 or 32
-            tkMessageBox.showerror("Encryption Key Lenght", "Encryption key needs to be 32 charcters long to set a new one or empty to leave unchanged")
+            tkMessageBox.showerror("Encryption Key Length", "Encryption key needs to be 32 characters long to set a new one or empty to leave unchanged")
     
     def _sendConfigRequest(self):
         self._debugPrint("Sending config request to device")
@@ -552,7 +552,7 @@ class LLAPCongfigMeClient:
         
         # set encryption key
         # TODO: validate full length set on encryption entry box
-        # need check we have enough charachter then split into each EN[1-6]
+        # need check we have enough character then split into each EN[1-6]
         # Test keys
         #      ><    ><    ><    ><    ><>
         # 12345678901234567890123456789012
@@ -568,7 +568,7 @@ class LLAPCongfigMeClient:
             query.append("EN6{}".format(self.entry["ENKEY"].get()[30:32]))
             self.entry["ENKEY"].set("") # clear encryption key box
         
-        # device specfic commands next
+        # device specific commands next
         for n in self.devices[self.device['id']]['Options']:
             query.append("{}{}".format(n['Command'],
                                        self.entry[n['Command']].get()))
@@ -578,7 +578,7 @@ class LLAPCongfigMeClient:
             query.append("INTVL{}".format(self.entry['INTVL'].get()))
             query.append("WAKEC{}".format(self.entry['WAKEC'].get()))
             query.append("SLEEPM{}".format((16 if self.entry['SLEEPM'].get() else 0)))
-        elif slef.devices[self.device['id']]['SleepMode'] == "Interput":
+        elif self.devices[self.device['id']]['SleepMode'] == "Interrupt":
             query.append("SLEEPM{}".format((8 if self.entry['SLEEPM'].get() else 0)))
         else:
             # append save and exits command?
@@ -596,7 +596,7 @@ class LLAPCongfigMeClient:
 
     def _queryType(self):
         """ Time to send a query to see if we have a device in pair mode
-            this is going to need time out's? posible retries
+            this is going to need time out's? possible retries
             devtype and apver request
         """
         self._debugPrint("Query type")
@@ -701,7 +701,7 @@ class LLAPCongfigMeClient:
                 query.append("INTVL")
                 query.append("WAKEC")
                 query.append("SLEEPM")
-            elif self.devices[self.defice['id']]['SleepMode'] == "Interupt":
+            elif self.devices[self.defice['id']]['SleepMode'] == "Interrupt":
                 query.append("SLEEPM")
             
             for n in self.devices[self.device['id']]['Options']:
@@ -727,7 +727,7 @@ class LLAPCongfigMeClient:
             query.append("INTVL")
             query.append("WAKEC")
             query.append("SLEEPM")
-        elif self.devices[self.defice['id']]['SleepMode'] == "Interupt":
+        elif self.devices[self.defice['id']]['SleepMode'] == "Interrupt":
             query.append("SLEEPM")
         
         for n in self.devices[self.device['id']]['Options']:
@@ -748,8 +748,8 @@ class LLAPCongfigMeClient:
         # ask user to press pair button and try again?
         # TODO: add a line here to enable NEXT button on cfame or pframe as needed
         
-        if tkMessageBox.askyesno("Comunications Timeout", ("Unable to connect to device, \n"
-                                                           "To try again check the deivce power,\n"
+        if tkMessageBox.askyesno("Communications Timeout", ("Unable to connect to device, \n"
+                                                           "To try again check the device power,\n"
                                                            "press the ConfigMe button and click yes")
                                  ):
             self._displayProgress()
@@ -757,7 +757,7 @@ class LLAPCongfigMeClient:
             self._replyCheck()
     
     def _sendRequest(self, lcr):
-        self._debugPrint("Sending Reueset to LCMC")
+        self._debugPrint("Sending Request to LCMC")
         self._displayProgress()
         if self._lcm.keepAwake:
             self._debugPrint("Stopping keepAwake")
