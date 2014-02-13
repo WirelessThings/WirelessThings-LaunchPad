@@ -86,37 +86,37 @@
                         {
                         "Command":"ENC",
                         "Format":"ONOFF",
-                        "Description":"Turn Encryption "
+                        "Description":"Turn Encryption On or OFF"
                         },
                         {
                         "Command":"EN1",
                         "Format":"HEX",
-                        "Description":"Turn Encryption "
+                        "Description":"Set 1st set of six bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"EN2",
                         "Format":"HEX",
-                        "Description":"Turn Encryption "
+                        "Description":"Set 2nd set of six bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"EN3",
                         "Format":"HEX",
-                        "Description":"Turn Encryption "
+                        "Description":"Set 3rd set of six bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"EN4",
                         "Format":"HEX",
-                        "Description":"Turn Encryption "
+                        "Description":"Set 4th set of six bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"EN5",
                         "Format":"HEX",
-                        "Description":"Turn Encryption "
+                        "Description":"Set 5th set of six bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"EN6",
                         "Format":"HEX",
-                        "Description":"Turn Encryption "
+                        "Description":"Set last two bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"$ER",
