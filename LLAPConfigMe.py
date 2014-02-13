@@ -528,7 +528,9 @@ class LLAPCongfigMeClient:
             self.advanceWindow.destroy()
         else:
             # let user know KEY needs to be 0 or 32
-            tkMessageBox.showerror("Encryption Key Length", "Encryption key needs to be 32 characters long to set a new one or empty to leave unchanged")
+            tkMessageBox.showerror("Encryption Key Length",
+                                   ("Encryption key needs to be 32 characters"
+                                    "long to set a new one or empty to leave unchanged"))
     
     def _sendConfigRequest(self):
         self._debugPrint("Sending config request to device")
@@ -538,17 +540,23 @@ class LLAPCongfigMeClient:
         # build config query from values in entry
         # generic commands first
         query = [
-                 "CHDEVID{}".format(self.entry['CHDEVID'].get()),
-                 "PANID{}".format(self.entry['PANID'].get()),
-                 "RETRIES{}".format(self.entry['RETRIES'].get())
+                 {'command': "CHDEVID",
+                  'value': self.entry['CHDEVID'].get()
+                 },
+                 {'command': "PANID",
+                  'value': self.entry['PANID'].get()
+                 },
+                 {'command': "RETRIES",
+                  'value': self.entry['RETRIES'].get()
+                 }
                 ]
         
         # Set encryption on/off
         if self.entry["ENC"].get() == 1:
-            query.append("ENCON")
+            query.append({'command': "ENC", 'value': "ON"})
         else:
-            query.append("ENCOFF")
-        
+            query.append({'command': "ENC", 'value': "OFF"})
+    
         # set encryption key
         # need to split into each EN[1-6]
         # Test keys
@@ -558,31 +566,46 @@ class LLAPCongfigMeClient:
         self._debugPrint("ENKEY Length: {}".format(len(self.entry["ENKEY"].get())))
         if len(self.entry["ENKEY"].get()) == 32:
             # key is long enough
-            query.append("EN1{}".format(self.entry["ENKEY"].get()[0:6]))
-            query.append("EN2{}".format(self.entry["ENKEY"].get()[6:12]))
-            query.append("EN3{}".format(self.entry["ENKEY"].get()[12:18]))
-            query.append("EN4{}".format(self.entry["ENKEY"].get()[18:24]))
-            query.append("EN5{}".format(self.entry["ENKEY"].get()[24:30]))
-            query.append("EN6{}".format(self.entry["ENKEY"].get()[30:32]))
+            query.append({'command': "EN1", 'value': self.entry["ENKEY"].get()[0:6]})
+            query.append({'command': "EN2", 'value': self.entry["ENKEY"].get()[6:12]})
+            query.append({'command': "EN3", 'value': self.entry["ENKEY"].get()[12:18]})
+            query.append({'command': "EN4", 'value': self.entry["ENKEY"].get()[18:24]})
+            query.append({'command': "EN5", 'value': self.entry["ENKEY"].get()[24:30]})
+            query.append({'command': "EN6", 'value': self.entry["ENKEY"].get()[30:32]})
             self.entry["ENKEY"].set("") # clear encryption key box
         
         # device specific commands next
         for n in self.devices[self.device['id']]['Options']:
-            query.append("{}{}".format(n['Command'],
-                                       self.entry[n['Command']].get()))
+            query.append(
+                         {'command': n['Command'],
+                          'value': self.entry[n['Command']].get()
+                         }
+                        )
         
         # cyclic stuff last (cycle acts as save and exit)       
         if self.devices[self.device['id']]['SleepMode'] == "Cyclic":
-            query.append("INTVL{}".format(self.entry['INTVL'].get()))
-            query.append("WAKEC{}".format(self.entry['WAKEC'].get()))
-            query.append("SLEEPM{}".format((16 if self.entry['SLEEPM'].get() else 0)))
+            query.append({'command': "INTVL",
+                          'value': self.entry['INTVL'].get()
+                         }
+                        )
+            query.append({'command': "WAKEC",
+                          'value': self.entry['WAKEC'].get()
+                         }
+                        )
+            query.append({'command': "SLEEPM",
+                          'value': (16 if self.entry['SLEEPM'].get() else 0)
+                         }
+                        )
         elif self.devices[self.device['id']]['SleepMode'] == "Interrupt":
-            query.append("SLEEPM{}".format((8 if self.entry['SLEEPM'].get() else 0)))
+            query.append({'command': "SLEEPM",
+                          'value': (8 if self.entry['SLEEPM'].get() else 0)
+                          }
+                         )
         else:
             # append save and exits command?
             pass
         # always finish with reboot to save and apply
-        query.append("REBOOT")
+        query.append({'command': "REBOOT"})
 
         lcr = LLAPConfigRequest(id=3,
                                 devType=self.device['DTY'],
@@ -599,7 +622,11 @@ class LLAPCongfigMeClient:
         """
         self._debugPrint("Query type")
         # TODO: add a line here to disable NEXT button on pfame
-        query = ["DTY", "APVER", "CHDEVID"]
+        query = [
+                 {'command': "DTY"},
+                 {'command': "APVER"},
+                 {'command': "CHDEVID"}
+                ]
         lcr = LLAPConfigRequest(id=1, toQuery=query)
         
         self._lastLCR.append(lcr)
@@ -613,15 +640,15 @@ class LLAPCongfigMeClient:
                                                                 reply.replies))
         if reply.id == 1:
             # this was a query type request
-            if float(reply.replies[1][1][5:]) >= 2.0:
+            if float(reply.replies['APVER']) >= 2.0:
                 # valid apver
                 # so check what replied
                 for n in range(len(self.devices)):
-                    if self.devices[n]['DTY'] == reply.replies[0][1]:
+                    if self.devices[n]['DTY'] == reply.replies['DTY']:
                         # we have a match
                         self.device = {'id': n,
                                        'DTY': self.devices[n]['DTY'],
-                                       'devID': reply.replies[2][1][7:]
+                                       'devID': reply.replies['CHDEVID']
                                       }
                         
                         # ask user about reseting device if devID is not ??
@@ -632,7 +659,10 @@ class LLAPCongfigMeClient:
                                                       "Do you wish to reset the device to defaults (Yes),\n"
                                                       "Or to alter the current configuration (No)")
                                                      ):
-                                query = ["LLAPRESET", "CHDEVID"]
+                                query = [
+                                         {'command': "LLAPRESET"},
+                                         {'command': "CHDEVID"}
+                                        ]
                             
                                 lcr = LLAPConfigRequest(id=5,
                                                         devType=self.device['DTY'],
@@ -656,26 +686,26 @@ class LLAPCongfigMeClient:
             else:
                 self.entry['CHDEVID'].set(self.device['devID'])
                 
-            for e in reply.replies:
-                if e[0] == "CHREMID" and e[1][len(e[0]):] == '':
-                    self.entry[e[0]].set("--")
-                elif e[0] == "SLEEPM":
-                    value = int(e[1][len(e[0]):])
+            for command, reply in reply.replies.items():
+                if command == "CHREMID" and reply == '':
+                    self.entry[command].set("--")
+                elif command == "SLEEPM":
+                    value = int(reply)
                     if value != 0:
-                        self.entry[e[0]].set(1)
+                        self.entry[command].set(1)
                     else:
-                        self.entry[e[0]].set(0)
-                elif e[0] == "ENC":
-                    if e[1][len(e[0]):].startswith("OFF"):
-                        self.entry[e[0]].set(0)
-                    elif e[1][len(e[0]):].startswith("ON"):
-                        self.entry[e[0]].set(1)
+                        self.entry[command].set(0)
+                elif command == "ENC":
+                    if reply == "OFF":
+                        self.entry[command].set(0)
+                    elif reply == "ON":
+                        self.entry[command].set(1)
                     else:
                         #should not get here
                         self._debugPrint("Error in reply to ENC")
                 else:
-                    if e[0] in self.entry:
-                        self.entry[e[0]].set(e[1][len(e[0]):])
+                    if command in self.entry:
+                        self.entry[command].set(reply)
 
             # show config screen
             self._debugPrint("Setting keepAwake")
@@ -692,46 +722,31 @@ class LLAPCongfigMeClient:
             pass
         elif reply.id == 5:
             # have done a reset so should get back factory settings
-            self.device["devID"] = reply.replies[2][1][7:]
-            query = ["PANID", "RETRIES", "SNL", "SNH", "ENC"]
-            
-            if self.devices[self.device['id']]['SleepMode'] == "Cyclic":
-                query.append("INTVL")
-                query.append("WAKEC")
-                query.append("SLEEPM")
-            elif self.devices[self.defice['id']]['SleepMode'] == "Interrupt":
-                query.append("SLEEPM")
-            
-            for n in self.devices[self.device['id']]['Options']:
-                # create place to put the reply later
-                self.entry[n['Command']] = tk.StringVar()
-                query.append(n['Command'].encode('ascii', 'ignore'))
-            
-            lcr = LLAPConfigRequest(id=2,
-                                    devType=self.device['DTY'],
-                                    toQuery=query
-                                    )
-                                    
-            self._lastLCR.append(lcr)
-            self._sendRequest(lcr)
-
+            self._askCurrentConfig()
+        
         self._lcm.replyQ.task_done()
 
     def _askCurrentConfig(self):
         # assuming we know what it is ask for the current config
-        query = ["PANID", "RETRIES", "SNL", "SNH", "ENC"]
+        query = [
+                 {'command': "PANID"},
+                 {'command': "RETRIES"},
+                 {'command': "SNL"},
+                 {'command': "SNH"},
+                 {'command': "ENC"}
+                 ]
         
         if self.devices[self.device['id']]['SleepMode'] == "Cyclic":
-            query.append("INTVL")
-            query.append("WAKEC")
-            query.append("SLEEPM")
+            query.append({'command': "INTVL"})
+            query.append({'command': "WAKEC"})
+            query.append({'command': "SLEEPM"})
         elif self.devices[self.defice['id']]['SleepMode'] == "Interrupt":
-            query.append("SLEEPM")
+            query.append({'command': "SLEEPM"})
         
         for n in self.devices[self.device['id']]['Options']:
             # create place to put the reply later
             self.entry[n['Command']] = tk.StringVar()
-            query.append(n['Command'].encode('ascii', 'ignore'))
+            query.append({'command': n['Command'].encode('ascii', 'ignore')})
         
         lcr = LLAPConfigRequest(id=2,
                                 devType=self.device['DTY'],
@@ -858,7 +873,7 @@ class LLAPCongfigMeClient:
         self._debugPrint("Clean up and exit")
         # if we were talking to a device we should send a CONFIGEND
         if self._lcm.keepAwake:
-            query = ["CONFIGEND"]
+            query = [{'command': "CONFIGEND"}]
             lcr = LLAPConfigRequest(id=4,
                                     devType=self.device['DTY'],
                                     toQuery=query

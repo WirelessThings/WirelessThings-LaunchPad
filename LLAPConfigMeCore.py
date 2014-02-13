@@ -22,13 +22,20 @@ class LLAPConfigRequest:
     """Config Request object
     
     Holder object for devType, Queries and replies
+    
+    query is a list of dicts to send
+    each dict has
+        {
+         'command': "Command to send",
+         'value': "this is optional value to send"
+        }
     """
     def __init__(self, id, devType=None, toQuery=None, replies=None):
         self.id = id
         self.devType = devType
         self.toQuery = toQuery
         if replies == None:
-            replies = []
+            replies = {}
         self.replies = replies
 
     
@@ -194,7 +201,7 @@ class LLAPConfigMeCore(threading.Thread):
                         
                         else:
                             # got a need to check devtype first
-                            query = "DTY"
+                            query = {'command': "DTY"}
                             self.transport.publish(self._mqttPub_tx, query)
                             self.transportQ.put(["{}:{}".format(self._mqttPub_tx,
                                                                 query), "TX"])
@@ -278,34 +285,14 @@ class LLAPConfigMeCore(threading.Thread):
                             # is it for a set devtype
                             if request.devType == None:
                                 # procces reuests
-                                for query in request.toQuery:
-                                    llapReply = ""
-                                    llapMsg = "a??{}".format(query)
-                                    while len(llapMsg) <12:
-                                        llapMsg += '-'
-                                
-                                    # TODO: retry time out
-                                    while llapReply == "" or llapReply == "a??CONFIGME-":
-                                        llapReply = ""  # clear last reply
-                                        self.transport.write(llapMsg)
-                                        self.transportQ.put([llapMsg, "TX"])
-                                        
-                                        # TODO: retry time out
-                                        while llapReply[1:3] != "??" :
-                                            llapReply = self.read_12()
-                                    
-                                    request.replies.append([query,
-                                                            llapReply[3:].strip('-')])
-                        
+                                request = self.processQuery(request)
+                            
                             else:
                                 # got a need to check devtype first
-                                query = "DTY"
                                 llapReply = ""
-                                llapMsg = "a??{}".format(query)
-                                while len(llapMsg) <12:
-                                    llapMsg += '-'
+                                llapMsg = "a??DTY------"
                             
-                                # TODO: retry time out
+                                # TODO: retry time out, should we recheck DTY?
                                 while llapReply == "" or llapReply == "a??CONFIGME-":
                                     llapReply = ""  # clear last reply
                                     self.transport.write(llapMsg)
@@ -314,35 +301,22 @@ class LLAPConfigMeCore(threading.Thread):
                                     # TODO: retry time out
                                     while llapReply[1:3] != "??" :
                                         llapReply = self.read_12()
-                                    
-                                request.replies.append([query,
-                                                        llapReply[3:].strip('-')])
+                            
+                                # dont need to pass DTY back up as it's not going to change
+                                # request.replies.append([query,
+                                #                        llapReply[3:].strip('-')])
                                 
-                                if llapReply[3:].strip('-') == request.devType:
-                                    # got a matching devtype, time to send all the requests
-                                    for query in request.toQuery:
-                                        llapReply = ""
-                                        llapMsg = "a??{}".format(query)
-                                        while len(llapMsg) <12:
-                                            llapMsg += '-'
-                                    
-                                        # TODO: retry time out
-                                        while llapReply == "" or llapReply == "a??CONFIGME-":
-                                            llapReply = ""  # clear last reply
-                                            self.transport.write(llapMsg)
-                                            self.transportQ.put([llapMsg, "TX"])
-                                            
-                                            # TODO: retry time out
-                                            while llapReply[1:3] != "??" :
-                                                llapReply = self.read_12()
-                                            
-                                        request.replies.append([query,
-                                                                llapReply[3:].strip('-')])
+                                # check what DTY returned
+                                if llapReply[6:].strip('-') == request.devType:
+                                    request = self.processQuery(request)
                 
                             self.replyQ.put(request)
                             self.requestQ.task_done()
                         elif self.keepAwake:
                             # nothing in the que but have been asked to keep device awake
+                            # TODO: should we check we are keeping the correct device awake?
+                            # tho that inteself will keep a deice awake
+                            # could CONFIGEND if not the device been asked to keep awake
                             if self.debug:
                                 print("LCMC: Sending keepAwake HELLO")
                             llapReply = ""
@@ -377,6 +351,27 @@ class LLAPConfigMeCore(threading.Thread):
                     return llapMsg
 
 
+    def processQuery(self, request):
+        for query in request.toQuery:
+            llapReply = ""
+            llapMsg = "a??{}{}".format(query['command'], query.get('value', ""))
+            while len(llapMsg) <12:
+                llapMsg += '-'
+            
+            # TODO: retry time out, should we recheck DTY?
+            while llapReply == "" or llapReply == "a??CONFIGME-":
+                llapReply = ""  # clear last reply
+                self.transport.write(llapMsg)
+                self.transportQ.put([llapMsg, "TX"])
+                
+                # TODO: retry time out
+                while llapReply[1:3] != "??" :
+                    llapReply = self.read_12()
+            
+            if llapReply == llapMsg or llapReply[3:].strip('-').startswith(query['command']):
+                request.replies[query['command']] = llapReply[3+len(query['command']):].strip('-')
+        return request
+                            
 
 # tester code
 if __name__ == "__main__" :
@@ -408,7 +403,18 @@ if __name__ == "__main__" :
     if args.debug:
         lcm.debug = True
     # build an example request, normall done via wizards
-    query = ["DTY", "LLAPRESET", "CONFIGEND"]
+    query = [
+             {'command': "DTY",
+             },
+             {'command': "LLAPRESET",
+              'value': ""
+             },
+             {'command': "CHDEVID",
+              'value': "MA"
+             },
+             {'command': "CONFIGEND",
+             }
+            ]
     lcr = LLAPConfigRequest(id=1, toQuery=query)
 
     lcm.connect_transport()
@@ -423,10 +429,12 @@ if __name__ == "__main__" :
                 lcm.transportQ.task_done()
             if not lcm.replyQ.empty():
                 reply = lcm.replyQ.get()
+                print("id: {}, devType:{}, Replies:{}".format(reply.id,
+                                                              reply.devType,
+                                                              reply.replies))
                 print("For DTY {} got:".format(reply.devType))
-                for n in range(len(reply.replies)):
-                    print("Asked {} got {}".format(reply.replies[n][0],
-                                                   reply.replies[n][1]))
+                for command, reply in reply.replies.items():
+                    print("Asked {} got {}".format(command, reply))
                 lcm.replyQ.task_done()
                 lcm.disconnect_transport()
                 running = False

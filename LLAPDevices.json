@@ -350,7 +350,7 @@
                {
                "id":3,
                "DEVTYPE":"",
-               "DTY":"DTYTHERM2",
+               "DTY":"THERM2",
                "Name":"Thermistor",
                "Description":"LLAP+ Thermistor",
                "SleepMode":"Cyclic",
