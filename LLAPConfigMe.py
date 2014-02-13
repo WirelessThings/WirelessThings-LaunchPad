@@ -374,7 +374,6 @@ class LLAPCongfigMeClient:
         tk.Label(self.aframe, text="Encryption Key (set Only)"
                  ).grid(row=4, column=3, columnspan=3)
         tk.Label(self.aframe, text="EN[1-6]").grid(row=5, column=3, sticky=tk.E)
-        # TODO: add validation for encryption key
         self._encryptionKeyInput = tk.Entry(self.aframe, textvariable=self.entry['ENKEY'], width=33,
                  validate='key',
                  invalidcommand='bell',
@@ -551,8 +550,7 @@ class LLAPCongfigMeClient:
             query.append("ENCOFF")
         
         # set encryption key
-        # TODO: validate full length set on encryption entry box
-        # need check we have enough character then split into each EN[1-6]
+        # need to split into each EN[1-6]
         # Test keys
         #      ><    ><    ><    ><    ><>
         # 12345678901234567890123456789012
