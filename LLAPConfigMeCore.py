@@ -279,16 +279,20 @@ class LLAPConfigMeCore(threading.Thread):
                             if request.devType == None:
                                 # procces reuests
                                 for query in request.toQuery:
+                                    llapReply = ""
                                     llapMsg = "a??{}".format(query)
                                     while len(llapMsg) <12:
                                         llapMsg += '-'
-                                    
-                                    self.transport.write(llapMsg)
-                                    self.transportQ.put([llapMsg, "TX"])
-                                    
-                                    llapReply = ""
-                                    while llapReply[1:3] != "??" :
-                                        llapReply = self.read_12()
+                                
+                                    # TODO: retry time out
+                                    while llapReply == "" or llapReply == "a??CONFIGME-":
+                                        llapReply = ""  # clear last reply
+                                        self.transport.write(llapMsg)
+                                        self.transportQ.put([llapMsg, "TX"])
+                                        
+                                        # TODO: retry time out
+                                        while llapReply[1:3] != "??" :
+                                            llapReply = self.read_12()
                                     
                                     request.replies.append([query,
                                                             llapReply[3:].strip('-')])
@@ -296,33 +300,42 @@ class LLAPConfigMeCore(threading.Thread):
                             else:
                                 # got a need to check devtype first
                                 query = "DTY"
+                                llapReply = ""
                                 llapMsg = "a??{}".format(query)
                                 while len(llapMsg) <12:
                                     llapMsg += '-'
-                                self.transport.write(llapMsg)
-                                self.transportQ.put([llapMsg, "TX"])
-
-                                llapReply = ""
-                                while llapReply[1:3] != "??" :
-                                    llapReply = self.read_12()
-                                
+                            
+                                # TODO: retry time out
+                                while llapReply == "" or llapReply == "a??CONFIGME-":
+                                    llapReply = ""  # clear last reply
+                                    self.transport.write(llapMsg)
+                                    self.transportQ.put([llapMsg, "TX"])
+                                    
+                                    # TODO: retry time out
+                                    while llapReply[1:3] != "??" :
+                                        llapReply = self.read_12()
+                                    
                                 request.replies.append([query,
                                                         llapReply[3:].strip('-')])
                                 
                                 if llapReply[3:].strip('-') == request.devType:
                                     # got a matching devtype, time to send all the requests
                                     for query in request.toQuery:
+                                        llapReply = ""
                                         llapMsg = "a??{}".format(query)
                                         while len(llapMsg) <12:
                                             llapMsg += '-'
-                                        
-                                        self.transport.write(llapMsg)
-                                        self.transportQ.put([llapMsg, "TX"])
-
-                                        llapReply = ""
-                                        while llapReply[1:3] != "??" :
-                                            llapReply = self.read_12()
-                                        
+                                    
+                                        # TODO: retry time out
+                                        while llapReply == "" or llapReply == "a??CONFIGME-":
+                                            llapReply = ""  # clear last reply
+                                            self.transport.write(llapMsg)
+                                            self.transportQ.put([llapMsg, "TX"])
+                                            
+                                            # TODO: retry time out
+                                            while llapReply[1:3] != "??" :
+                                                llapReply = self.read_12()
+                                            
                                         request.replies.append([query,
                                                                 llapReply[3:].strip('-')])
                 
@@ -332,12 +345,15 @@ class LLAPConfigMeCore(threading.Thread):
                             # nothing in the que but have been asked to keep device awake
                             if self.debug:
                                 print("LCMC: Sending keepAwake HELLO")
-                            llapMsg = "a??HELLO----"
-                            self.transport.write(llapMsg)
-                            self.transportQ.put([llapMsg, "TX"])
                             llapReply = ""
-                            while llapReply[1:] != "??HELLO----" :
-                                llapReply = self.read_12()
+                            llapMsg = "a??HELLO----"
+                            while llapReply == "" or llapReply == "a??CONFIGME-":
+                                self.transport.write(llapMsg)
+                                self.transportQ.put([llapMsg, "TX"])
+                                llapReply = ""
+                                # TODO: retry time out
+                                while llapReply[1:3] != "??" :
+                                    llapReply = self.read_12()
                 
                     else:
                         #not a CONFIGME llap
