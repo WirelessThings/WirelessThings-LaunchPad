@@ -23,12 +23,20 @@ class LLAPConfigRequest:
     
     Holder object for devType, Queries and replies
     
-    query is a list of dicts to send
-    each dict has
+    toQuery is a ordered list commands to send, each as a dictionary of command, value
+    Dicts are not ordered but lists are
+    
+    example dictionary
         {
          'command': "Command to send",
          'value': "this is optional value to send"
         }
+        
+    replies is a dict of commands and replies
+        { command: {'reply': reply, 
+                    'value': value}
+        }
+        { 'CHDEVID': {'replay': 'MA', 'value': "" }
     """
     def __init__(self, id, devType=None, toQuery=None, replies=None):
         self.id = id
@@ -42,11 +50,11 @@ class LLAPConfigRequest:
 class LLAPConfigMeCore(threading.Thread):
     """Core logic module
         
-    Give a LLAPConfigReuest this will open the current transport and conducted 
-        the requested exchanges returning a LLAPConfigReqesut complete with 
+    Give a LLAPConfigRequest this will open the current transport and conducted
+        the requested exchanges returning a LLAPConfigRequest complete with
         replies to the calling application
     """
-    # serial based defualts
+    # serial based defaults
     _mode = SERIAL
     _baud = 9600
     if sys.platform == 'darwin':
@@ -57,7 +65,7 @@ class LLAPConfigMeCore(threading.Thread):
     else:
         _serialPort = "/dev/ttyAMA0"
     
-    # mqtt defualts
+    # mqtt defaults
     clientName = "LLAPConfigmeCore"
     _mqttServer = 'localhost'
     _mqttPort = 1883
@@ -110,23 +118,23 @@ class LLAPConfigMeCore(threading.Thread):
             if len(port) == 2:
                 self._mqttPort = port[1]
             else:
-                self._mqttPort = 1883    # defualt port for mqtt if not given
+                self._mqttPort = 1883    # default port for mqtt if not given
     
     def set_baud(self, baud):
-        """Set buad for use by transport
+        """Set baud for use by transport
         
         """
         if self._mode == SERIAL:
             self._baud = baud
     
     def connect_transport(self):
-        """Connet to the selected mode of tansport and start the thread running
+        """Connect to the selected mode of transport and start the thread running
         """
         if self._mode == SERIAL:
             self.transport = serial.Serial()
             if self.transport.isOpen() == False:
                 self.transport._baud = self._baud
-                self.transport.timeout = 45       # for 45 second timeout reads
+                self.transport.timeout = 10       # for 10 second timeout reads
                 self.transport.port = self._serialPort
                 try:
                     self.transport.open()
@@ -141,7 +149,7 @@ class LLAPConfigMeCore(threading.Thread):
             else:
                 return False
         elif self._mode == MQTT:
-            """MQTT based trasnport using mosquitto
+            """MQTT based transport using mosquitto
             """
             self.transport = mosquitto.Mosquitto(self.clientName)
             self.transport.on_message = self.mqttOnMessage
@@ -152,7 +160,7 @@ class LLAPConfigMeCore(threading.Thread):
                 print("LCMC: Transport open")
             self.start()
             return True
-
+            
     def disconnect_transport(self):
         """Disconnect transport
         
@@ -176,7 +184,7 @@ class LLAPConfigMeCore(threading.Thread):
                 msg = self._mqttQ.get()
                 if msg.payload == "CONFIGME":
                     # start of a CONFIGME Cycle
-                    # lets check the requesst queue
+                    # lets check the request queue
                     if not self.requestQ.empty():
                         request = self.requestQ.get()
                         # ok we got a request
@@ -186,7 +194,7 @@ class LLAPConfigMeCore(threading.Thread):
                                                                                request.toQuery))
                         # is it for a set devtype
                         if request.devType == None:
-                            # procces reuests
+                            # process requests
                             for query in request.toQuery:
                                 self.transport.publish(self._mqttPub_tx, query)
                                 self.transportQ.put(["{}:{}".format(self._mqttPub_tx,
@@ -250,7 +258,7 @@ class LLAPConfigMeCore(threading.Thread):
         self.transport.disconnect()
     
     def mqttOnMessage(self, mosq, obj, msg):
-        """Recieved Message from MQTT
+        """Received Message from MQTT
         """
         if self.debug:
             print("LCMC: Received on topic {} with QoS {}  and payload {}".format(msg.topic,
@@ -284,7 +292,7 @@ class LLAPConfigMeCore(threading.Thread):
                                                                                    request.toQuery))
                             # is it for a set devtype
                             if request.devType == None:
-                                # procces reuests
+                                # process requests
                                 request = self.processQuery(request)
                             
                             else:
@@ -302,20 +310,21 @@ class LLAPConfigMeCore(threading.Thread):
                                     while llapReply[1:3] != "??" :
                                         llapReply = self.read_12()
                             
-                                # dont need to pass DTY back up as it's not going to change
+                                # don't need to pass DTY back up as it's not going to change
                                 # request.replies.append([query,
                                 #                        llapReply[3:].strip('-')])
                                 
                                 # check what DTY returned
                                 if llapReply[6:].strip('-') == request.devType:
                                     request = self.processQuery(request)
-                
+                            
+                            # TODO: check that we have replies for all queries's
                             self.replyQ.put(request)
                             self.requestQ.task_done()
                         elif self.keepAwake:
                             # nothing in the que but have been asked to keep device awake
                             # TODO: should we check we are keeping the correct device awake?
-                            # tho that inteself will keep a deice awake
+                            # although that in it's self will keep a deice awake
                             # could CONFIGEND if not the device been asked to keep awake
                             if self.debug:
                                 print("LCMC: Sending keepAwake HELLO")
@@ -343,14 +352,21 @@ class LLAPConfigMeCore(threading.Thread):
         Currently blocking
         """
         while self.transport.isOpen() == True:
-            if self.transport.inWaiting() >= 12:
+            if self.transport.inWaiting():
                 if self.transport.read() == 'a':
                     llapMsg = 'a'
-                    llapMsg += self.transport.read(11)
-                    self.transportQ.put([llapMsg, "RX"])
-                    return llapMsg
-
-
+                    eleven = self.transport.read(11)
+                    if len(eleven) == 11:
+                        # we didnt time out
+                        llapMsg += eleven
+                        self.transportQ.put([llapMsg, "RX"])
+                        return llapMsg
+                    else:
+                        # so we got less that eleven
+                        # what did we get?
+                        # and can we get back in sync
+                        pass
+                        
     def processQuery(self, request):
         for query in request.toQuery:
             llapReply = ""
@@ -369,7 +385,10 @@ class LLAPConfigMeCore(threading.Thread):
                     llapReply = self.read_12()
             
             if llapReply == llapMsg or llapReply[3:].strip('-').startswith(query['command']):
-                request.replies[query['command']] = llapReply[3+len(query['command']):].strip('-')
+                request.replies[query['command']] = {'value': query.get('value', ""), 'reply': llapReply[3+len(query['command']):].strip('-')}
+            else:
+                # TODO: was it a reply to a different query?
+                pass
         return request
                             
 
@@ -377,7 +396,7 @@ class LLAPConfigMeCore(threading.Thread):
 if __name__ == "__main__" :
     """Class test code
         
-    Prove that for a pre given confifg request the logic works
+    Prove that for a pre given config request the logic works
     """
     t = threading.Event()
     parser = argparse.ArgumentParser(
@@ -402,7 +421,7 @@ if __name__ == "__main__" :
     
     if args.debug:
         lcm.debug = True
-    # build an example request, normall done via wizards
+    # build an example request, normally done via wizards
     query = [
              {'command': "DTY",
              },
@@ -433,8 +452,8 @@ if __name__ == "__main__" :
                                                               reply.devType,
                                                               reply.replies))
                 print("For DTY {} got:".format(reply.devType))
-                for command, reply in reply.replies.items():
-                    print("Asked {} got {}".format(command, reply))
+                for command, args in reply.replies.items():
+                    print("Asked: {} with value: {} Got: {}".format(command, args['value'], args['reply']))
                 lcm.replyQ.task_done()
                 lcm.disconnect_transport()
                 running = False

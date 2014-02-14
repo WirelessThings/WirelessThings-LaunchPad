@@ -640,15 +640,15 @@ class LLAPCongfigMeClient:
                                                                 reply.replies))
         if reply.id == 1:
             # this was a query type request
-            if float(reply.replies['APVER']) >= 2.0:
+            if float(reply.replies['APVER']['reply']) >= 2.0:
                 # valid apver
                 # so check what replied
                 for n in range(len(self.devices)):
-                    if self.devices[n]['DTY'] == reply.replies['DTY']:
+                    if self.devices[n]['DTY'] == reply.replies['DTY']['reply']:
                         # we have a match
                         self.device = {'id': n,
-                                       'DTY': self.devices[n]['DTY'],
-                                       'devID': reply.replies['CHDEVID']
+                                       'DTY': self.devices[n]['DTY'],   # copy form JSON not reply
+                                       'devID': reply.replies['CHDEVID']['reply']
                                       }
                         
                         # ask user about reseting device if devID is not ??
@@ -686,26 +686,27 @@ class LLAPCongfigMeClient:
             else:
                 self.entry['CHDEVID'].set(self.device['devID'])
                 
-            for command, reply in reply.replies.items():
-                if command == "CHREMID" and reply == '':
+            for command, args in reply.replies.items():
+                if command == "CHREMID" and args['reply'] == '':
                     self.entry[command].set("--")
                 elif command == "SLEEPM":
-                    value = int(reply)
+                    value = int(args['reply'])
                     if value != 0:
                         self.entry[command].set(1)
                     else:
                         self.entry[command].set(0)
                 elif command == "ENC":
-                    if reply == "OFF":
+                    if args['reply'] == "OFF":
                         self.entry[command].set(0)
-                    elif reply == "ON":
+                    elif args['reply'] == "ON":
                         self.entry[command].set(1)
                     else:
                         #should not get here
                         self._debugPrint("Error in reply to ENC")
                 else:
                     if command in self.entry:
-                        self.entry[command].set(reply)
+                        # TODO: need to handle check box entry (Format: ONOFF
+                        self.entry[command].set(args['reply'])
 
             # show config screen
             self._debugPrint("Setting keepAwake")
