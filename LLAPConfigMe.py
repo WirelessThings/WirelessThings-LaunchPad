@@ -23,6 +23,7 @@ import tkMessageBox
 import threading
 import Queue
 import string
+import re
 from time import sleep, asctime, time
 #import ImageTk
 from LLAPConfigMeCore import *
@@ -715,7 +716,24 @@ class LLAPCongfigMeClient:
 
         elif reply.id == 3:
             # this was a config request
-            # check replies were good and let user know device is now ready
+            # TODO: check replies were good and let user know device is now ready
+            enkeyCount = 0
+            enkeyMatch = 0
+            en = re.compile('^EN[1-6]')
+
+            for command, arg in reply.replies.items():
+                if en.match(command):
+                    enkeyCount += 1
+                    if arg['reply'] == "ACK":
+                        enkeyMatch += 1
+                elif arg['value'] != arg['reply']:
+                    # values don't match we should warn user
+                    tkMessageBox.showerror("Value mismatch", "The {} value was not set, \n Sent: {}\n Got back: {}".format(command, arg['value'], arg['reply']))
+
+            if enkeyCount != 0 and enkeyMatch != 6:
+                # encryption key not fully set
+                tkMessageBox.showerror("Encryption Key Error", "Your encryption key was not correctly set please try again")
+
             
             # show end screen
             self._displayEnd()
