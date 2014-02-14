@@ -593,12 +593,12 @@ class LLAPCongfigMeClient:
                          }
                         )
             query.append({'command': "SLEEPM",
-                          'value': (16 if self.entry['SLEEPM'].get() else 0)
+                          'value': ("16" if self.entry['SLEEPM'].get() else "0")
                          }
                         )
         elif self.devices[self.device['id']]['SleepMode'] == "Interrupt":
             query.append({'command': "SLEEPM",
-                          'value': (8 if self.entry['SLEEPM'].get() else 0)
+                          'value': ("8" if self.entry['SLEEPM'].get() else "0")
                           }
                          )
         else:
