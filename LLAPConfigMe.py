@@ -68,7 +68,7 @@ class LLAPCongfigMeClient:
     _heightSerial = 200
     
     # how long to wait for a reply before asking user to press button again in seconds
-    _timeout = 60
+    _timeout = 30
     _devIDInputs = []
     _encryptionKeyInput = 0
     _lastLCR = []
@@ -326,6 +326,7 @@ class LLAPCongfigMeClient:
     def _displayAdvance(self):
         """Advance config diag to show Serial number and set ENC"""
         # TODO: rearrange to fit long ENKEY box
+        # TODO: should we also get FVER and display that?
         self._debugPrint("Display advance config screen")
     
         position = self.master.geometry().split("+")
@@ -346,7 +347,8 @@ class LLAPCongfigMeClient:
         
         self._buildGrid(self.aframe, False, True)
 
-        tk.Label(self.aframe, text="Advance configuration options").grid(row=0, column=0, columnspan=6)
+        tk.Label(self.aframe, text="Advance configuration options"
+                 ).grid(row=0, column=0, columnspan=6)
         
         tk.Label(self.aframe, text="Serial Number (read only)"
                  ).grid(row=1, column=0, columnspan=3)
@@ -375,12 +377,14 @@ class LLAPCongfigMeClient:
         tk.Label(self.aframe, text="Encryption Key (set Only)"
                  ).grid(row=4, column=3, columnspan=3)
         tk.Label(self.aframe, text="EN[1-6]").grid(row=5, column=3, sticky=tk.E)
-        self._encryptionKeyInput = tk.Entry(self.aframe, textvariable=self.entry['ENKEY'], width=33,
-                 validate='key',
-                 invalidcommand='bell',
-                 validatecommand=self.vEnKey,
-                 name='enkey'
-                 )
+        self._encryptionKeyInput = tk.Entry(self.aframe,
+                                            textvariable=self.entry['ENKEY'],
+                                            width=33,
+                                            validate='key',
+                                            invalidcommand='bell',
+                                            validatecommand=self.vEnKey,
+                                            name='enkey')
+                                            
         self._encryptionKeyInput.grid(row=5, column=4, columnspan=2, sticky=tk.W)
 
 
@@ -536,8 +540,6 @@ class LLAPCongfigMeClient:
     def _sendConfigRequest(self):
         self._debugPrint("Sending config request to device")
         # TODO: add a line here to disable NEXT button on cfame and advance
-        
-        
         # build config query from values in entry
         # generic commands first
         query = [
@@ -728,13 +730,15 @@ class LLAPCongfigMeClient:
                         enkeyMatch += 1
                 elif arg['value'] != arg['reply']:
                     # values don't match we should warn user
-                    tkMessageBox.showerror("Value mismatch", "The {} value was not set, \n Sent: {}\n Got back: {}".format(command, arg['value'], arg['reply']))
+                    tkMessageBox.showerror("Value mismatch",
+                                           "The {} value was not set, \n Sent: {}\n Got back: {}".format(command, arg['value'], arg['reply']))
 
             if enkeyCount != 0 and enkeyMatch != 6:
                 # encryption key not fully set
-                tkMessageBox.showerror("Encryption Key Error", "Your encryption key was not correctly set please try again")
+                tkMessageBox.showerror("Encryption Key Error",
+                                       "Your encryption key was not correctly set please try again")
 
-            
+
             # show end screen
             self._displayEnd()
         elif reply.id == 4:
@@ -780,14 +784,19 @@ class LLAPCongfigMeClient:
         # ask user to press pair button and try again?
         # TODO: add a line here to enable NEXT button on cfame or pframe as needed
         
-        if tkMessageBox.askyesno("Communications Timeout", ("Unable to connect to device, \n"
-                                                           "To try again check the device power,\n"
-                                                           "press the ConfigMe button and click yes")
+        if tkMessageBox.askyesno("Communications Timeout",
+                                 ("Unable to connect to device, \n"
+                                  "To try again check the device power,\n"
+                                  "press the ConfigMe button and click yes"
+                                  )
                                  ):
             self._displayProgress()
             self._starttime = time()
             self._replyCheck()
-    
+        else:
+            # TODO: we need to cancel the LCR with the core
+            self._lcm.cancelLCR()
+            
     def _sendRequest(self, lcr):
         self._debugPrint("Sending Request to LCMC")
         self._displayProgress()
@@ -907,7 +916,8 @@ class LLAPCongfigMeClient:
             while self._lcm.replyQ.empty() and time()-self._starttime < 15:
                 sleep(0.1)
     
-
+        # cancle anything outstanding
+        self._lcm.cancelLCR()
         # disconnect resources
         self._lcm.disconnect_transport()
         self._writeConfig()

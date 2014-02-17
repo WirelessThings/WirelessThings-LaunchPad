@@ -85,6 +85,7 @@ class LLAPConfigMeCore(threading.Thread):
 
         self.disconnectFlag = threading.Event()
         self.t_stop = threading.Event()
+        self.cancelFlag = threading.Event()
         
         self.replyQ = Queue.Queue()
         self.requestQ = Queue.Queue()
@@ -276,6 +277,10 @@ class LLAPConfigMeCore(threading.Thread):
             if self.transport.inWaiting():
                 char = self.transport.read()
                 self.transportQ.put([char, "RX"])
+                if self.cancelFlag.isSet():
+                    self.cancelFlag.clear()
+                    self.requestQ.get()
+                    self.requestQ.task_done()
                 if char == 'a':
                     llapMsg = 'a'
                     llapMsg += self.transport.read(11)
@@ -296,7 +301,7 @@ class LLAPConfigMeCore(threading.Thread):
                                 request = self.processQuery(request)
                             
                             else:
-                                # got a need to check devtype first
+                                # got a, need to check devtype first
                                 llapReply = ""
                                 llapMsg = "a??DTY------"
                             
@@ -319,7 +324,8 @@ class LLAPConfigMeCore(threading.Thread):
                                     request = self.processQuery(request)
                             
                             # TODO: check that we have replies for all queries's
-                            self.replyQ.put(request)
+                            if request != False:
+                                self.replyQ.put(request)
                             self.requestQ.task_done()
                         elif self.keepAwake:
                             # nothing in the que but have been asked to keep device awake
@@ -366,7 +372,12 @@ class LLAPConfigMeCore(threading.Thread):
                         # what did we get?
                         # and can we get back in sync
                         pass
-                        
+
+    def cancelLCR(self):
+        if self.debug:
+            print("LCMC: Got cancelLCR")
+        self.cancelFlag.set()
+
     def processQuery(self, request):
         for query in request.toQuery:
             llapReply = ""
@@ -385,10 +396,14 @@ class LLAPConfigMeCore(threading.Thread):
                     llapReply = self.read_12()
             
             if llapReply == llapMsg or llapReply[3:].strip('-').startswith(query['command']):
-                request.replies[query['command']] = {'value': query.get('value', ""), 'reply': llapReply[3+len(query['command']):].strip('-')}
+                request.replies[query['command']] = {'value': query.get('value', ""),
+                                                     'reply': llapReply[3+len(query['command']):].strip('-')}
             else:
                 # TODO: was it a reply to a different query?
                 pass
+            if self.cancelFlag.isSet():
+                self.cancelFlag.clear()
+                return False
         return request
                             
 
@@ -453,7 +468,9 @@ if __name__ == "__main__" :
                                                               reply.replies))
                 print("For DTY {} got:".format(reply.devType))
                 for command, args in reply.replies.items():
-                    print("Asked: {} with value: {} Got: {}".format(command, args['value'], args['reply']))
+                    print("Asked: {} with value: {} Got: {}".format(command,
+                                                                    args['value'],
+                                                                    args['reply']))
                 lcm.replyQ.task_done()
                 lcm.disconnect_transport()
                 running = False
