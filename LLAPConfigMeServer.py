@@ -248,10 +248,12 @@ class LLAPConfigMeCore(threading.Thread):
                         self._UDPSendQ.put(self.encodeLLAPJson(llapMsg))
         
             if not self._serialTXQ.empty():
+                self._debugPrint("LCMC: Serial got something to send")
                 # got something to send out
                 llapMsg = self._serialTXQ.get()
                 # TODO: is _serialTXQ pure LLAP?
                 self.transport.write(llapMsg)
+                self._debugPrint("LCMC: sent {} to serial".format(llapMsg))
                 self._serialTXQ.task_done()
 
             if self.disconnectFlag.isSet():
@@ -316,13 +318,13 @@ class LLAPConfigMeCore(threading.Thread):
         """Thread handler for sending out UDP brodacasts
            Block on UDPSendQ untill something to send
         """
-        self._debugPrint("Running UDPSendThread")
+        self._debugPrint("LCMC: Running UDPSendThread")
         # TODO: should only run untill quit
         while 1:
             message = self._UDPSendQ.get()
             self._debugPrint(message)
             self._UDPSendSocket.sendto(message, ('<broadcast>', self._LLAPSendPort))
-            self._debugPrint("Put message out via UDP")
+            self._debugPrint("LCMC: Put message out via UDP")
             # tidy up
             self._UDPSendQ.task_done()
     
@@ -331,14 +333,31 @@ class LLAPConfigMeCore(threading.Thread):
            Block waiting fro incomming UDP packet
            
            """
-        self._debugPrint("Running UDPListenThread")
+        self._debugPrint("LCMC: Running UDPListenThread")
         # TODO: should only run untill quit
         while 1:
             data = self._UDPListenSocket.recv(1024)
             # TODO: decode incomming JSON and put LLAP messages on the Q
-            self._serialTXQ.put(data)
-            self._debugPrint("Put data on serial.TXQ")
-        
+            jsonin = json.loads(data)
+            
+            if jsonin['type'] == "LLAP":
+                # got a LLAP type json, need to generate the LLAP meassge and
+                # put them on the TX que
+                for command in jsonin['data']:
+                    llapMsg = "a{}{}".format(jsonin['id'], command)
+                    while len(llapMsg) <12:
+                        llapMsg += '-'
+                    
+                    # send to each network requested
+                    if jsonin['network'] == self._defaultNetwork or jsonin['network'] == "ALL":
+                        # yep its for serial
+                        self._serialTXQ.put(llapMsg)
+                        self._debugPrint("LCMC: Put {} on serial.TXQ".format(llapMsg))
+            elif jsonin['type'] == "LCR":
+                # TODO: we have a LLAPConfigRequest pass in onto the LCR thread
+                pass
+
+
     def encodeLLAPJson(self, message, network=None):
         """Encode a single LLAP message into an outgoing JSON message
         """
