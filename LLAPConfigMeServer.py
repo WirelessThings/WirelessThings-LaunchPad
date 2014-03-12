@@ -7,13 +7,14 @@ the requested exchanges returning a LLAPConfigReqesut complete with
 replies to the calling application
 """
 import sys
-from time import time, sleep
+from time import time, sleep, gmtime, strftime
 import os
 import Queue
 import argparse
 import serial
 import threading
 import socket
+import json
 
 LLAP_FROM_PORT = 50140
 LLAP_TO_PORT = 50141
@@ -68,6 +69,8 @@ class LLAPConfigMeCore(threading.Thread):
     _LLAPSendPort = 50140   # we send stuff out on this port
     _LLAPListenPort = 50141     # we listen to this port
 
+    _defaultNetwork = "Serial"
+    
     debug = False
     keepAwake = False
 
@@ -241,7 +244,8 @@ class LLAPConfigMeCore(threading.Thread):
                     else:
                         #not a CONFIGME llap
                         self._debugPrint("LCMC: Sending via UDP")
-                        self._UDPSendQ.put(llapMsg)
+                        # encode to llap json and stick it on the outgoing udp queue
+                        self._UDPSendQ.put(self.encodeLLAPJson(llapMsg))
         
             if not self._serialTXQ.empty():
                 # got something to send out
@@ -316,7 +320,7 @@ class LLAPConfigMeCore(threading.Thread):
         # TODO: should only run untill quit
         while 1:
             message = self._UDPSendQ.get()
-            # TODO: assuming we have been passed a pure LLAP message should encode
+            self._debugPrint(message)
             self._UDPSendSocket.sendto(message, ('<broadcast>', self._LLAPSendPort))
             self._debugPrint("Put message out via UDP")
             # tidy up
@@ -334,7 +338,22 @@ class LLAPConfigMeCore(threading.Thread):
             # TODO: decode incomming JSON and put LLAP messages on the Q
             self._serialTXQ.put(data)
             self._debugPrint("Put data on serial.TXQ")
-
+        
+    def encodeLLAPJson(self, message, network=None):
+        """Encode a single LLAP message into an outgoing JSON message
+        """
+        self._debugPrint("LCMC: encodeing {} to json LLAP".format(message))
+        jsonDict = {'type':"LLAP"}
+        jsonDict['network'] = network if network else self._defaultNetwork
+        jsonDict['timestamp'] = strftime("%d %b %Y %H:%M:%S +0000", gmtime())
+        jsonDict['id'] = message[1:3]
+        jsonDict['data'] = [message[3:].strip("-")]
+        
+        jsonout = json.dumps(jsonDict)
+        self._debugPrint("LCMC: {}".format(jsonout))
+        
+        return jsonout
+        
 # tester code
 if __name__ == "__main__" :
     """Class test code
