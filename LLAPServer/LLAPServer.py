@@ -380,7 +380,7 @@ class LLAPServer(threading.Thread):
                 # got a LLAP type json, need to generate the LLAP meassge and
                 # put them on the TX que
                 for command in jsonin['data']:
-                    llapMsg = "a{}{}".format(jsonin['id'], command.upper())
+                    llapMsg = "a{}{}".format(jsonin['id'], command[0:9].upper())
                     while len(llapMsg) <12:
                         llapMsg += '-'
                     
