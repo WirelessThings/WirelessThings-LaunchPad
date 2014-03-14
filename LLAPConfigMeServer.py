@@ -139,7 +139,7 @@ class LLAPConfigMeCore(threading.Thread):
         """
         self.transport = serial.Serial()
         if self.transport.isOpen() == False:
-            self.transport._baud = self._baud
+            self.transport.baud = self._baud
             self.transport.timeout = 10       # for 10 second timeout reads
             self.transport.port = self._serialPort
             try:
