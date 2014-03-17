@@ -16,7 +16,34 @@ import socket
 import json
 import logging
 
-    
+"""
+   Big TODO list
+   
+   LCR logic
+   
+   better serial read logic
+   
+   Catch Ctrl-C
+   Clean up on quit code
+   Clean up on die code
+   
+   Thread state monitor
+   gpio state display
+   restart dead threads
+   restart dead serial
+   restart dead socket
+   
+   "SERVER" messages
+        status
+        reboot
+        stop
+        config change
+        
+   configure llap master command line option
+   
+   
+"""
+
 class LLAPServer(threading.Thread):
     """Core logic and master thread control
         
@@ -50,8 +77,14 @@ class LLAPServer(threading.Thread):
         
         self.tMainStop = threading.Event()
         
-        logging.basicConfig(level=logging.DEBUG)     # this should be set to WARN by default
-        self.logger = logger or logging.getLogger('LLAPServer')
+        # setup initial Loging
+        logging.getLogger().setLevel(logging.NOTSET)
+        self.logger = logging.getLogger('LLAPServer')
+        self._ch = logging.StreamHandler()
+        self._ch.setLevel(logging.WARN)    # this should be WARN by defualt
+        self._formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        self._ch.setFormatter(self._formatter)
+        self.logger.addHandler(self._ch)
     
     def __del__(self):
         """Destructor
@@ -133,8 +166,44 @@ class LLAPServer(threading.Thread):
         """
         self.logger.info("Setting up Loggers. Console output may stop here")
 
-        # TODO: setup the stream and file log handlers
+        # disable logging if no optinos are enabled
+        if (self.args.debug == False and
+            self.config.getboolean('Debug', 'console_debug') == False and
+            self.config.getboolean('Debug', 'file_debug') == False):
+            self.logger.debug("Disabling loggers")
+            # disable debug output
+            self.logger.setLevel(100)
+            return
+        # set console level
+        if (self.args.debug or self.config.getboolean('Debug', 'console_debug')):
+            self.logger.debug("Setting Console debug level")
+            if (self.args.log):
+                logLevel = self.args.log
+            else:
+                logLevel = self.config.get('Debug', 'console_level')
+        
+            numeric_level = getattr(logging, logLevel.upper(), None)
+            if not isinstance(numeric_level, int):
+                raise ValueError('Invalid console log level: %s' % loglevel)
+            self._ch.setLevel(numeric_level)
+        else:
+            self._ch.setLevel(100)
 
+        # add file logging if enabled
+        # TODO: look at rotating log files
+        # http://docs.python.org/2/library/logging.handlers.html#logging.handlers.TimedRotatingFileHandler
+        if (self.config.getboolean('Debug', 'file_debug')):
+            self.logger.debug("Setting file debuger")
+            self._fh = logging.FileHandler(self.config.get('Debug', 'log_file'))
+            self._fh.setFormatter(self._formatter)
+            logLevel = self.config.get('Debug', 'file_level')
+            numeric_level = getattr(logging, logLevel.upper(), None)
+            if not isinstance(numeric_level, int):
+                raise ValueError('Invalid console log level: %s' % loglevel)
+            self._fh.setLevel(numeric_level)
+            self.logger.addHandler(self._fh)
+            self.logger.info("File Logging started")
+                
     def _initLCRThread(self):
         """ Setup the Thread and Queues for handleing LLAPConfigRequests
         """
@@ -385,7 +454,8 @@ class LLAPServer(threading.Thread):
                         llapMsg += '-'
                     
                     # send to each network requested
-                    if jsonin['network'] == self.config.get('Serial', 'network') or jsonin['network'] == "ALL":
+                    if (jsonin['network'] == self.config.get('Serial', 'network') or
+                        jsonin['network'] == "ALL"):
                         # yep its for serial
                         self.qSerailOut.put(llapMsg)
                         self.logger.debug("tUDPListen Put {} on qSerialOut".format(llapMsg))
