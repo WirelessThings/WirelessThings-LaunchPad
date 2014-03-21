@@ -68,7 +68,7 @@
                    "command":"APVER"
                    },
                    {
-                   "command":"DTY",
+                   "command":"DTY"
                    },
                    {
                    "command":"CHDEVID"
@@ -125,6 +125,7 @@
     "data":{
         "id":3,                 // optional, can be use by GUI to help track request and replies
         "devType":"THERM2",     // optional, if set the device type will be checked before sending any command
+        "timeout":120,          // optional, time out for request, defualt of 120seconds used if not set via json
         "keepAwake":1,          // optional, use to request or show the state of the keepAwake, 0 off, 1 on
         "toQuery":[             // required, ordered list of command and value pairs to be sent to a device
                    {

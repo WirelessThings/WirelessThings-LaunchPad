@@ -25,7 +25,16 @@ jsonDict['network'] = "ALL"      # could be 'Serial' or 'ALL'
 
 jsonDict['data'] = {
                     "id":0,
-                    "keepAwake":0
+                    "keepAwake":0,
+                    "toQuery":[{
+                        "command":"APVER"
+                        },
+                        {
+                        "command":"DTY"
+                        },
+                        {
+                        "command":"CHDEVID"
+                        }]
                     }
 
 jsonout = json.dumps(jsonDict)

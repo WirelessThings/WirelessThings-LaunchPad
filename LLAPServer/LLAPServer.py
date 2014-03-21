@@ -68,6 +68,9 @@ class LLAPServer(threading.Thread):
     
     _version = 0.01
     
+    _currentLCR = None
+    devType = None
+    
     def __init__(self, logger=None):
         """Instantiation
             
@@ -213,6 +216,7 @@ class LLAPServer(threading.Thread):
         self.qLCRSerial = Queue.Queue()
         
         self.tLCRStop = threading.Event()
+        self.fSentAll = threading.Event()
 
         self.tLCR = threading.Thread(target=self._LCRThread)
         self.tLCR.daemon = False
@@ -252,6 +256,7 @@ class LLAPServer(threading.Thread):
         
         # setup queue
         self.qSerialOut = Queue.Queue()
+        self.qSerialToQuery = Queue.Queue()
         
         # setup thread
         self.tSerialStop = threading.Event()
@@ -292,41 +297,113 @@ class LLAPServer(threading.Thread):
             if not self.qLCRRequest.empty():
                 self.logger.debug("tLCR: Got a request to process")
                 try:
-                    LCR = self.qLCRRequest.get(timeout=1)
+                    self._currentLCR = self.qLCRRequest.get(timeout=1)
                 except Queue.Empty:
                     self.logger.debug("tLCR: Failed to get item from qLCRRequest")
                 else:
                     # lets start processing it
                     # check the keepAwake first
-                    if LCR['data'].get('keepAwake', None) == 1:
+                    if self._currentLCR['data'].get('keepAwake', None) == 1:
                         self.logger.debug("tLCR: keepAwake turned on")
                         self._LCRKeepAwake = 1
-                    elif LCR['data'].get('keepAwake', None) == 0:
+                    elif self._currentLCR['data'].get('keepAwake', None) == 0:
                         self.logger.debug("tLCR: keepAwake turned off")
                         self._LCRKeepAwake = 0
                     
-                    if LCR['data'].get('toQuery', False):
-                        pass
-                    
-                    
+                    if self._currentLCR['data'].get('toQuery', False):
+                        # make place for replies later
+                        self._currentLCR['data']['replies'] = {}
+                        # process the queries and pass on to the serial thread to send out
+                        toQuery = []
+                        for query in self._currentLCR['data']['toQuery']:
+                            llapMsg = "a??{}{}".format(query['command'],
+                                                       query.get('value', ""))
+                            while len(llapMsg) <12:
+                                llapMsg += '-'
+                            toQuery.append(llapMsg)
+                        toQuery.reverse()
+                        try:
+                            self.qSerialToQuery.put_nowait(toQuery)
+                            self.devType = self._currentLCR['data'].get('devType', None)
+                        except Queue.Full:
+                            self.logger.debug("tLCR: Failed to put item onto toQuery as it's full")
+
                     self.qLCRRequest.task_done()
 
 
-            # no request so empty qLCRSerial unless we have a keepAwake
+            # do we have a reply from serial
             while not self.qLCRSerial.empty():
                 self.logger.debug("tLCR: Something in qLCRSerial")
                 try:
-                    llapMsg = self.qLCRSerial.get(timeout=1)
+                    llapReply = ""
+                    llapReply = self.qLCRSerial.get_nowait()
                 except Queue.Empty:
                     self.logger.debug("tLCR: Failed to get item from qLCRSerial")
                 else:
+                    self.logger.debug("tLCR: Got {} to process".format(llapReply))
+                    if self._currentLCR:
+                        # we are working on a request check and store the reply
+                        for q in self._currentLCR['data']['toQuery']:
+                            if llapReply.strip('-').startswith(q['command']):
+                                self._currentLCR['data']['replies'][q['command']] = {'value': q.get('value', ""),
+                                                                                'reply': llapReply[len(q['command']):].strip('-')
+                                                                                }
+                                self.logger.debug("tLCR: Stored reply '{}':{}".format(q['command'], self._currentLCR['data']['replies'][q['command']]))
+                    
+                    else:
+                        # drop it
+                        pass
                     self.qLCRSerial.task_done()
+        
+            # has the serial thread finished sending all the queries
+            if self.fSentAll.is_set():
+                self.logger.debug("tLCR: Serial sent all so check replies")
+                # do we have all the replies
+                print self._currentLCR['data']['replies'].keys()
+                print self._currentLCR['data']['toQuery']
+                toQuery = []
+                for q in self._currentLCR['data']['toQuery']:
+                    if not q['command'] in self._currentLCR['data']['replies']:
+                        llapToQuery = "a??{}{}".format(q['command'],
+                                                       q.get('value', ""))
+                        while len(llapToQuery) <12:
+                            llapToQuery += '-'
+                        toQuery.append(llapToQuery)
+                
 
+                # if not lets try asking for the missing one's again
+                if len(toQuery):
+                    toQuery.reverse()
+                    try:
+                        self.qSerialToQuery.put_nowait(toQuery)
+                        self.fSentAll.clear()
+                    except Queue.Full:
+                        self.logger.debug("tLCR: Failed to put item onto toQuery as it's full")
+                # else we can send out the JSON
+                else:
+                    # prep the reply
+                    self._currentLCR['timestamp'] = strftime("%d %b %Y %H:%M:%S +0000", gmtime())
+                    self._currentLCR['network'] = self.config.get('Serial', 'network')
+                    
+                    # encode json
+                    jsonout = json.dumps(self._currentLCR)
+                    
+                    # send to UDP thread
+                    try:
+                        self.qUDPSend.put_nowait(jsonout)
+                    except Queue.Full:
+                        self.logger.warn("tLCR: Failed to put {} on qUDPSend as it's full".format(llapMsg))
+                    else:
+                        self.logger.debug("tLCR: Sent LCR reply to qUDPSend")
+                        # and clear LCR and SentAll flag
+                        self._currentLCR = None
+                        self.fSentAll.clear()
+                            
             # wait a little
-            self.tLCRStop.wait(0.1)
+            self.tLCRStop.wait(0.5)
 
         self.logger.info("tLCR: Thread stopping")
-        
+
     def _UDPSendTread(self):
         """ UDP Send thread
         """
@@ -370,6 +447,8 @@ class LLAPServer(threading.Thread):
         """ Serial Thread
         """
         self.logger.info("tSerial: Serial thread started")
+        self._SerialToQueryState = 0
+        self._SerialToQuery = []
         while (not self.tSerialStop.is_set()):
             # open the port
             try:
@@ -379,7 +458,7 @@ class LLAPServer(threading.Thread):
                 self.logger.exception("tSerial: Failed to open port {}".format(self._serial.port))
                 self.die()
             
-            self.tSerialStop.wait(2)
+            self.tSerialStop.wait(1)
 
             # do stuff
             while self._serial.isOpen():
@@ -401,18 +480,9 @@ class LLAPServer(threading.Thread):
 
                         self.logger.debug("tSerial: RX:{}".format(llapMsg[1:]))
                         if llapMsg[1:3] == "??":
-                            if llapMsg == "a??CONFIGME-" and self._LCRKeepAwake:
-                                try:
-                                    self._serial.write("a??HELLO----")
-                                except Serial.SerialException, msg:
-                                    self.logger.warn("tSerial: failed to write to the serial port {}: {}".format(self._serial.port, e))
-                            # we have a ?? message pass on to qLCRSerial
-                            try:
-                                self.qLCRSerial.put_nowait(llapMsg)
-                            except Queue.Full:
-                                self.logger.warn("tSerial: Failed to put {} on qLCRSerial as it's full".format(llapMsg))
+                            self._SerialProcessQQ(llapMsg[3:])
                         else:
-                            # not a configme llap
+                            # not a configme llap so send out via UDP LLAP
                             try:
                                 self.qUDPSend.put_nowait(self.encodeLLAPJson(llapMsg, self.config.get('Serial', 'network')))
                             except Queue.Full:
@@ -424,15 +494,19 @@ class LLAPServer(threading.Thread):
                     try:
                         llapMsg = self.qSerialOut.get_nowait()
                         self._serial.write(llapMsg)
-                        self.logger.debug("tSerial: TX:{}".format(llapMsg))
-                        self.qSerialOut.task_done()
                     except Queue.Empty:
                         self.logger.debug("tSerial: failed to get item from queue")
-                    except Serial.SerialException, msg:
+                    except Serial.SerialException, e:
                         self.logger.warn("tSerial: failed to write to the serial port {}: {}".format(self._serial.port, e))
+                    else:
+                         self.logger.debug("tSerial: TX:{}".format(llapMsg))
+                         self.qSerialOut.task_done()
             
                 # sleep for a little
-                self.tSerialStop.wait(0.1)
+                if self._SerialToQueryState or self._serial.inWaiting():
+                    self.tSerialStop.wait(0.01)
+                else:
+                    self.tSerialStop.wait(0.1)
             
             # port closed for some reason, if tSerialStop is set we will try repoening
             
@@ -441,6 +515,59 @@ class LLAPServer(threading.Thread):
         self._serial.close()
         
         self.logger.info("tSerial: Thread stoping")
+            
+    def _SerialProcessQQ(self, llapMsg):
+        if self._SerialToQueryState:
+            # in a Query so send the next
+            try:
+                llapToSend = self._SerialToQuery.pop()
+                self._serial.write(llapToSend)
+            except Serial.SerialException, e:
+                self.logger.warn("tSerial: failed to write to the serial port {}: {}".format(self._serial.port, e))
+            else:
+                self.logger.debug("tSerial: TX:{}".format(llapToSend))
+                self._SerialToQueryState -= 1
+                if self._SerialToQueryState == 0:
+                    self.fSentAll.set()
+                    self.logger.debug("tSerial: Sent all LCR queries")
+        else:
+            # do we have a waiting query and can we send one
+            try:
+                self._SerialToQuery = self.qSerialToQuery.get_nowait()
+            except Queue.Empty:
+                pass
+            else:
+                self._SerialToQueryState = len(self._SerialToQuery)
+                self.fSentAll.clear()
+                try:
+                    llapToSend = self._SerialToQuery.pop()
+                    self._serial.write(llapToSend)
+                except Serial.SerialException, e:
+                    self.logger.warn("tSerial: failed to write to the serial port {}: {}".format(self._serial.port, e))
+                else:
+                    self.logger.debug("tSerial: TX:{}".format(llapToSend))
+                    self._SerialToQueryState -= 1
+                    if self._SerialToQueryState == 0:
+                        self.fSentAll.set()
+                        self.logger.debug("tSerial: Sent all LCR queries")
+        
+        # if the message is not a confime then it might be a reply to store
+        if not llapMsg == "CONFIGME-":
+            try:
+                self.qLCRSerial.put_nowait(llapMsg)
+            except Queue.Full:
+                self.logger.warn("tSerial: Failed to put {} on qLCRSerial as it's full".format(llapMsg))
+            return
+        
+        # only thing left now would be a CONFIGME so do we need to send a keepAwake
+        if llapMsg == "CONFIGME-" and self._LCRKeepAwake:
+            try:
+                self._serial.write("a??HELLO----")
+            except Serial.SerialException, e:
+                self.logger.warn("tSerial: failed to write to the serial port {}: {}".format(self._serial.port, e))
+            else:
+                self.logger.debug("tSerial: TX:a??HELLO-----")
+            return
 
     def _UDPListenThread(self):
         """ UDP Listen Thread
@@ -509,7 +636,7 @@ class LLAPServer(threading.Thread):
     def encodeLLAPJson(self, message, network=None):
         """Encode a single LLAP message into an outgoing JSON message
             """
-        self.logger.debug("JSON: encodeing {} to json LLAP".format(message))
+        self.logger.debug("tSerial:JSON: encodeing {} to json LLAP".format(message))
         jsonDict = {'type':"LLAP"}
         jsonDict['network'] = network if network else "DEFAULT"
         jsonDict['timestamp'] = strftime("%d %b %Y %H:%M:%S +0000", gmtime())
