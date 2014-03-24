@@ -13,7 +13,8 @@ import Queue
 import argparse
 import serial
 import threading
-import mosquitto
+
+#import mosquitto
 
 SERIAL = 'serial'
 MQTT = 'mqtt'
@@ -36,7 +37,7 @@ class LLAPConfigRequest:
         { command: {'reply': reply, 
                     'value': value}
         }
-        { 'CHDEVID': {'replay': 'MA', 'value': "" }
+        { 'CHDEVID': {'reply': 'MA', 'value': "" }
     """
     def __init__(self, id, devType=None, toQuery=None, replies=None):
         self.id = id
@@ -134,7 +135,7 @@ class LLAPConfigMeCore(threading.Thread):
         if self._mode == SERIAL:
             self.transport = serial.Serial()
             if self.transport.isOpen() == False:
-                self.transport._baud = self._baud
+                self.transport.baud = self._baud
                 self.transport.timeout = 10       # for 10 second timeout reads
                 self.transport.port = self._serialPort
                 try:
