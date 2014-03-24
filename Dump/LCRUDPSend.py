@@ -26,6 +26,8 @@ jsonDict['network'] = "ALL"      # could be 'Serial' or 'ALL'
 jsonDict['data'] = {
                     "id":0,
                     "keepAwake":0,
+                    "devType":"THERM2",
+                    "timeout":300,
                     "toQuery":[{
                         "command":"APVER"
                         },

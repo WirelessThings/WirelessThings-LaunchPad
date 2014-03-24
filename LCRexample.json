@@ -15,7 +15,7 @@
     "data":["TEMP19.20"]      // required, for LLAP this is the message payload
 }
 
-// send mutiple LLAP message
+// send multiple LLAP message
 {
     "type":"LLAP",
     "network":"Serial",
@@ -24,7 +24,7 @@
 }
 
 
-// send mutiple LLAP messages on recieve of an sendOn message
+// send multiple LLAP messages on receive of an sendOn message
 {
     "type":"LLAP",
     "network":"Serial",
@@ -36,7 +36,7 @@
 
 
 
-// basic LCR infomation request sent to gateway
+// basic LCR information request sent to gateway
 {
     "type":"LCR",
     "network":"ALL",
@@ -125,15 +125,21 @@
     "data":{
         "id":3,                 // optional, can be use by GUI to help track request and replies
         "devType":"THERM2",     // optional, if set the device type will be checked before sending any command
-        "timeout":120,          // optional, time out for request, defualt of 120seconds used if not set via json
+        "timeout":120,          // optional, time out for request, default of 120seconds used if not set via json (120 set via Server config [LCR] 'timeout'
         "keepAwake":1,          // optional, use to request or show the state of the keepAwake, 0 off, 1 on
+        "state":"PASS",         // optional, use by server to show state PASS FAIL_TIMEOUT FAIL_RETRY
+                                // PASS, Server things all replies are good
+                                // FAIL_TIMEOUT, request returned incomplete, as timeout T expired
+                                // where T is LCR timeout is specified, otherwise from Server config, [LCR] 'timeout'
+                                // FAIL_RETRY, request returned incomplete, unable to get an answer to one or more questions after x retries
+                                // where x retries is set via Server config [LCR] 'single_query_retry_count'
         "toQuery":[             // required, ordered list of command and value pairs to be sent to a device
                    {
                    "command":"CHDEVID", // required, LLAP command to send
                    "value":"MA"         // optional, value to combine with the command, if not set the command sent on its own
                    },
                    {
-                   "command":"INTVL",   // you can includeing as many command/value pairs as you like or need
+                   "command":"INTVL",   // you can including as many command/value pairs as you like or need
                    "value":"005M"
                    },
                    {
@@ -146,7 +152,7 @@
                 "value":"MA",   // the value that was send with the command
                 "reply":"MA"    // the replay from that command
             },
-            "INTVL":{           // the gateway will retrie commands until it has a response for all of them
+            "INTVL":{           // the gateway will retry commands until it has a response for all of them
                 "value":"005M",
                 "reply":"005M"
             },
