@@ -65,6 +65,11 @@
                         "Description":"Request the manufacturer device name (LLAP 2.0 format)\n "
                         },
                         {
+                        "Command":"DMI",
+                        "Format":"String",
+                        "Description":"Request the device manufacturer ID (LLAP 2.0 format)\n aXXDMI000001 <> CISECO"
+                        },
+                        {
                         "Command":"HELLO",
                         "Description":"Request the device to acknowledge it’s there."
                         },
@@ -389,6 +394,20 @@
                           "Description":"Series Resistance",
                           "Format":"Int"
                           }
+                          ]
+               },
+               {
+               "id":4,
+               "DEVTYPE":"",
+               "DTY":"AAAA01",
+               "Name":"Flood Sensor",
+               "Description":"LLAP+ Flood Sensor",
+               "SleepMode":"Interrupt",
+               "Actions":[
+               
+                          ],
+               "Options":[
+               
                           ]
                }
                ]
