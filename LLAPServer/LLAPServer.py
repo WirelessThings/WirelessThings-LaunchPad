@@ -71,6 +71,7 @@ class LLAPServer(threading.Thread):
     _configFileDefault = "./LLAPServerDefault.cfg"
     
     _serialTimeout = 10     # serial port time out setting
+    _UDPListenTimeout = 5   # timeout for UDP listen
     
     _version = 0.01
 
@@ -693,31 +694,35 @@ class LLAPServer(threading.Thread):
             self.logger.exception("tUDPListen: Failed to bind port")
             self.die()
         
+        UDPListenSocket.setblocking()
+        
         self.logger.info("tUDPListen: listening")
-        while (not self.tUDPListenStop.is_set()):
-            (data, address) = UDPListenSocket.recvfrom(1024)
-            self.logger.debug("tUDPListen: Received JSON: {} From: {}".format(data, address))
-            jsonin = json.loads(data)
-            
-            if jsonin['type'] == "LLAP":
-                self.logger.debug("tUDPListen: JSON of type LLAP, send out messages")
-                # got a LLAP type json, need to generate the LLAP message and
-                # put them on the TX que
-                for command in jsonin['data']:
-                    llapMsg = "a{}{}".format(jsonin['id'], command[0:9].upper())
-                    while len(llapMsg) <12:
-                        llapMsg += '-'
-                    
-                    # send to each network requested
-                    if (jsonin['network'] == self.config.get('Serial', 'network') or
-                        jsonin['network'] == "ALL"):
-                        # yep its for serial
-                        try:
-                            self.qSerialOut.put_nowait(llapMsg)
-                        except Queue.Full:
-                            self.logger.debug("tUDPListen: Failed to put {} on qLCRSerial as it's full".format(llapMsg))
-                        else:
-                            self.logger.debug("tUDPListen Put {} on qSerialOut".format(llapMsg))
+        while not self.tUDPListenStop.is_set():
+            datawaiting = select.select([UDPListenSocket], [], [], self._UDPListenTimeout)
+            if datawaiting[0]:
+                (data, address) = UDPListenSocket.recvfrom(1024)
+                self.logger.debug("tUDPListen: Received JSON: {} From: {}".format(data, address))
+                jsonin = json.loads(data)
+                
+                if jsonin['type'] == "LLAP":
+                    self.logger.debug("tUDPListen: JSON of type LLAP, send out messages")
+                    # got a LLAP type json, need to generate the LLAP message and
+                    # put them on the TX que
+                    for command in jsonin['data']:
+                        llapMsg = "a{}{}".format(jsonin['id'], command[0:9].upper())
+                        while len(llapMsg) <12:
+                            llapMsg += '-'
+                        
+                        # send to each network requested
+                        if (jsonin['network'] == self.config.get('Serial', 'network') or
+                            jsonin['network'] == "ALL"):
+                            # yep its for serial
+                            try:
+                                self.qSerialOut.put_nowait(llapMsg)
+                            except Queue.Full:
+                                self.logger.debug("tUDPListen: Failed to put {} on qLCRSerial as it's full".format(llapMsg))
+                            else:
+                                self.logger.debug("tUDPListen Put {} on qSerialOut".format(llapMsg))
 
             elif jsonin['type'] == "LCR":
                 # we have a LLAPConfigRequest pass in onto the LCR thread
