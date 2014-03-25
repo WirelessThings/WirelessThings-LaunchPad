@@ -140,7 +140,7 @@ class LLAPServer(threading.Thread):
                             help='disable checking for update',
                             action='store_false')
         parser.add_argument('-d', '--debug',
-                            help='Enable debug output to console, overrides wik.cfg setting',
+                            help='Enable debug output to console, overrides LLAPServer.cfg setting',
                             action='store_true')
         parser.add_argument('-l', '--log',
                             help='Override the debug logging level, DEBUG, INFO, WARNING, ERROR, CRITICAL'
@@ -695,6 +695,8 @@ class LLAPServer(threading.Thread):
 
         UDPListenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         UDPListenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        if (self.args.debug):
+            UDPListenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         
         try:
             UDPListenSocket.bind(('', int(self.config.get('UDP', 'listen_port'))))
