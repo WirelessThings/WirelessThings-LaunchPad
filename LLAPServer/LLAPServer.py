@@ -398,6 +398,7 @@ class LLAPServer(threading.Thread):
             self.tLCRStop.wait(0.5)
 
         self.logger.info("tLCR: Thread stopping")
+        return
 
     def _LCRReturnLCR(self, state):
         # prep the reply
@@ -433,6 +434,7 @@ class LLAPServer(threading.Thread):
             self.logger.critical("tUDPSend: Failed to create socket. Error code : {} Message : {}".format(msg[0], msg[1]))
             # TODO: tUDPSend needs to stop here
             self.die()
+        
         UDPSendSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         UDPSendSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         
@@ -460,7 +462,12 @@ class LLAPServer(threading.Thread):
             # TODO: tUDPSend thread is alive, wiggle a pin?
 
         self.logger.info("tUDPSend: Thread stopping")
-        
+        try:
+            UDPSendSocket.close()
+        except socket.error:
+            self.logger.exception("tUDPSend: Failed to close socket")
+        return
+    
     def _SerialThread(self):
         """ Serial Thread
         """
@@ -535,6 +542,7 @@ class LLAPServer(threading.Thread):
         self._serial.close()
         
         self.logger.info("tSerial: Thread stoping")
+        return
             
     def _SerialProcessQQ(self, llapMsg):
         """ process an incoming ?? llap message
@@ -741,6 +749,7 @@ class LLAPServer(threading.Thread):
             UDPListenSocket.close()
         except socket.error:
             self.logger.exception("tUDPListen: Failed to close socket")
+        return
                 
     def encodeLLAPJson(self, message, network=None):
         """Encode a single LLAP message into an outgoing JSON message
