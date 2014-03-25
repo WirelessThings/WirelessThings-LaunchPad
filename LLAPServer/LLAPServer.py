@@ -13,6 +13,7 @@ import ConfigParser
 import serial
 import threading
 import socket
+import select
 import json
 import logging
 
@@ -704,7 +705,7 @@ class LLAPServer(threading.Thread):
             self.logger.exception("tUDPListen: Failed to bind port")
             self.die()
         
-        UDPListenSocket.setblocking()
+        UDPListenSocket.setblocking(0)
         
         self.logger.info("tUDPListen: listening")
         while not self.tUDPListenStop.is_set():
