@@ -17,6 +17,7 @@ import sys
 import os
 import argparse
 import socket
+import select
 import json
 import ConfigParser
 import tkMessageBox
@@ -56,7 +57,13 @@ import logging
 
 
 INTRO = """Welcome to LLAP Config me wizard
-Please enter your com port below to continue"""
+    
+Please wait while we try to reach a LLAPServer"""
+
+INTRO1 = """Welcome to LLAP Config me wizard
+    
+There is a LLAPServer running on this network plese click next to begin"""
+
 
 PAIR = """Please press the Config Me button on your device and click next"""
 
@@ -76,7 +83,6 @@ class LLAPCongfigMeClient:
     
     _configFileDefault = "LLAPCM_defaults.cfg"
     _configFile = "LLAPCM.cfg"
-    _devFile = "LLAPDevices.json"
     _myNodesFile = "MyNodes.json"
     
     _rows = 19
@@ -91,6 +97,7 @@ class LLAPCongfigMeClient:
     _devIDInputs = []
     _encryptionKeyInput = 0
     _lastLCR = []
+    _keepAwake = 0
 
     def __init__(self):
         """
@@ -105,6 +112,13 @@ class LLAPCongfigMeClient:
         self._formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         self._ch.setFormatter(self._formatter)
         self.logger.addHandler(self._ch)
+    
+        # JSON Debug window Q
+        self.qJSONDebug = Queue.Queue()
+        # LCR Reply Q, Incomming JSON's from the server
+        self.qLCRReply = Queue.Queue()
+        # flag to show the server is alive
+        self.fServerGood = threading.Event()
 
     def _initLogging(self):
         """ now we have the config file loaded and the command line args setup
@@ -191,9 +205,17 @@ class LLAPCongfigMeClient:
         self._initUDPListenThread()
         self._initUDPSendThread()
         
-        self._displayIntro()
-        
-        self.master.mainloop()
+        # TODO: are UDP threads running
+        if (not self.tUDPListen.isAlive() and not self.tUDPSend.isAlive()):
+            self.logger.warn("UDP Threads not running")
+            # TODO: do we have an error form the UDP to show?
+        else:
+            # dispatch a server status request
+            self.qUDPSend.put(json.dumps({"type": "Server"}))
+            
+            self._displayIntro()
+            
+            self.master.mainloop()
     
     def _initUDPSendThread(self):
         """ Start the UDP output thread
@@ -222,15 +244,18 @@ class LLAPCongfigMeClient:
         except socket.error, msg:
             self.logger.critical("tUDPSend: Failed to create socket. Error code : {} Message : {}".format(msg[0], msg[1]))
             # TODO: tUDPSend needs to stop here
+            # TODO: need to send message to user saying could not open socket
             self.die()
+            return
+        
         UDPSendSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         UDPSendSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         
         sendPort = int(self.config.get('UDP', 'send_port'))
         
-        while (not self.tUDPSendStop.is_set()):
+        while not self.tUDPSendStop.is_set():
             try:
-                message = self.qUDPSend.get(timeout=30)     # block for up to 30 seconds
+                message = self.qUDPSend.get(timeout=1)     # block for up to 30 seconds
             except Queue.Empty:
                 # UDP Send que was empty
                 # extrem debug message
@@ -243,13 +268,20 @@ class LLAPCongfigMeClient:
                     self.logger.debug("tUDPSend: Put message out via UDP")
                 except socket.error, msg:
                     self.logger.warn("tUDPSend: Failed to send via UDP. Error code : {} Message: {}".format(msg[0], msg[1]))
-                
+                else:
+                    self.qJSONDebug.put([message, "TX"])
                 # tidy up
+
                 self.qUDPSend.task_done()
 
             # TODO: tUDPSend thread is alive, wiggle a pin?
 
         self.logger.info("tUDPSend: Thread stopping")
+        try:
+            UDPSendSocket.close()
+        except socket.error:
+            self.logger.exception("tUDPSend: Failed to close socket")
+        return
 
     def _initUDPListenThread(self):
         """ Start the UDP Listen thread and queues
@@ -257,7 +289,7 @@ class LLAPCongfigMeClient:
         self.logger.info("UDP Listen Thread init")
 
         self.tUDPListenStop = threading.Event()
-
+        
         self.tUDPListen = threading.Thread(target=self._UDPListenThread)
         self.tUDPListen.deamon = False
 
@@ -274,46 +306,56 @@ class LLAPCongfigMeClient:
         try:
             UDPListenSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         except socket.error:
-            self.logger.exception("tUDPListen: Failed to create socket")
+            self.logger.exception("tUDPListen: Failed to create socket, stopping")
+            # TODO: need to send message to user saying could not open socket
             self.die()
+            return
 
         UDPListenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         UDPListenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        UDPListenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         
         try:
             UDPListenSocket.bind(('', int(self.config.get('UDP', 'listen_port'))))
         except socket.error:
             self.logger.exception("tUDPListen: Failed to bind port")
             self.die()
+            return
+        UDPListenSocket.setblocking(0)
         
         self.logger.info("tUDPListen: listening")
-        while (not self.tUDPListenStop.is_set()):
-            (data, address) = UDPListenSocket.recvfrom(1024)
-            self.logger.debug("tUDPListen: Received JSON: {} From: {}".format(data, address))
-            jsonin = json.loads(data)
-            
-            if jsonin['type'] == "LLAP":
-                self.logger.debug("tUDPListen: JSON of type LLAP")
-                # got a LLAP type json, need to generate the LLAP message and
-                # TODO: we should pass on LLAP type to the JSON window if enabled
-                
-            elif jsonin['type'] == "LCR":
-                # we have a LLAPConfigRequest reply pass it back to the GUI to deal with
-                self.logger.debug("tUDPListen: JSON of type LCR, passing to qLCRReply")
-                try:
-                    self.qLCRReply.put_nowait(jsonin)
-                except Queue.Full:
-                    self.logger.debug("tUDPListen: Failed to put json on qLCRRequest")
+        while not self.tUDPListenStop.is_set():
+            ready = select.select([UDPListenSocket], [], [], 3)  # 3 second time out using select
+            if ready[0]:
+                (data, address) = UDPListenSocket.recvfrom(2048)
+                self.logger.debug("tUDPListen: Received JSON: {} From: {}".format(data, address))
+                jsonin = json.loads(data)
+                self.qJSONDebug.put([data, "RX"])
+                if jsonin['type'] == "LLAP":
+                    self.logger.debug("tUDPListen: JSON of type LLAP")
+                    # got a LLAP type json, need to generate the LLAP message and
+                    # TODO: we should pass on LLAP type to the JSON window if enabled
+                    
+                elif jsonin['type'] == "LCR":
+                    # we have a LLAPConfigRequest reply pass it back to the GUI to deal with
+                    self.logger.debug("tUDPListen: JSON of type LCR, passing to qLCRReply")
+                    try:
+                        self.qLCRReply.put_nowait(jsonin)
+                    except Queue.Full:
+                        self.logger.debug("tUDPListen: Failed to put json on qLCRReply")
 
-            elif jsonin['type'] == "Server":
-                # TODO: we have a SERVER json do stuff with it
-                self.logger.debug("tUDPListen: JSON of type SERVER")
+                elif jsonin['type'] == "Server":
+                    # TODO: we have a SERVER json do stuff with it
+                    self.logger.debug("tUDPListen: JSON of type SERVER")
+                    if jsonin['state'] == "RUNNING":
+                        self.fServerGood.set()
 
         self.logger.info("tUDPListen: Thread stopping")
         try:
             UDPListenSocket.close()
         except socket.error:
             self.logger.exception("tUDPListen: Failed to close socket")
+        return
     
     def _initTkVariables(self):
         self.logger.debug("Init Tk Variables")
@@ -347,34 +389,64 @@ class LLAPCongfigMeClient:
         
         self._buildGrid(self.iframe)
         
-        tk.Label(self.iframe, text=INTRO).grid(row=1, column=0, columnspan=6,
-                                               rowspan=self._rows-4)
+        tk.Label(self.iframe, name='introText', text=INTRO
+                 ).grid(row=1, column=0, columnspan=6, rowspan=self._rows-4)
 
         tk.Button(self.iframe, text='Back', state=tk.DISABLED
                   ).grid(row=self._rows-2, column=4, sticky=tk.E)
-        tk.Button(self.iframe, text='Next', command=self._displayPair
+        tk.Button(self.iframe, name='introNext', text='Next', command=self._displayPair,
+                  state=tk.DISABLED
                   ).grid(row=self._rows-2, column=5, sticky=tk.W)
-                   
+        self._checkServerCount = 0
+        self.master.after(1000, self._checkServerUpdate)
+    
+    def _checkServerUpdate(self):
+        self.logger.debug("Checking server reply flag")
+        if self.fServerGood.is_set():
+            #we have a good server update Intro page
+            self.logger.debug("Server found ok")
+            self.iframe.children['introText'].config(text=INTRO1)
+            self.iframe.children['introNext'].config(state=tk.ACTIVE)
+            return
+        elif self._checkServerCount == 5:
+            # half of time out send request again
+            self.qUDPSend.put(json.dumps({"type": "Server"}))
+        elif self._checkServerCount == 10:
+            # timeout (should be about 30 seconds
+            # cant find a server display pop up and quit?
+            if tkMessageBox.askyesno("Server Timeout",
+                                     ("Unable to get a response from a LLAPServer \n"
+                                      "Click Yes to try again \n"
+                                      "Click No to Quit")
+                                     ):
+                # try again
+                self.qUDPSend.put(json.dumps({"type": "Server"}))
+                self._checkServerCount = 0
+            else:
+                self._endConfigMe()
+                return
+        self._checkServerCount += 1
+        self.master.after(1000, self._checkServerUpdate)
+                
     def _displayPair(self):
         self.logger.debug("Connecting and Displaying Pair window")
         
-        if self._connect():
-            self.iframe.pack_forget()
+        self.iframe.pack_forget()
 
-            self.pframe = tk.Frame(self.master, name='pairFrame', relief=tk.RAISED,
-                                   borderwidth=2, width=self._widthMain,
-                                   height=self._heightMain)
-            self.pframe.pack()
-        
-            self._buildGrid(self.pframe)
+        self.pframe = tk.Frame(self.master, name='pairFrame', relief=tk.RAISED,
+                               borderwidth=2, width=self._widthMain,
+                               height=self._heightMain)
+        self.pframe.pack()
+    
+        self._buildGrid(self.pframe)
 
-            tk.Label(self.pframe, text=PAIR).grid(row=1, column=0, columnspan=6,
-                                                  rowspan=self._rows-4)
-        
-            tk.Button(self.pframe, text='Back', state=tk.DISABLED
-                      ).grid(row=self._rows-2, column=4, sticky=tk.E)
-            tk.Button(self.pframe, text='Next', command=self._queryType
-                      ).grid(row=self._rows-2, column=5, sticky=tk.W)
+        tk.Label(self.pframe, text=PAIR).grid(row=1, column=0, columnspan=6,
+                                              rowspan=self._rows-4)
+    
+        tk.Button(self.pframe, text='Back', state=tk.DISABLED
+                  ).grid(row=self._rows-2, column=4, sticky=tk.E)
+        tk.Button(self.pframe, text='Next', command=self._queryType
+                  ).grid(row=self._rows-2, column=5, sticky=tk.W)
                 
     def _displayConfig(self):
         self.logger.debug("Displaying Deceive type based config screen")
@@ -785,12 +857,18 @@ class LLAPCongfigMeClient:
             pass
         # always finish with reboot to save and apply
         query.append({'command': "REBOOT"})
+        
+        self._keepAwake = 0
 
-        lcr = LLAPConfigRequest(id=3,
-                                devType=self.device['DTY'],
-                                toQuery=query
-                                )
-                                
+        lcr = {"type": "LCR",
+                "network":self.device['network'],
+                "data":{
+                    "id": 3,
+                    "keepAwake":self._keepAwake,
+                    "devType": self.device['DTY'],
+                    "toQuery": query
+                    }
+                    }
         self._lastLCR.append(lcr)
         self._sendRequest(lcr)
 
@@ -806,7 +884,13 @@ class LLAPCongfigMeClient:
                  {'command': "APVER"},
                  {'command': "CHDEVID"}
                 ]
-        lcr = LLAPConfigRequest(id=1, toQuery=query)
+        lcr = {"type": "LCR",
+               "network":"ALL",
+               "data":{
+                       "id": 1,
+                       "toQuery": query
+                       }
+              }
         
         self._lastLCR.append(lcr)
         self._sendRequest(lcr)
@@ -814,21 +898,23 @@ class LLAPCongfigMeClient:
     def _processReply(self):
         self.logger.debug("Processing reply")
         # TODO: UDP get reply
-        reply = self._lcm.replyQ.get()
-        self.logger.debug("id: {}, devType:{}, Replies:{}".format(reply.id,
-                                                                reply.devType,
-                                                                reply.replies))
-        if reply.id == 1:
+        json = self.qLCRReply.get()
+        reply = json['data']
+        self.logger.debug("id: {}, devType:{}, Replies:{}".format(reply['id'],
+                                                                reply.get('devType', ""),
+                                                                reply['replies']))
+        if reply['id'] == 1:
             # this was a query type request
-            if float(reply.replies['APVER']['reply']) >= 2.0:
+            if float(reply['replies']['APVER']['reply']) >= 2.0:
                 # valid apver
                 # so check what replied
                 for n in range(len(self.devices)):
-                    if self.devices[n]['DTY'] == reply.replies['DTY']['reply']:
+                    if self.devices[n]['DTY'] == reply['replies']['DTY']['reply']:
                         # we have a match
                         self.device = {'id': n,
                                        'DTY': self.devices[n]['DTY'],   # copy form JSON not reply
-                                       'devID': reply.replies['CHDEVID']['reply']
+                                       'devID': reply['replies']['CHDEVID']['reply'],
+                                       'network': json['network']
                                       }
                         
                         # ask user about reseting device if devID is not ??
@@ -844,10 +930,16 @@ class LLAPCongfigMeClient:
                                          {'command': "CHDEVID"}
                                         ]
                             
-                                lcr = LLAPConfigRequest(id=5,
-                                                        devType=self.device['DTY'],
-                                                        toQuery=query)
-                                
+                                lcr = {"type": "LCR",
+                                       "network":self.device['network'],
+                                       "data":{
+                                               "id": 2,
+                                               "keepAwake":self._keepAwake,
+                                               "devType": self.device['DTY'],
+                                               "toQuery": query
+                                              }
+                                      }
+                                        
                                 self._lastLCR.append(lcr)
                                 self._sendRequest(lcr)
                             else:
@@ -858,7 +950,7 @@ class LLAPCongfigMeClient:
             else:
                 # apver mismatch, show error screen
                 pass
-        elif reply.id == 2:
+        elif reply['id'] == 2:
             # this was an information request
             # populate fields
             if self.device['devID'] == '':
@@ -866,7 +958,7 @@ class LLAPCongfigMeClient:
             else:
                 self.entry['CHDEVID'].set(self.device['devID'])
                 
-            for command, args in reply.replies.items():
+            for command, args in reply['replies'].items():
                 if command == "CHREMID" and args['reply'] == '':
                     self.entry[command].set("--")
                 elif command == "SLEEPM":
@@ -891,17 +983,17 @@ class LLAPCongfigMeClient:
             # show config screen
             self.logger.debug("Setting keepAwake")
             # TODO: set keepAwake via UDP LCR
-            self._lcm.keepAwake = True
+            self._keepAwake = True
             self._displayConfig()
 
-        elif reply.id == 3:
+        elif reply['id'] == 3:
             # this was a config request
             # TODO: check replies were good and let user know device is now ready
             enkeyCount = 0
             enkeyMatch = 0
             en = re.compile('^EN[1-6]')
 
-            for command, arg in reply.replies.items():
+            for command, arg in reply['replies'].items():
                 if en.match(command):
                     enkeyCount += 1
                     if arg['reply'] == "ACK":
@@ -919,13 +1011,13 @@ class LLAPCongfigMeClient:
 
             # show end screen
             self._displayEnd()
-        elif reply.id == 4:
+        elif reply['id'] == 4:
             pass
-        elif reply.id == 5:
+        elif reply['id'] == 5:
             # have done a reset so should get back factory settings
             self._askCurrentConfig()
         # TODO: clean up
-        #self._lcm.replyQ.task_done()
+        self.qLCRReply.task_done()
 
     def _askCurrentConfig(self):
         # assuming we know what it is ask for the current config
@@ -949,11 +1041,17 @@ class LLAPCongfigMeClient:
             self.entry[n['Command']] = tk.StringVar()
             query.append({'command': n['Command'].encode('ascii', 'ignore')})
         
-        lcr = LLAPConfigRequest(id=2,
-                                devType=self.device['DTY'],
-                                toQuery=query
-                                )
-                             
+        lcr = {"type": "LCR",
+                "network":self.device['network'],
+                "data":{
+                    "id": 2,
+                    "keepAwake":self._keepAwake,
+                    "devType": self.device['DTY'],
+                    "toQuery": query
+                    }
+                }
+        
+                
         self._lastLCR.append(lcr)
         self._sendRequest(lcr)
 
@@ -980,19 +1078,14 @@ class LLAPCongfigMeClient:
     def _sendRequest(self, lcr):
         self.logger.debug("Sending Request to LCMC")
         self._displayProgress()
-        # TODO: clean up
-        if self._lcm.keepAwake:
-            self.logger.debug("Stopping keepAwake")
-            self._lcm.keepAwake = False
         self._starttime = time()
-        # TODO: send via UDP
-        self._lcm.requestQ.put(lcr)
+        self.qUDPSend.put(json.dumps(lcr))
         self._replyCheck()
     
     def _replyCheck(self):
         # look for a reply
         # TODO: wait on UDP reply (how long)
-        if self._lcm.replyQ.empty():
+        if self.qLCRReply.empty():
             if time()-self._starttime > self._timeout:
                 # if timeout passed, let user know no reply
                 # close wait diag
@@ -1027,19 +1120,6 @@ class LLAPCongfigMeClient:
             tk.Button(frame, text='Quit', command=self._endConfigMe
                       ).grid(row=rows-2, column=0, sticky=tk.E)
 
-    def _connect(self):
-        self.logger.debug("Connecting Serial port")
-        # TODO: open UDP sockets instead
-        self._lcm.set_baud(self.config.get('Serial', 'baudrate'))
-        self._lcm.set_port(self.comport.get())
-        
-        # wrap this in a try block and throw a dialog window and return False
-        self._lcm.connect_transport()
-        if self._debugArg or self._debug:
-            self._serialDebugUpdate()
-        
-        return True
-
     # TODO: UDP JSON debug window
     def _jsonWindowDebug(self):
         self.logger.debug("Setting up JSON debug window")
@@ -1062,18 +1142,19 @@ class LLAPCongfigMeClient:
         self.serialDebugText.pack()
         self.serialDebugText.tag_config('TX', foreground='red')
         self.serialDebugText.tag_config('RX', foreground='blue')
+        self._serialDebugUpdate()
     
-    # TODO: nice formation for JSON's?
     def _serialDebugUpdate(self):
-        if not self._lcm.transportQ.empty():
-            txt = self._lcm.transportQ.get()
+        # TODO: nice formation for JSON's?
+        if not self.qJSONDebug.empty():
+            txt = self.qJSONDebug.get()
             self.serialDebugText.config(state=tk.NORMAL)
-            self.serialDebugText.insert(tk.END, txt[0], txt[1])
+            self.serialDebugText.insert(tk.END, txt[0]+"\n", txt[1])
             self.serialDebugText.see(tk.END)
             self.serialDebugText.config(state=tk.DISABLED)
-            self._lcm.transportQ.task_done()
+            self.qJSONDebug.task_done()
         
-        self.master.after(10, self._serialDebugUpdate)
+        self.master.after(2, self._serialDebugUpdate)
     
     def _endConfigMe(self):
         self.logger.debug("End Client")
@@ -1087,37 +1168,44 @@ class LLAPCongfigMeClient:
         self.logger.debug("Clean up and exit")
         # if we were talking to a device we should send a CONFIGEND
         # TODO: send JSON in stead
-        if self._lcm.keepAwake:
+        
+        if self._keepAwake:
+            self.logger.debug("Stopping keepAwake")
+            self._keepAwake = 0
             query = [{'command': "CONFIGEND"}]
-            lcr = LLAPConfigRequest(id=4,
-                                    devType=self.device['DTY'],
-                                    toQuery=query
-                                    )
-                                    
+            lcr = {"type": "LCR",
+                    "network":self.device['network'],
+                    "data":{
+                        "id": 4,
+                        "keepAwake":self._keepAwake,
+                        "devType": self.device['DTY'],
+                        "toQuery": query
+                        }
+                    }
             self.logger.debug("Sending ConfigEnd LCMC")
-            if self._lcm.keepAwake:
-                self.logger.debug("Stopping keepAwake")
-                self._lcm.keepAwake = False
             self._starttime = time()
-            self._lcm.requestQ.put(lcr)
-            while self._lcm.replyQ.empty() and time()-self._starttime < 15:
+            self.qUDPSend.put(json.dumps(lcr))
+            while self.qLCRReply.empty() and time()-self._starttime < 15:
                 sleep(0.1)
     
         # cancle anything outstanding
         # TODO: we have no cancle, we have time outs
-        self._lcm.cancelLCR()
+        # self._lcm.cancelLCR()
         # disconnect resources
         # TODO: close scokets
-        self._lcm.disconnect_transport()
+        # self._lcm.disconnect_transport()
         self._writeConfig()
+        self.tUDPSendStop.set()
+        self.tUDPSend.join()
+        self.tUDPListenStop.set()
+        self.tUDPListen.join()
     
     def _checkArgs(self):
         self.logger.debug("Parse Args")
         parser = argparse.ArgumentParser(description='LLAP Config Me Client')
         parser.add_argument('-d', '--debug',
-                            help='Extra Debug Output, overrides LLAPCM.cfg setting',
-                            action='store_true'
-                            )
+                            help='Enable debug output to console, overrides LAPCM.cfg setting',
+                            action='store_true')
         parser.add_argument('-l', '--log',
                             help='Override the debug logging level, DEBUG, INFO, WARNING, ERROR, CRITICAL'
                             )
@@ -1152,7 +1240,7 @@ class LLAPCongfigMeClient:
     def _loadDevices(self):
         self.logger.debug("Loading device List")
         try:
-            with open(self._devFile, 'r') as f:
+            with open(self.config.get('LLAPCM', 'devFile'), 'r') as f:
                 read_data = f.read()
             f.closed
             
