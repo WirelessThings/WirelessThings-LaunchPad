@@ -165,4 +165,9 @@
     
 }
 
+{
+    "type":"Server",    // type SERVER for server status request
+    "state":"RUNNING",  // overview state retruned by server RUNNING, ERROR
+    "data":{}           // optional, config server commands or expaneded run time info from server
+}
 
