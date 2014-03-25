@@ -735,19 +735,18 @@ class LLAPServer(threading.Thread):
                             else:
                                 self.logger.debug("tUDPListen Put {} on qSerialOut".format(llapMsg))
 
-            elif jsonin['type'] == "LCR":
-                # we have a LLAPConfigRequest pass in onto the LCR thread
-                self.logger.debug("tUDPListen: JSON of type LCR, passing to qLCRRequest")
-                try:
-                    self.qLCRRequest.put_nowait(jsonin)
-                except Queue.Full:
-                    self.logger.debug("tUDPListen: Failed to put json on qLCRRequest")
+                elif jsonin['type'] == "LCR":
+                    # we have a LLAPConfigRequest pass in onto the LCR thread
+                    self.logger.debug("tUDPListen: JSON of type LCR, passing to qLCRRequest")
+                    try:
+                        self.qLCRRequest.put_nowait(jsonin)
+                    except Queue.Full:
+                        self.logger.debug("tUDPListen: Failed to put json on qLCRRequest")
 
-            elif jsonin['type'] == "Server":
-                # TODO: we have a SERVER json do stuff with it
-                self.logger.debug("tUDPListen: JSON of type SERVER, passing to qServer")
-                reply = {"type": "Server", "state": "RUNNING"}
-                self.qUDPSend.put(json.dumps(reply))
+                elif jsonin['type'] == "Server":
+                    # TODO: we have a SERVER json do stuff with it
+                    self.logger.debug("tUDPListen: JSON of type SERVER, passing to qServer")
+                    self.qUDPSend.put(json.dumps({"type": "Server", "state": "RUNNING"}))
 
         self.logger.info("tUDPListen: Thread stopping")
         try:
