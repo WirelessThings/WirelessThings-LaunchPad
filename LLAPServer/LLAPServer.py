@@ -743,6 +743,8 @@ class LLAPServer(threading.Thread):
             elif jsonin['type'] == "Server":
                 # TODO: we have a SERVER json do stuff with it
                 self.logger.debug("tUDPListen: JSON of type SERVER, passing to qServer")
+                reply = {"type": "Server", "state": "RUNNING"}
+                self.qUDPSend.put(json.dumps(reply))
 
         self.logger.info("tUDPListen: Thread stopping")
         try:
