@@ -31,23 +31,24 @@ import logging
 """
     Big TODO list
     
-    JSON over UDP
+    DONE: JSON over UDP
     
-    UDP open sockets
+    DONE: UDP open sockets
     
-    JSON encode outgoing messages
-    JSON decode incomming messages
+    DONE: JSON encode outgoing messages
+    DONE: JSON decode incomming messages
     
-    JSON debug window
+    DONE: JSON debug window
     Pretty JSON formation for window?
     
-    type: SERVER status check on start up
-    
-    use logger for debug output
+    DONE: type: SERVER status check on start up
+        basic PING
+        
+    DONE: use logger for debug output
     
     timeouts wait windows base on timeout's sent with LCR
     
-    keepAwake via JSON's
+    DONE: keepAwake via JSON's
     
     check replies for state, PASS, FAIL_RETRY, FAIL_TIMEOUT
     
@@ -313,7 +314,8 @@ class LLAPCongfigMeClient:
 
         UDPListenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         UDPListenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        UDPListenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        if sys.platform == 'darwin':
+            UDPListenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         
         try:
             UDPListenSocket.bind(('', int(self.config.get('UDP', 'listen_port'))))
@@ -929,7 +931,10 @@ class LLAPCongfigMeClient:
                                          {'command': "LLAPRESET"},
                                          {'command': "CHDEVID"}
                                         ]
-                            
+                                        
+                                self.logger.debug("Setting keepAwake")
+                                self.keepAwake = 1
+                                
                                 lcr = {"type": "LCR",
                                        "network":self.device['network'],
                                        "data":{
@@ -1040,6 +1045,10 @@ class LLAPCongfigMeClient:
             # create place to put the reply later
             self.entry[n['Command']] = tk.StringVar()
             query.append({'command': n['Command'].encode('ascii', 'ignore')})
+        
+        
+        self.logger.debug("Setting keepAwake")
+        self.keepAwake = 1
         
         lcr = {"type": "LCR",
                 "network":self.device['network'],
@@ -1178,6 +1187,7 @@ class LLAPCongfigMeClient:
                     "data":{
                         "id": 4,
                         "keepAwake":self._keepAwake,
+                        "timeout": 30,                  # short time out on this one
                         "devType": self.device['DTY'],
                         "toQuery": query
                         }
