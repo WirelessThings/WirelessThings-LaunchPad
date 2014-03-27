@@ -401,6 +401,13 @@ class LLAPServer(threading.Thread):
                 elif self.fTimeoutFail.is_set():
                     # failed due to expired timeout
                     self.logger.warn("tLCR: Failed current LCR due to timeout")
+                    while not self.qSerialToQuery.empty():
+                        try:
+                            self.qSerialToQuery.get()
+                            self.logger.debug("tLCR: removed stale query from qSerialToQuery")
+                        except Queue.Empty:
+                            pass
+                    
                     self._LCRReturnLCR("FAIL_TIMEOUT")
             
             # wait a little
