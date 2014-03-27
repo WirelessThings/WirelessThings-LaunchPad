@@ -25,7 +25,7 @@ import logging
     DONE: check DTY
     DONE: timeouts from config or JSON
     
-   better serial read logic
+   DONE: better serial read logic
    
    Catch Ctrl-C
    Clean up on quit code
@@ -71,7 +71,7 @@ class LLAPServer(threading.Thread):
     _configFile = "./LLAPServer.cfg"
     _configFileDefault = "./LLAPServerDefault.cfg"
     
-    _serialTimeout = 10     # serial port time out setting
+    _serialTimeout = 1     # serial port time out setting
     _UDPListenTimeout = 5   # timeout for UDP listen
     
     _version = 0.01
@@ -81,6 +81,9 @@ class LLAPServer(threading.Thread):
     _SerialDTYSync = False
     _LCRStartTime = 0
     _LCRCurrentTimeout = 0
+    
+    _validID = "ABCDEFGHIJKLMNOPQRSTUVWXYZ-#@?\\*"
+    _validData = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !\"#$%&'()*+,-.:;<=>?@[\\\/]^_`{|}~"
     
     def __init__(self, logger=None):
         """Instantiation
@@ -475,7 +478,7 @@ class LLAPServer(threading.Thread):
         self.logger.info("tSerial: Serial thread started")
         self._SerialToQueryState = 0
         self._SerialToQuery = []
-        while (not self.tSerialStop.is_set()):
+        while not self.tSerialStop.is_set():
             # open the port
             try:
                 self._serial.open()
@@ -486,36 +489,16 @@ class LLAPServer(threading.Thread):
             
             self.tSerialStop.wait(0.1)
             
-            # TODO: should we clear out any stale serial messages?
+            # we clear out any stale serial messages that might be in the buffer
+            self._serial.flushInput()
 
-            # do stuff
-            while self._serial.isOpen():
+            # main serial processing loop
+            while self._serial.isOpen() and not self.tSerialStop.is_set():
                 # extrem debug message
                 # self.logger.debug("tSerial: check serial port")
                 if self._serial.inWaiting():
-                    char = self._serial.read()  # should not time out but we should check anyway
-                    self.logger.debug("tSerial: RX:{}".format(char))
+                    self._SerialReadIncomingLLap()
                 
-                    if char == 'a':
-                        # this should be the start of a llap message
-                        # read 11 more or time out
-                        llapMsg = "a"
-                        # TODO: better reading of the 11,
-                        # include restart if found another a
-                        llapMsg += self._serial.read(11)
-                        
-                        # TODO: check llapMsg for valid LLAP chars
-
-                        self.logger.debug("tSerial: RX:{}".format(llapMsg[1:]))
-                        if llapMsg[1:3] == "??":
-                            self._SerialProcessQQ(llapMsg[3:].strip("-"))
-                        else:
-                            # not a configme llap so send out via UDP LLAP
-                            try:
-                                self.qUDPSend.put_nowait(self.encodeLLAPJson(llapMsg, self.config.get('Serial', 'network')))
-                            except Queue.Full:
-                                self.logger.warn("tSeral: Failed to put {} on qUDPSend as it's full".format(llapMsg))
-            
                 # do we have anything to send
                 if not self.qSerialOut.empty():
                     self.logger.debug("tSerial: got something to send")
@@ -536,7 +519,7 @@ class LLAPServer(threading.Thread):
                 else:
                     self.tSerialStop.wait(0.1)
             
-            # port closed for some reason, if tSerialStop is set we will try reopening
+            # port closed for some reason (or tSerialStop), if tSerialStop is not set we will try reopening
             
         # close the port
         self.logger.info("tSerial: Closing serial port")
@@ -544,7 +527,46 @@ class LLAPServer(threading.Thread):
         
         self.logger.info("tSerial: Thread stoping")
         return
-            
+        
+    def _SerialReadIncomingLLap(self):
+        char = self._serial.read()  # should not time out but we should check anyway
+        self.logger.debug("tSerial: RX:{}".format(char))
+    
+        if char == 'a':
+            # this should be the start of a llap message
+            # read 11 more or time out
+            llapMsg = "a"
+            count = 0
+            while count < 11:
+                char = self._serial.read()
+                if not char:    # TODO: check this is right for a time out
+                    return
+                self.logger.debug("tSerial: RX:{}".format(char))
+                if char == 'a':
+                    # start again and
+                    count = 0
+                    llapMsg = "a"
+                elif (count == 0 or count == 1) and char in self._validID:
+                    # we have a vlaid ID
+                    print char
+                    llapMsg += char
+                    count += 1
+                elif count >= 2 and char in self._validData:
+                    # we have a valid data
+                    llapMsg += char
+                    count +=1
+                        
+            if len(llapMsg) == 12:  # just double check length
+                print("validLLAP")
+                if llapMsg[1:3] == "??":
+                    self._SerialProcessQQ(llapMsg[3:].strip("-"))
+                else:
+                    # not a configme llap so send out via UDP LLAP
+                    try:
+                        self.qUDPSend.put_nowait(self.encodeLLAPJson(llapMsg, self.config.get('Serial', 'network')))
+                    except Queue.Full:
+                        self.logger.warn("tSeral: Failed to put {} on qUDPSend as it's full".format(llapMsg))
+
     def _SerialProcessQQ(self, llapMsg):
         """ process an incoming ?? llap message
         """
