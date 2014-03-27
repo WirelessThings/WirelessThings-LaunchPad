@@ -890,6 +890,7 @@ class LLAPCongfigMeClient:
                "network":"ALL",
                "data":{
                        "id": 1,
+                       "timeout": 30,
                        "toQuery": query
                        }
               }
@@ -933,7 +934,7 @@ class LLAPCongfigMeClient:
                                         ]
                                         
                                 self.logger.debug("Setting keepAwake")
-                                self.keepAwake = 1
+                                self._keepAwake = 1
                                 
                                 lcr = {"type": "LCR",
                                        "network":self.device['network'],
@@ -988,7 +989,7 @@ class LLAPCongfigMeClient:
             # show config screen
             self.logger.debug("Setting keepAwake")
             # TODO: set keepAwake via UDP LCR
-            self._keepAwake = True
+            self._keepAwake = 1
             self._displayConfig()
 
         elif reply['id'] == 3:
@@ -1048,7 +1049,7 @@ class LLAPCongfigMeClient:
         
         
         self.logger.debug("Setting keepAwake")
-        self.keepAwake = 1
+        self._keepAwake = 1
         
         lcr = {"type": "LCR",
                 "network":self.device['network'],
