@@ -34,6 +34,16 @@
                "Description":"Period of time represented as 3 digit value and period multiplier of T(milli seconds), S(seconds), M(minutes), H(hours), D(days)"
                }
                ],
+    "Valid Characters":{
+                        "id":{
+                               "string":"ABCDEFGHIJKLMNOPQRSTUVWXYZ-#@?\\*",
+                               "regex":"[A-Z-#@?\\*]"
+                              },
+                        "data":{
+                                 "string":"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !\"#$%&'()*+,-.:;<=>?@[\\\/]^_`{|}~",
+                                 "regex":"[A-Z0-9:punct: ]"
+                                }
+                        },
     "Generic Commands":[
                         {
                         "Command":"ACK",
