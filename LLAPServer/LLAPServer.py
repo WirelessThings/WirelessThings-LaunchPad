@@ -166,7 +166,7 @@ class LLAPServer(threading.Thread):
         
         # read the user config file
         if not self.config.read(self._configFile):
-            self.logger.error("Could Not Load User Config, One Will be Created on Exit")
+            self.logger.info("Could Not Load User Config, One Will be Created on Exit")
         
         if not self.config.sections():
             self.logger.critical("No Config Loaded, Quitting")
@@ -343,15 +343,18 @@ class LLAPServer(threading.Thread):
                                 self.logger.debug("tLCR: Failed to put item onto toQuery as it's full")
                             else:
                                 self.devType = self._currentLCR['data'].get('devType', None)
+                                # reset flags
+                                self.fAnsweredAll.clear()
+                                self.fRetryFail.clear()
+                                self.fTimeoutFail.clear()
                                 # start timmer
-                                self._LCRCurrentTimeout = self._currentLCR['data'].get('timeout', self.config.get('LCR', 'timeout'))
+                                self._LCRCurrentTimeout = int(self._currentLCR['data'].get('timeout', self.config.get('LCR', 'timeout')))
                                 self._LCRStartTime = time()
                                 self.logger.debug("tLCR: started LCR timeout with period: {}".format(self._LCRCurrentTimeout))
                         else:
                             # no toQuery section, so reply with all done
                             self._LCRReturnLCR("PASS")
                         self.qLCRRequest.task_done()
-
 
             # do we have a reply from serial
             while not self.qLCRSerial.empty():
@@ -371,7 +374,7 @@ class LLAPServer(threading.Thread):
                                                                                 }
                                 self.logger.debug("tLCR: Stored reply '{}':{}".format(q['command'], self._currentLCR['data']['replies'][q['command']]))
                         # and reset the timeout
-                        self.logger.debug("tLCR: Restart timeout")
+                        self.logger.debug("tLCR: Reset timeout to 0")
                         self._LCRStartTime = time()
                     else:
                         # drop it
@@ -383,24 +386,26 @@ class LLAPServer(threading.Thread):
                 # if expired cancel the toQuery in tSerial
                 self.logger.debug("tLCR: LCR timeout expired")
                 self.fTimeoutFail.set()
-            
-            # has the serial thread finished getting all the query answers
-            if self.fAnsweredAll.is_set():
-                # finished toQuery ok
-                self.logger.debug("tLCR: Serial answered so send out json")
-                self._LCRReturnLCR("PASS")
-            elif self.fRetryFail.is_set():
-                # failed due to a message retry issue
-                self.logger.warn("tLCR: Failed current LCR due to retry count")
-                self._LCRReturnLCR("FAIL_RETRY")
-            elif self.fTimeoutFail.is_set():
-                # failed due to expired timeout
-                self.logger.warn("tLCR: Failed current LCR due to timeout")
-                self._LCRReturnLCR("FAIL_TIMEOUT")
+
+            # no point checking flags if we are not in the middle of a request
+            if self._currentLCR:
+                # has the serial thread finished getting all the query answers
+                if self.fAnsweredAll.is_set():
+                    # finished toQuery ok
+                    self.logger.debug("tLCR: Serial answered so send out json")
+                    self._LCRReturnLCR("PASS")
+                elif self.fRetryFail.is_set():
+                    # failed due to a message retry issue
+                    self.logger.warn("tLCR: Failed current LCR due to retry count")
+                    self._LCRReturnLCR("FAIL_RETRY")
+                elif self.fTimeoutFail.is_set():
+                    # failed due to expired timeout
+                    self.logger.warn("tLCR: Failed current LCR due to timeout")
+                    self._LCRReturnLCR("FAIL_TIMEOUT")
             
             # wait a little
             self.tLCRStop.wait(0.5)
-
+            
         self.logger.info("tLCR: Thread stopping")
         return
 
@@ -423,9 +428,6 @@ class LLAPServer(threading.Thread):
             self.logger.debug("tLCR: Sent LCR reply to qUDPSend")
             # and clear LCR and SentAll flag
             self._currentLCR = False
-            self.fAnsweredAll.clear()
-            self.fRetryFail.clear()
-            self.fTimeoutFail.clear()
 
     def _UDPSendTread(self):
         """ UDP Send thread
@@ -540,24 +542,29 @@ class LLAPServer(threading.Thread):
             while count < 11:
                 char = self._serial.read()
                 if not char:    # TODO: check this is right for a time out
+                    self.logger.debug("tSerial: RX:{}".format(char))
                     return
-                self.logger.debug("tSerial: RX:{}".format(char))
+            
                 if char == 'a':
                     # start again and
                     count = 0
                     llapMsg = "a"
+                    self.logger.debug("tSerial: RX:{}".format(char))
                 elif (count == 0 or count == 1) and char in self._validID:
                     # we have a vlaid ID
-                    print char
                     llapMsg += char
                     count += 1
                 elif count >= 2 and char in self._validData:
                     # we have a valid data
                     llapMsg += char
                     count +=1
-                        
+                else:
+                    self.logger.debug("tSerial: RX:{}".format(llapMsg[1:] + char))
+                    return
+    
+            self.logger.debug("tSerial: RX:{}".format(llapMsg[1:]))
+            
             if len(llapMsg) == 12:  # just double check length
-                print("validLLAP")
                 if llapMsg[1:3] == "??":
                     self._SerialProcessQQ(llapMsg[3:].strip("-"))
                 else:
@@ -613,8 +620,8 @@ class LLAPServer(threading.Thread):
                             # failed to send question (serial error)
                             pass
                 # else if was not our answer so send it again
-                else:
-                    if self.devType and llapMsg == "CONFIGME":
+                elif llapMsg == "CONFIGME":
+                    if self.devType:
                         # out of sync should we recheck DTY?
                         self._SerialDTYSync = False
                         self.logger.debug("tSerial: Checking DTY again before sending next toQuery")
@@ -630,7 +637,7 @@ class LLAPServer(threading.Thread):
                                 self._SerialToQueryState = 0
                                 return
         
-            else:
+            elif llapMsg == "CONFIGME":
                 # do we have a waiting query and can we send one
                 try:
                     self._SerialToQuery = self.qSerialToQuery.get_nowait()
@@ -653,7 +660,7 @@ class LLAPServer(threading.Thread):
                         if not self._SerialSendLCRQuery():
                             # failed to send question (serial or retry error)
                             pass
-        else:
+        elif self._SerialToQueryState:
             # yes the time out expired, clear down any current toQuery
             self.logger.debug("tSerial: toQuery Timmed out")
             self._SerialToQueryState = 0
@@ -718,7 +725,7 @@ class LLAPServer(threading.Thread):
 
         UDPListenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         UDPListenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        if (self.args.debug):
+        if (self.args.debug) and sys.platform == 'darwin':
             UDPListenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         
         try:
