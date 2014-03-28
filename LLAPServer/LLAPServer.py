@@ -16,6 +16,7 @@ import socket
 import select
 import json
 import logging
+import AT
 
 """
    Big TODO list
@@ -84,6 +85,7 @@ class LLAPServer(threading.Thread):
     
     _validID = "ABCDEFGHIJKLMNOPQRSTUVWXYZ-#@?\\*"
     _validData = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !\"#$%&'()*+,-.:;<=>?@[\\\/]^_`{|}~"
+    
     
     def __init__(self, logger=None):
         """Instantiation
@@ -487,7 +489,7 @@ class LLAPServer(threading.Thread):
         self.logger.info("tSerial: Serial thread started")
         self._SerialToQueryState = 0
         self._SerialToQuery = []
-        while not self.tSerialStop.is_set():
+        while (not self.tSerialStop.is_set()):
             # open the port
             try:
                 self._serial.open()
@@ -500,7 +502,10 @@ class LLAPServer(threading.Thread):
             
             # we clear out any stale serial messages that might be in the buffer
             self._serial.flushInput()
-
+            
+            # check the ATLH settings
+            self._SerialCheckATLH()
+            
             # main serial processing loop
             while self._serial.isOpen() and not self.tSerialStop.is_set():
                 # extrem debug message
@@ -536,7 +541,24 @@ class LLAPServer(threading.Thread):
         
         self.logger.info("tSerial: Thread stoping")
         return
+                    
+    def _SerialCheckATLH(self):
+        """ check and posible set the the ATLH setting on the radio
+            if command line XX the make permenant (ATWR)
+        """
+        self.logger.info("tSerial: Setting ATLH1")
+
+        self._serial.flushInput()
+    
+        at = AT.AT(self._serial, self.logger, self.tSerialStop)
+    
+        if at.enterATMode():
+            if at.sendATWaitForOK("ATLH1"):
+                if 0:
+                    at.sendATWaitForOK("ATWR")
         
+            at.leaveATMode()
+    
     def _SerialReadIncomingLLap(self):
         char = self._serial.read()  # should not time out but we should check anyway
         self.logger.debug("tSerial: RX:{}".format(char))
@@ -579,7 +601,7 @@ class LLAPServer(threading.Thread):
                     try:
                         self.qUDPSend.put_nowait(self.encodeLLAPJson(llapMsg, self.config.get('Serial', 'network')))
                     except Queue.Full:
-                        self.logger.warn("tSeral: Failed to put {} on qUDPSend as it's full".format(llapMsg))
+                        self.logger.warn("tSerial: Failed to put {} on qUDPSend as it's full".format(llapMsg))
 
     def _SerialProcessQQ(self, llapMsg):
         """ process an incoming ?? llap message
