@@ -46,14 +46,16 @@ import AT
         config change
         
    configure llap master command line option
-   check ATLH on start
+   DONE: Set ATLH1 on start
+   make ATLH1 permenent on command line option
+   
    
    service launcher
    
    
 """
 
-class LLAPServer(threading.Thread):
+class LLAPServer():
     """Core logic and master thread control
         
     LLAPServer looks after the following threads
@@ -92,7 +94,6 @@ class LLAPServer(threading.Thread):
             
         Setup basic transport, Queue's, Threads etc
         """
-        threading.Thread.__init__(self)
         
         self.tMainStop = threading.Event()
         
@@ -118,6 +119,7 @@ class LLAPServer(threading.Thread):
            This is the main entry point
         """
         self.logger.info("Start")
+        
         try:
             self._checkArgs()           # pull in the command line options
             self._readConfig()          # read in the config file
@@ -131,12 +133,12 @@ class LLAPServer(threading.Thread):
             
             # TODO: main loop
             while 1:
-                #self.logger.debug(" main loop")
-                self.tMainStop.wait(1)
-            
+                    #self.logger.debug(" main loop")
+                    self.tMainStop.wait(1)
         except KeyboardInterrupt:
-            self.logger.info("Keyboard Interrupt")
-            sys.exit(1)
+            self.logger.info("Keyboard Interrupt - Exiting")
+            self._clean_up()
+            sys.exit()
 
     def _checkArgs(self):
         """Parse the command line options
@@ -457,7 +459,7 @@ class LLAPServer(threading.Thread):
         
         while (not self.tUDPSendStop.is_set()):
             try:
-                message = self.qUDPSend.get(timeout=30)     # block for up to 30 seconds
+                message = self.qUDPSend.get(timeout=1)     # block for up to 1 seconds
             except Queue.Empty:
                 # UDP Send que was empty
                 # extrem debug message
@@ -828,17 +830,41 @@ class LLAPServer(threading.Thread):
         # self.logger.debug("JSON: {}".format(jsonout))
 
         return jsonout
-    
+
+    def _clean_up(self):
+        """ clean up on exit
+        """
+        try:
+            self.tUDPListenStop.set()
+            self.tUDPListen.join()
+        except AttributeError:
+            pass
+        try:
+            self.tSerialStop.set()
+            self.tSerial.join()
+        except AttributeError:
+            pass
+        try:
+            self.tLCRStop.set()
+            self.tLCR.join()
+        except AttributeError:
+            pass
+        try:
+            self.tUDPSendStop.set()
+            self.tUDPListen.join()
+        except AttributeError:
+            pass
+
     def die(self):
         """For some reason we can not longer go forward
             Try cleaning up what we can and exit
         """
         self.logger.critical("DIE")
-        # TODO: clean up what we can
+        self._clean_up()
+
         sys.exit(1)
 
 # run code
 if __name__ == "__main__" :
     app = LLAPServer()
-    app.start()
-    app.join()
+    app.run()
