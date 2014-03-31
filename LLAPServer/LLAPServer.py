@@ -28,9 +28,9 @@ import AT
     
    DONE: better serial read logic
    
-   Catch Ctrl-C
-   Clean up on quit code
-   Clean up on die code
+   DONE: Catch Ctrl-C
+   DONE: Clean up on quit code
+   DONE: Clean up on die code
    
    Thread state monitor
    gpio state display
@@ -72,7 +72,6 @@ class LLAPServer():
     """
     
     _configFile = "./LLAPServer.cfg"
-    _configFileDefault = "./LLAPServerDefault.cfg"
     
     _serialTimeout = 1     # serial port time out setting
     _UDPListenTimeout = 5   # timeout for UDP listen
@@ -164,23 +163,14 @@ class LLAPServer():
         
         # load defaults
         try:
-            self.config.readfp(open(self._configFileDefault))
+            self.config.readfp(open(self._configFile))
         except:
-            self.logger.error("Could Not Load Default Settings File")
-        
-        # read the user config file
-        if not self.config.read(self._configFile):
-            self.logger.info("Could Not Load User Config, One Will be Created on Exit")
-        
+            self.logger.error("Could Not Load Settings File")
+
         if not self.config.sections():
             self.logger.critical("No Config Loaded, Quitting")
             self.die()
-    
-    def _writeConfig(self):
-        self.logger.info("Writing config file")
-        with open(self._configFile, 'wb') as configfile:
-            self.config.write(configfile)
-    
+
     def _initLogging(self):
         """ now we have the config file loaded and the command line args setup
             setup the loggers
@@ -854,7 +844,7 @@ class LLAPServer():
             self.tUDPListen.join()
         except AttributeError:
             pass
-
+        
     def die(self):
         """For some reason we can not longer go forward
             Try cleaning up what we can and exit
