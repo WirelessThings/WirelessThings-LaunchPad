@@ -51,6 +51,7 @@ import logging
     DONE: keepAwake via JSON's
     
     check replies for state, PASS, FAIL_RETRY, FAIL_TIMEOUT
+    disable next button while waiting for query
     
     
     
@@ -939,7 +940,7 @@ class LLAPCongfigMeClient:
                                 lcr = {"type": "LCR",
                                        "network":self.device['network'],
                                        "data":{
-                                               "id": 2,
+                                               "id": 5,
                                                "keepAwake":self._keepAwake,
                                                "devType": self.device['DTY'],
                                                "toQuery": query
@@ -1021,7 +1022,13 @@ class LLAPCongfigMeClient:
             pass
         elif reply['id'] == 5:
             # have done a reset so should get back factory settings
-            self._askCurrentConfig()
+            # check devi id is now ?? and update local
+            self.device['devID'] = reply['replies']['CHDEVID']['reply']
+            if self.device['devID'] == "??":
+                self._askCurrentConfig()
+            else:
+                # TODO: LLAPRESET didnt work ERROR
+                pass
         # TODO: clean up
         self.qLCRReply.task_done()
 
