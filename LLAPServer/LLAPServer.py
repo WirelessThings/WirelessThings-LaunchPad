@@ -33,19 +33,18 @@ import AT
    DONE: Clean up on die code
    
    Thread state monitor
-   gpio state display
-   GUI
-   restart dead threads
-   restart dead serial
-   restart dead socket
+       gpio state display
+       GUI
+       DONE: restart dead threads
+       DONE: restart dead serial
+       restart dead socket
    
    "SERVER" messages
-        status
+        DONE: status
         reboot
         stop
         config change
         
-   configure llap master command line option
    DONE: Set ATLH1 on start
    make ATLH1 permenent on command line option
    
@@ -73,6 +72,8 @@ class LLAPServer():
     
     _configFile = "./LLAPServer.cfg"
     
+    _SerialFailCount = 0
+    _SerialFailCountLimit = 3
     _serialTimeout = 1     # serial port time out setting
     _UDPListenTimeout = 5   # timeout for UDP listen
     
@@ -87,6 +88,9 @@ class LLAPServer():
     _validID = "ABCDEFGHIJKLMNOPQRSTUVWXYZ-#@?\\*"
     _validData = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !\"#$%&'()*+,-.:;<=>?@[\\\/]^_`{|}~"
     
+    _state = ""
+    RUNNING = "RUNNING"
+    ERROR = "ERROR"
     
     def __init__(self, logger=None):
         """Instantiation
@@ -95,6 +99,7 @@ class LLAPServer():
         """
         
         self.tMainStop = threading.Event()
+        self.qServer = Queue.Queue()
         
         # setup initial Logging
         logging.getLogger().setLevel(logging.NOTSET)
@@ -130,15 +135,72 @@ class LLAPServer():
             self.tMainStop.wait(1)
             self._initUDPListenThread() # start the UDP listener
             
-            # TODO: main loop
-            while 1:
-                    #self.logger.debug(" main loop")
+            self._state = self.RUNNING
+            
+            # main thread looks after the server status for us
+            while not self.tMainStop.is_set():
+                # check threads are running
+                if not self.tLCR.is_alive():
+                    self.logger.error("LCR thread stopped")
+                    self._state = self.ERROR
                     self.tMainStop.wait(1)
+                    self._startLCR()
+                    self.tMainStop.wait(1)
+                    if self.tLCR.is_alive():
+                        self._state = self.RUNNING
+            
+                if not self.tUDPSend.is_alive():
+                    self.logger.error("UDPSend thread stopped")
+                    self._state = self.ERROR
+                    self.tMainStop.wait(1)
+                    self._startUDPSend()
+                    self.tMainStop.wait(1)
+                    if self.tUDPSend.is_alive():
+                        self._state = self.RUNNING
+                            
+                if not self.tSerial.is_alive():
+                    self.logger.error("Serial thread stopped, wait 1 before trying to re-establish ")
+                    self._state = self.ERROR
+                    self.tMainStop.wait(1)
+                    self._startSerail()
+                    self.tMainStop.wait(1)
+                    if self.tSerial.is_alive():
+                        self._state = self.RUNNING
+                    else:
+                        self._SerialFailCount += 1
+                        if self._SerialFailCount > self._SerialFailCountLimit:
+                            self.logger.error("Serial thread faile to recover after {} retries, Exiting".format(self._SerialFailCountLimit))
+                            self.die()
+
+                if not self.tUDPListen.is_alive():
+                    self.logger.error("UDPListen thread stopped")
+                    self._state = self.ERROR
+                    self.tMainStop.wait(1)
+                    self._startUDPListen()
+                    self.tMainStop.wait(1)
+                    if self.tUDPSend.is_alive():
+                        self._state = self.RUNNING
+                
+                # process any "Server" messages
+                if not self.qServer.empty():
+                    self.logger.debug("Processing Server JSON")
+                    try:
+                        self.qServer.get_nowait()
+                    except Queue.Empty():
+                        pass
+                    else:
+                        self.qUDPSend.put(json.dumps({"type": "Server", "state": self._state}))
+            
+                # flash led's if GPIO debug
+                
+                self.tMainStop.wait(0.5)
+
         except KeyboardInterrupt:
             self.logger.info("Keyboard Interrupt - Exiting")
             self._clean_up()
             sys.exit()
-
+        self.logger.debug("Exiting")
+    
     def _checkArgs(self):
         """Parse the command line options
         """
@@ -168,7 +230,7 @@ class LLAPServer():
             self.logger.error("Could Not Load Settings File")
 
         if not self.config.sections():
-            self.logger.critical("No Config Loaded, Quitting")
+            self.logger.critical("No Config Loaded, Exiting")
             self.die()
 
     def _initLogging(self):
@@ -233,7 +295,10 @@ class LLAPServer():
         self.fRetryFail.clear()
         self.fAnsweredAll.clear()
 
-        self.tLCR = threading.Thread(target=self._LCRThread)
+        self._startLCR()
+    
+    def _startLCR(self):
+        self.tLCR = threading.Thread(name='tLCR', target=self._LCRThread)
         self.tLCR.daemon = False
 
         try:
@@ -250,9 +315,11 @@ class LLAPServer():
         
         self.tUDPSendStop = threading.Event()
     
-        self.tUDPSend = threading.Thread(target=self._UDPSendTread)
+        self.tUDPSend = threading.Thread(name='tUDPSendThread', target=self._UDPSendTread)
         self.tUDPSend.daemon = False
-
+        self._startUDPSend()
+        
+    def _startUDPSend(self):
         try:
             self.tUDPSend.start()
         except:
@@ -275,8 +342,11 @@ class LLAPServer():
         
         # setup thread
         self.tSerialStop = threading.Event()
+        
+        self._startSerail()
     
-        self.tSerial = threading.Thread(target=self._SerialThread)
+    def _startSerail(self):
+        self.tSerial = threading.Thread(name='tSerial', target=self._SerialThread)
         self.tSerial.daemon = False
     
         try:
@@ -291,9 +361,12 @@ class LLAPServer():
 
         self.tUDPListenStop = threading.Event()
 
-        self.tUDPListen = threading.Thread(target=self._UDPListenThread)
+        self.tUDPListen = threading.Thread(name='tUDPListen', target=self._UDPListenThread)
         self.tUDPListen.deamon = False
-
+        
+        self._startUDPListen()
+        
+    def _startUDPListen(self):
         try:
             self.tUDPListen.start()
         except:
@@ -313,7 +386,7 @@ class LLAPServer():
                 # if we are not in the middle of an LCR
                 # TODO: what if its a cancel (shouldn't need them with timeouts
                 if not self._currentLCR:
-                    # lets get it out the que and start processing it
+                    # lets get it out the queue and start processing it
                     try:
                         self._currentLCR = self.qLCRRequest.get_nowait()
                     except Queue.Empty:
@@ -341,7 +414,7 @@ class LLAPServer():
                                 self.fAnsweredAll.clear()
                                 self.fRetryFail.clear()
                                 self.fTimeoutFail.clear()
-                                # start timmer
+                                # start timer
                                 self._LCRCurrentTimeout = int(self._currentLCR['data'].get('timeout', self.config.get('LCR', 'timeout')))
                                 self._LCRStartTime = time()
                                 self.logger.debug("tLCR: started LCR timeout with period: {}".format(self._LCRCurrentTimeout))
@@ -438,8 +511,7 @@ class LLAPServer():
         try:
             UDPSendSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         except socket.error, msg:
-            self.logger.critical("tUDPSend: Failed to create socket. Error code : {} Message : {}".format(msg[0], msg[1]))
-            # TODO: tUDPSend needs to stop here
+            self.logger.critical("tUDPSend: Failed to create socket, Exiting. Error code : {} Message : {} ".format(msg[0], msg[1]))
             self.die()
         
         UDPSendSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -451,7 +523,7 @@ class LLAPServer():
             try:
                 message = self.qUDPSend.get(timeout=1)     # block for up to 1 seconds
             except Queue.Empty:
-                # UDP Send que was empty
+                # UDP Send queue was empty
                 # extrem debug message
                 # self.logger.debug("tUDPSend: queue is empty")
                 pass
@@ -481,52 +553,57 @@ class LLAPServer():
         self.logger.info("tSerial: Serial thread started")
         self._SerialToQueryState = 0
         self._SerialToQuery = []
-        while (not self.tSerialStop.is_set()):
-            # open the port
-            try:
-                self._serial.open()
-                self.logger.info("tSerial: Opened the serial port")
-            except serial.SerialException:
-                self.logger.exception("tSerial: Failed to open port {}".format(self._serial.port))
-                self.die()
-            
-            self.tSerialStop.wait(0.1)
-            
-            # we clear out any stale serial messages that might be in the buffer
-            self._serial.flushInput()
-            
-            # check the ATLH settings
-            self._SerialCheckATLH()
-            
-            # main serial processing loop
-            while self._serial.isOpen() and not self.tSerialStop.is_set():
-                # extrem debug message
-                # self.logger.debug("tSerial: check serial port")
-                if self._serial.inWaiting():
-                    self._SerialReadIncomingLLap()
+        self.tSerialStop.wait(1)
+        try:
+            while (not self.tSerialStop.is_set()):
+                # open the port
+                try:
+                    self._serial.open()
+                    self.logger.info("tSerial: Opened the serial port")
+                except serial.SerialException:
+                    self.logger.exception("tSerial: Failed to open port {} Exiting".format(self._serial.port))
+                    self._serial.close()
+                    self.die()
                 
-                # do we have anything to send
-                if not self.qSerialOut.empty():
-                    self.logger.debug("tSerial: got something to send")
-                    try:
-                        llapMsg = self.qSerialOut.get_nowait()
-                        self._serial.write(llapMsg)
-                    except Queue.Empty:
-                        self.logger.debug("tSerial: failed to get item from queue")
-                    except Serial.SerialException, e:
-                        self.logger.warn("tSerial: failed to write to the serial port {}: {}".format(self._serial.port, e))
+                self.tSerialStop.wait(0.1)
+                
+                # we clear out any stale serial messages that might be in the buffer
+                self._serial.flushInput()
+                
+                # check the ATLH settings
+                self._SerialCheckATLH()
+                
+                # main serial processing loop
+                while self._serial.isOpen() and not self.tSerialStop.is_set():
+                    # extrem debug message
+                    # self.logger.debug("tSerial: check serial port")
+                    if self._serial.inWaiting():
+                        self._SerialReadIncomingLLap()
+                    
+                    # do we have anything to send
+                    if not self.qSerialOut.empty():
+                        self.logger.debug("tSerial: got something to send")
+                        try:
+                            llapMsg = self.qSerialOut.get_nowait()
+                            self._serial.write(llapMsg)
+                        except Queue.Empty:
+                            self.logger.debug("tSerial: failed to get item from queue")
+                        except Serial.SerialException, e:
+                            self.logger.warn("tSerial: failed to write to the serial port {}: {}".format(self._serial.port, e))
+                        else:
+                             self.logger.debug("tSerial: TX:{}".format(llapMsg))
+                             self.qSerialOut.task_done()
+                
+                    # sleep for a little
+                    if self._SerialToQueryState or self._serial.inWaiting():
+                        self.tSerialStop.wait(0.01)
                     else:
-                         self.logger.debug("tSerial: TX:{}".format(llapMsg))
-                         self.qSerialOut.task_done()
-            
-                # sleep for a little
-                if self._SerialToQueryState or self._serial.inWaiting():
-                    self.tSerialStop.wait(0.01)
-                else:
-                    self.tSerialStop.wait(0.1)
-            
-            # port closed for some reason (or tSerialStop), if tSerialStop is not set we will try reopening
-            
+                        self.tSerialStop.wait(0.1)
+                
+                # port closed for some reason (or tSerialStop), if tSerialStop is not set we will try reopening
+        except IOError:
+            self.logger.exception("tSerail: IOError on serial port")
+        
         # close the port
         self.logger.info("tSerial: Closing serial port")
         self._serial.close()
@@ -741,7 +818,7 @@ class LLAPServer():
         try:
             UDPListenSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         except socket.error:
-            self.logger.exception("tUDPListen: Failed to create socket")
+            self.logger.exception("tUDPListen: Failed to create socket, Exiting")
             self.die()
 
         UDPListenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -752,7 +829,7 @@ class LLAPServer():
         try:
             UDPListenSocket.bind(('', int(self.config.get('UDP', 'listen_port'))))
         except socket.error:
-            self.logger.exception("tUDPListen: Failed to bind port")
+            self.logger.exception("tUDPListen: Failed to bind port, Exiting")
             self.die()
         
         UDPListenSocket.setblocking(0)
@@ -796,8 +873,11 @@ class LLAPServer():
                 elif jsonin['type'] == "Server":
                     # TODO: we have a SERVER json do stuff with it
                     self.logger.debug("tUDPListen: JSON of type SERVER, passing to qServer")
-                    self.qUDPSend.put(json.dumps({"type": "Server", "state": "RUNNING"}))
-
+                    try:
+                        self.qServer.put(jsonin)
+                    except Queue.Full():
+                        self.logger.debug("tUDPListen: Failed to put json on qServer")
+ 
         self.logger.info("tUDPListen: Thread stopping")
         try:
             UDPListenSocket.close()
@@ -824,25 +904,28 @@ class LLAPServer():
     def _clean_up(self):
         """ clean up on exit
         """
+        # first stop the main thread from try to restart stuff
+        self.tMainStop.set()
+        # now stop the other threads
         try:
             self.tUDPListenStop.set()
             self.tUDPListen.join()
-        except AttributeError:
+        except:
             pass
         try:
             self.tSerialStop.set()
             self.tSerial.join()
-        except AttributeError:
+        except:
             pass
         try:
             self.tLCRStop.set()
             self.tLCR.join()
-        except AttributeError:
+        except:
             pass
         try:
             self.tUDPSendStop.set()
             self.tUDPListen.join()
-        except AttributeError:
+        except:
             pass
         
     def die(self):
