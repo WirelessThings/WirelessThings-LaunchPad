@@ -1,7 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """ LLAPServer
-
+    Copyright (c) 2013 Ciseco Ltd.
+    
+    Requires pySerial
+    
+    Author: Matt Lloyd
+    
+    This code is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 """
 import sys
@@ -623,8 +631,9 @@ class LLAPServer():
     
         if at.enterATMode():
             if at.sendATWaitForOK("ATLH1"):
-                if 0:
-                    at.sendATWaitForOK("ATWR")
+                if at.sendATWaitForOK("ATAC"):
+                    if 0:
+                        at.sendATWaitForOK("ATWR")
         
             at.leaveATMode()
     
