@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """ LLAP ConfigMe
-    Copyright (c) 2013 Ciseco Ltd.
+    Copyright (c) 2014 Ciseco Ltd.
     
     Author: Matt Lloyd
     
@@ -46,12 +46,13 @@ import logging
         
     DONE: use logger for debug output
     
-    timeouts wait windows base on timeout's sent with LCR
+    DONE: timeouts wait windows base on timeout's sent with LCR
     
     DONE: keepAwake via JSON's
     
-    check replies for state, PASS, FAIL_RETRY, FAIL_TIMEOUT
-    disable next button while waiting for query
+    DONE: check replies for state, PASS, FAIL_RETRY, FAIL_TIMEOUT
+    
+    DONE: disable next button while waiting for query
     
     
     
@@ -91,15 +92,16 @@ class LLAPCongfigMeClient:
     _rowHeight = 28
     _widthMain = 604
     _heightMain = (_rows*_rowHeight)+4
-    _widthSerial = 400
+    _widthSerial = 600
     _heightSerial = 200
     
     # how long to wait for a reply before asking user to press button again in seconds
-    _timeout = 30
+    _timeout = 40
     _devIDInputs = []
     _encryptionKeyInput = 0
     _lastLCR = []
     _keepAwake = 0
+    _currentFrame = None
 
     def __init__(self):
         """
@@ -389,6 +391,7 @@ class LLAPCongfigMeClient:
                                borderwidth=2, width=self._widthMain,
                                height=self._heightMain)
         self.iframe.pack()
+        self._currentFrame = 'introFrame'
         
         self._buildGrid(self.iframe)
         
@@ -440,6 +443,7 @@ class LLAPCongfigMeClient:
                                borderwidth=2, width=self._widthMain,
                                height=self._heightMain)
         self.pframe.pack()
+        self._currentFrame = 'pairFrame'
     
         self._buildGrid(self.pframe)
 
@@ -448,7 +452,7 @@ class LLAPCongfigMeClient:
     
         tk.Button(self.pframe, text='Back', state=tk.DISABLED
                   ).grid(row=self._rows-2, column=4, sticky=tk.E)
-        tk.Button(self.pframe, text='Next', command=self._queryType
+        tk.Button(self.pframe, name='next', text='Next', command=self._queryType
                   ).grid(row=self._rows-2, column=5, sticky=tk.W)
                 
     def _displayConfig(self):
@@ -459,6 +463,7 @@ class LLAPCongfigMeClient:
                                borderwidth=2, width=self._widthMain,
                                height=self._heightMain)
         self.cframe.pack()
+        self._currentFrame = 'configFrame'
 
         self._buildGrid(self.cframe)
 
@@ -519,7 +524,7 @@ class LLAPCongfigMeClient:
             tk.Label(self.cframe, text="CYCLE").grid(row=15, column=0, sticky=tk.E)
             tk.Checkbutton(self.cframe, variable=self.entry['SLEEPM']
                           ).grid(row=15, column=1, columnspan=2, sticky=tk.W)
-        elif self.devices[sellf.device['id']]['SleepMode'] == "Cyclic":
+        elif self.devices[self.device['id']]['SleepMode'] == "Cyclic":
             # Interrupt sleep devices
             tk.Label(self.cframe, text="Interrupt Sleep"
                      ).grid(row=9, column=0, columnspan=3)
@@ -571,7 +576,7 @@ class LLAPCongfigMeClient:
                          sticky=tk.E+tk.W)
         tk.Button(self.cframe, text='Back', state=tk.DISABLED
                   ).grid(row=self._rows-2, column=4, sticky=tk.E)
-        tk.Button(self.cframe, text='Next', command=self._sendConfigRequest
+        tk.Button(self.cframe, name='next', text='Next', command=self._sendConfigRequest
                   ).grid(row=self._rows-2, column=5, sticky=tk.W)
     
     def _displayAdvance(self):
@@ -651,6 +656,7 @@ class LLAPCongfigMeClient:
                                borderwidth=2, width=self._widthMain,
                                height=self._heightMain)
         self.eframe.pack()
+        self._currentFrame = 'endFrame'
         
         self._buildGrid(self.eframe)
         
@@ -754,9 +760,13 @@ class LLAPCongfigMeClient:
         self.logger.debug("Starting over")
         self.eframe.pack_forget()
         self.pframe.pack()
+        self._currentFrame = 'pairFrame'
 
     def _displayProgress(self):
         self.logger.debug("Displaying progress pop up")
+        
+        # disable current Next Button
+        self.master.children[self._currentFrame].children['next'].config(state=tk.DISABLED)
         
         position = self.master.geometry().split("+")
         
@@ -867,6 +877,7 @@ class LLAPCongfigMeClient:
                 "network":self.device['network'],
                 "data":{
                     "id": 3,
+                    "timeout": 60,
                     "keepAwake":self._keepAwake,
                     "devType": self.device['DTY'],
                     "toQuery": query
@@ -891,7 +902,7 @@ class LLAPCongfigMeClient:
                "network":"ALL",
                "data":{
                        "id": 1,
-                       "timeout": 30,
+                       "timeout": 30,   # short time out
                        "toQuery": query
                        }
               }
@@ -907,128 +918,165 @@ class LLAPCongfigMeClient:
         self.logger.debug("id: {}, devType:{}, Replies:{}".format(reply['id'],
                                                                 reply.get('devType', ""),
                                                                 reply['replies']))
-        if reply['id'] == 1:
-            # this was a query type request
-            if float(reply['replies']['APVER']['reply']) >= 2.0:
-                # valid apver
-                # so check what replied
-                for n in range(len(self.devices)):
-                    if self.devices[n]['DTY'] == reply['replies']['DTY']['reply']:
-                        # we have a match
-                        self.device = {'id': n,
-                                       'DTY': self.devices[n]['DTY'],   # copy form JSON not reply
-                                       'devID': reply['replies']['CHDEVID']['reply'],
-                                       'network': json['network']
-                                      }
-                        
-                        # ask user about reseting device if devID is not ??
-                        # for testing lets just reset if devID is MB
-                        if self.device['devID'] != "??":
-                            if tkMessageBox.askyesno("Device Previously configured",
-                                                     ("This device has been previously configured, \n"
-                                                      "Do you wish to reset the device to defaults (Yes),\n"
-                                                      "Or to alter the current configuration (No)")
-                                                     ):
-                                query = [
-                                         {'command': "LLAPRESET"},
-                                         {'command': "CHDEVID"}
-                                        ]
-                                        
-                                self.logger.debug("Setting keepAwake")
-                                self._keepAwake = 1
-                                
-                                lcr = {"type": "LCR",
-                                       "network":self.device['network'],
-                                       "data":{
-                                               "id": 5,
-                                               "keepAwake":self._keepAwake,
-                                               "devType": self.device['DTY'],
-                                               "toQuery": query
-                                              }
-                                      }
-                                        
-                                self._lastLCR.append(lcr)
-                                self._sendRequest(lcr)
-                            else:
-                                self._askCurrentConfig()
-                        else:
-                            self._askCurrentConfig()
-                        
+        
+        # check if reply is valid
+        if reply['state'] == "FAIL_TIMEOUT":
+            # TODO: handle failed due to timeout
+            self.logger.debug("LCR timeout")
+            # display pop up ask user to check configme mode and try again
+            if tkMessageBox.askyesno("Comunications Timeout",
+                                     ("Please check the deivce is in CONFIGME mode and \n"
+                                      "Click yes to retry\n"
+                                      "No to return to pervious screen")
+                                     ):
+                # send query again
+                self._sendRequest(self._lastLCR[-1])
             else:
-                # apver mismatch, show error screen
                 pass
-        elif reply['id'] == 2:
-            # this was an information request
-            # populate fields
-            if self.device['devID'] == '':
-                self.entry['CHDEVID'].set("--")
-            else:
-                self.entry['CHDEVID'].set(self.device['devID'])
+    
+        elif reply['state'] == "FAIL_RETRY":
+            # TODO: handle failed due to retry
+            self.logger.debug("LCR retry error")
+            # display pop up ask user to check configme mode and try again
+            if tkMessageBox.askyesno("Comunications Timeout",
+                                     ("Please check the deivce is in CONFIGME mode and \n"
+                                      "Click yes to retry\n"
+                                      "No to return to pervious screen")
+                                     ):
+                # send query again
+                self._sendRequest(self._lastLCR[-1])
+                                     else:
+                                         pass
+        elif reply['state'] == "PASS":
+            # got a good reply
+            
+            # check reply ID with Expected ID
+            if reply['id'] == self._lastLCR[-1]['data']['id']:
                 
-            for command, args in reply['replies'].items():
-                if command == "CHREMID" and args['reply'] == '':
-                    self.entry[command].set("--")
-                elif command == "SLEEPM":
-                    value = int(args['reply'])
-                    if value != 0:
-                        self.entry[command].set(1)
+                # process reply
+                if reply['id'] == 1:
+                    # this was a query type request
+                    if float(reply['replies']['APVER']['reply']) >= 2.0:
+                        # valid apver
+                        # so check what replied
+                        for n in range(len(self.devices)):
+                            if self.devices[n]['DTY'] == reply['replies']['DTY']['reply']:
+                                # we have a match
+                                self.device = {'id': n,
+                                               'DTY': self.devices[n]['DTY'],   # copy form JSON not reply
+                                               'devID': reply['replies']['CHDEVID']['reply'],
+                                               'network': json['network']
+                                              }
+                                
+                                # ask user about reseting device if devID is not ??
+                                # for testing lets just reset if devID is MB
+                                if self.device['devID'] != "??":
+                                    if tkMessageBox.askyesno("Device Previously configured",
+                                                             ("This device has been previously configured, \n"
+                                                              "Do you wish to reset the device to defaults (Yes),\n"
+                                                              "Or to alter the current configuration (No)")
+                                                             ):
+                                        query = [
+                                                 {'command': "LLAPRESET"},
+                                                 {'command': "CHDEVID"}
+                                                ]
+                                                
+                                        self.logger.debug("Setting keepAwake")
+                                        self._keepAwake = 1
+                                        
+                                        lcr = {"type": "LCR",
+                                               "network":self.device['network'],
+                                               "data":{
+                                                       "id": 5,
+                                                       "timeout": 60,
+                                                       "keepAwake":self._keepAwake,
+                                                       "devType": self.device['DTY'],
+                                                       "toQuery": query
+                                                      }
+                                              }
+                                                
+                                        self._lastLCR.append(lcr)
+                                        self._sendRequest(lcr)
+                                    else:
+                                        self._askCurrentConfig()
+                                else:
+                                    self._askCurrentConfig()
+                                
                     else:
-                        self.entry[command].set(0)
-                elif command == "ENC":
-                    if args['reply'] == "OFF":
-                        self.entry[command].set(0)
-                    elif args['reply'] == "ON":
-                        self.entry[command].set(1)
+                        # apver mismatch, show error screen
+                        pass
+                elif reply['id'] == 2:
+                    # this was an information request
+                    # populate fields
+                    if self.device['devID'] == '':
+                        self.entry['CHDEVID'].set("--")
                     else:
-                        #should not get here
-                        self.logger.debug("Error in reply to ENC")
-                else:
-                    if command in self.entry:
-                        # TODO: need to handle check box entry (Format: ONOFF
-                        self.entry[command].set(args['reply'])
+                        self.entry['CHDEVID'].set(self.device['devID'])
+                        
+                    for command, args in reply['replies'].items():
+                        if command == "CHREMID" and args['reply'] == '':
+                            self.entry[command].set("--")
+                        elif command == "SLEEPM":
+                            value = int(args['reply'])
+                            if value != 0:
+                                self.entry[command].set(1)
+                            else:
+                                self.entry[command].set(0)
+                        elif command == "ENC":
+                            if args['reply'] == "OFF":
+                                self.entry[command].set(0)
+                            elif args['reply'] == "ON":
+                                self.entry[command].set(1)
+                            else:
+                                #should not get here
+                                self.logger.debug("Error in reply to ENC")
+                        else:
+                            if command in self.entry:
+                                # TODO: need to handle check box entry (Format: ONOFF
+                                self.entry[command].set(args['reply'])
 
-            # show config screen
-            self.logger.debug("Setting keepAwake")
-            # TODO: set keepAwake via UDP LCR
-            self._keepAwake = 1
-            self._displayConfig()
+                    # show config screen
+                    self.logger.debug("Setting keepAwake")
+                    # TODO: set keepAwake via UDP LCR
+                    self._keepAwake = 1
+                    self._displayConfig()
 
-        elif reply['id'] == 3:
-            # this was a config request
-            # TODO: check replies were good and let user know device is now ready
-            enkeyCount = 0
-            enkeyMatch = 0
-            en = re.compile('^EN[1-6]')
+                elif reply['id'] == 3:
+                    # this was a config request
+                    # TODO: check replies were good and let user know device is now ready
+                    enkeyCount = 0
+                    enkeyMatch = 0
+                    en = re.compile('^EN[1-6]')
 
-            for command, arg in reply['replies'].items():
-                if en.match(command):
-                    enkeyCount += 1
-                    if arg['reply'] == "ACK":
-                        enkeyMatch += 1
-                elif arg['value'] != arg['reply']:
-                    # values don't match we should warn user
-                    tkMessageBox.showerror("Value mismatch",
-                                           "The {} value was not set, \n Sent: {}\n Got back: {}".format(command, arg['value'], arg['reply']))
+                    for command, arg in reply['replies'].items():
+                        if en.match(command):
+                            enkeyCount += 1
+                            if arg['reply'] == "ACK":
+                                enkeyMatch += 1
+                        elif arg['value'] != arg['reply']:
+                            # values don't match we should warn user
+                            tkMessageBox.showerror("Value mismatch",
+                                                   "The {} value was not set, \n Sent: {}\n Got back: {}".format(command, arg['value'], arg['reply']))
 
-            if enkeyCount != 0 and enkeyMatch != 6:
-                # encryption key not fully set
-                tkMessageBox.showerror("Encryption Key Error",
-                                       "Your encryption key was not correctly set please try again")
+                    if enkeyCount != 0 and enkeyMatch != 6:
+                        # encryption key not fully set
+                        tkMessageBox.showerror("Encryption Key Error",
+                                               "Your encryption key was not correctly set please try again")
 
 
-            # show end screen
-            self._displayEnd()
-        elif reply['id'] == 4:
-            pass
-        elif reply['id'] == 5:
-            # have done a reset so should get back factory settings
-            # check devi id is now ?? and update local
-            self.device['devID'] = reply['replies']['CHDEVID']['reply']
-            if self.device['devID'] == "??":
-                self._askCurrentConfig()
-            else:
-                # TODO: LLAPRESET didnt work ERROR
-                pass
+                    # show end screen
+                    self._displayEnd()
+                elif reply['id'] == 4:
+                    pass
+                elif reply['id'] == 5:
+                    # have done a reset so should get back factory settings
+                    # check devi id is now ?? and update local
+                    self.device['devID'] = reply['replies']['CHDEVID']['reply']
+                    if self.device['devID'] == "??":
+                        self._askCurrentConfig()
+                    else:
+                        # TODO: LLAPRESET didnt work ERROR
+                        pass
         # TODO: clean up
         self.qLCRReply.task_done()
 
@@ -1046,7 +1094,7 @@ class LLAPCongfigMeClient:
             query.append({'command': "INTVL"})
             query.append({'command': "WAKEC"})
             query.append({'command': "SLEEPM"})
-        elif self.devices[self.defice['id']]['SleepMode'] == "Interrupt":
+        elif self.devices[self.device['id']]['SleepMode'] == "Interrupt":
             query.append({'command': "SLEEPM"})
         
         for n in self.devices[self.device['id']]['Options']:
@@ -1062,6 +1110,7 @@ class LLAPCongfigMeClient:
                 "network":self.device['network'],
                 "data":{
                     "id": 2,
+                    "timeout": 60,
                     "keepAwake":self._keepAwake,
                     "devType": self.device['DTY'],
                     "toQuery": query
@@ -1075,12 +1124,11 @@ class LLAPCongfigMeClient:
     def _processNoReply(self):
         self.logger.debug("No Reply with in timeouts")
         # ask user to press pair button and try again?
-        # TODO: add a line here to enable NEXT button on cfame or pframe as needed
         
         if tkMessageBox.askyesno("Communications Timeout",
-                                 ("Unable to connect to device, \n"
-                                  "To try again check the device power,\n"
-                                  "press the ConfigMe button and click yes"
+                                 ("No replay from the Server, \n"
+                                  "To try again \n"
+                                  "click yes"
                                   )
                                  ):
             self._displayProgress()
@@ -1103,10 +1151,11 @@ class LLAPCongfigMeClient:
         # look for a reply
         # TODO: wait on UDP reply (how long)
         if self.qLCRReply.empty():
-            if time()-self._starttime > self._timeout:
+            if time()-self._starttime > self._lastLCR[-1]['data']['timeout']+10:
                 # if timeout passed, let user know no reply
                 # close wait diag
                 self.progressWindow.destroy()
+                self.master.children[self._currentFrame].children['next'].config(state=tk.ACTIVE)
                 self._processNoReply()
             else:
                 # update wait diag and check again
@@ -1114,6 +1163,7 @@ class LLAPCongfigMeClient:
         else:
             # close wait diag and return reply
             self.progressWindow.destroy()
+            self.master.children[self._currentFrame].children['next'].config(state=tk.ACTIVE)
             self._processReply()
     
     def _buildGrid(self, frame, quit=True, halfSize=False):
