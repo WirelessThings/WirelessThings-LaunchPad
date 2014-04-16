@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """ LLAPServer
-    Copyright (c) 2013 Ciseco Ltd.
+    Copyright (c) 2014 Ciseco Ltd.
     
     Requires pySerial
     
@@ -54,6 +54,7 @@ import AT
         config change
         
    DONE: Set ATLH1 on start
+   Improve checking and retries for ATLH1
    make ATLH1 permenent on command line option
    
    
@@ -496,7 +497,7 @@ class LLAPServer():
         self._currentLCR['timestamp'] = strftime("%d %b %Y %H:%M:%S +0000", gmtime())
         self._currentLCR['network'] = self.config.get('Serial', 'network')
         self._currentLCR['keepAwake'] = 1 if self.fKeepAwake.is_set() else 0
-        self._currentLCR['state'] = state
+        self._currentLCR['data']['state'] = state
 
         # encode json
         jsonout = json.dumps(self._currentLCR)
@@ -847,7 +848,7 @@ class LLAPServer():
         while not self.tUDPListenStop.is_set():
             datawaiting = select.select([UDPListenSocket], [], [], self._UDPListenTimeout)
             if datawaiting[0]:
-                (data, address) = UDPListenSocket.recvfrom(1024)
+                (data, address) = UDPListenSocket.recvfrom(2048)
                 self.logger.debug("tUDPListen: Received JSON: {} From: {}".format(data, address))
                 jsonin = json.loads(data)
                 
@@ -871,7 +872,7 @@ class LLAPServer():
                             else:
                                 self.logger.debug("tUDPListen Put {} on qSerialOut".format(llapMsg))
 
-                elif jsonin['type'] == "LCR":
+                elif jsonin['type'] == "LCR" and self.config.getboolean('LCR', 'lcr_enable'):
                     # we have a LLAPConfigRequest pass in onto the LCR thread
                     self.logger.debug("tUDPListen: JSON of type LCR, passing to qLCRRequest")
                     try:

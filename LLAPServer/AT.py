@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """ AT command mode Class
     Ciseco AT command mode helper class
-    Copyright (c) 2013 Ciseco Ltd.
+    Copyright (c) 2014 Ciseco Ltd.
     
     Author: Matt Lloyd
     

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """ LLAP ConfigMe
-    Copyright (c) 2013 Ciseco Ltd.
+    Copyright (c) 2014 Ciseco Ltd.
     
     Author: Matt Lloyd
     
