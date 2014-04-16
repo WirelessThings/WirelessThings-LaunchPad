@@ -412,12 +412,31 @@
                "DTY":"AAAA01",
                "Name":"Flood Sensor",
                "Description":"LLAP+ Flood Sensor",
-               "SleepMode":"Interrupt",
+               "SleepMode":"Cyclic",
                "Actions":[
                
                           ],
                "Options":[
-               
+                          {
+                          "Command":"MSG",
+                          "Description":"Set message (Default FLOOD)",
+                          "Format":"String"
+                          },
+                          {
+                          "Command":"DEB",
+                          "Description":"Sensor debounce in mS (Default 60000)",
+                          "Format":"Int"
+                          },
+                          {
+                          "Command":"STS",
+                          "Description":"Sleep period whilst debounceing \r(Default 5000)",
+                          "Format":"Int"
+                          },
+                          {
+                          "Command":"WOS",
+                          "Description":"Sleep period whilst waiting for sensor\r to return to off (Default 300000)",
+                          "Format":"Int"
+                          }
                           ]
                }
                ]
