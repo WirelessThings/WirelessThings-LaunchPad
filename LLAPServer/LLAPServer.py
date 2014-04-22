@@ -63,10 +63,11 @@ else:
         
    DONE: Set ATLH1 on start
    Improve checking and retries for ATLH1
-   make ATLH1 permenent on command line option
+   make ATLH1 permanent on command line option
    
    
-   service launcher
+   DONE: *nix Daemon behaviour
+   windows service dehaviour
    
    
 """
@@ -158,14 +159,14 @@ is running then run in the current terminal
         pass
     
     def start(self):
-        """Start by check in the args and sorting out run context forground/service/daemon
+        """Start by check in the args and sorting out run context foreground/service/daemon
            This is the main entry point for most start conditions
         """
         self.logger.info("Start")
         
         self._checkArgs()           # pull in the command line options
         
-        if not self._checkDaemon():         # base on the commnad line argument stop|stop|restart as a deamon
+        if not self._checkDaemon():         # base on the command line argument stop|stop|restart as a daemon
             self.logger.debug("Exiting")
             return
         self.run()
@@ -174,7 +175,7 @@ is running then run in the current terminal
         if not self._background:
             if not sys.platform == 'win32':
                 try:
-                    self.logger.info("Removeing Lock file")
+                    self.logger.info("Removing Lock file")
                     self._pidFile.release()
                 except:
                     pass
@@ -196,14 +197,14 @@ is running then run in the current terminal
         self.args = parser.parse_args()
     
     def _checkDaemon(self):
-        """ Based on the current os and command line arguments handle runing as
-            a backrogund daemon or service
+        """ Based on the current os and command line arguments handle running as
+            a background daemon or service
             returns 
                 True if we should continue running
-                Flase if we are done and should exit
+                False if we are done and should exit
         """
         if sys.platform == 'win32':
-            # need a way to check if we are allready runing on win32
+            # need a way to check if we are already running on win32
             self._background = False
             return True
         else:
@@ -214,15 +215,15 @@ is running then run in the current terminal
                                                   self._pidFileTimeout)
             
             if self.args.action == None:
-                # run in forground unless a deamon is all ready running
+                # run in foreground unless a daemon is all ready running
                 
-                # check for valid or stale pid file, if there is allready a copy running somewhere we dont want to start again
+                # check for valid or stale pid file, if there is already a copy running somewhere we don't want to start again
                 if self._isPidfileStale(self._pidFile):
                     self._pidFile.break_lock()
                     self.logger.debug("Removed Stale Lock")
                 
                 # create and lock a new pid file
-                self.logger.info("Aquiring Lock file")
+                self.logger.info("Acquiring Lock file")
                 try:
                     self._pidFile.acquire()
                 except lockfile.LockTimeout:
@@ -237,7 +238,7 @@ is running then run in the current terminal
                     return True
                         
             elif self.args.action == 'start':
-                # start as a deamon
+                # start as a daemon
                 return self._dstart()
             elif self.args.action == 'stop':
                 self._dstop()
@@ -249,7 +250,7 @@ is running then run in the current terminal
                 return self._dstart()
                     
     def _dstart(self):
-        """Kick off a daemon proceess
+        """Kick off a daemon process
         """
 
         self._daemonContext = DaemonContext()
@@ -268,13 +269,13 @@ is running then run in the current terminal
             self._daemonContext.open()
         except pidlockfile.AlreadyLocked:
             self.logger.warn("Already running, exiting")
-            return Flase
+            return False
         
         self._background = True
         return True
 
     def _dstop(self):
-        """ Stop a runnig process base on PID file
+        """ Stop a running process base on PID file
         """
         if not self._pidFile.is_locked():
             self.logger.debug("Nothing to stop")
@@ -289,18 +290,18 @@ is running then run in the current terminal
             try:
                 os.kill(pid, signal.SIGTERM)
             except OSError, exc:
-                self.logger.warn("Failed to terminate {}: {}".format(pid, exc))
+                self.logger.warn("Failed to terminate {}: {}: Try sudo".format(pid, exc))
                 return False
             else:
-                # we stoped something :)
-                self.logger.debug("Stoped pid {}".format(pid))
+                # we stopped something :)
+                self.logger.debug("Stopped pid {}".format(pid))
                 return True
 
 
     def run(self):
         """Run Everything
            At this point the Args have been checked and everything is setup if
-           we are running in the forground or as a daemon/service
+           we are running in the foreground or as a daemon/service
         """
         
         try:
@@ -780,8 +781,8 @@ is running then run in the current terminal
         return
                     
     def _SerialCheckATLH(self):
-        """ check and posible set the the ATLH setting on the radio
-            if command line XX the make permenant (ATWR)
+        """ check and possible set the the ATLH setting on the radio
+            if command line XX the make permanent (ATWR)
         """
         self.logger.info("tSerial: Setting ATLH1")
 
@@ -929,7 +930,7 @@ is running then run in the current terminal
                             pass
         elif self._SerialToQueryState:
             # yes the time out expired, clear down any current toQuery
-            self.logger.debug("tSerial: toQuery Timmed out")
+            self.logger.debug("tSerial: toQuery Timed out")
             self._SerialToQueryState = 0
         
             
@@ -1014,7 +1015,7 @@ is running then run in the current terminal
                 if jsonin['type'] == "LLAP":
                     self.logger.debug("tUDPListen: JSON of type LLAP, send out messages")
                     # got a LLAP type json, need to generate the LLAP message and
-                    # put them on the TX que
+                    # put them on the TX queue
                     for command in jsonin['data']:
                         llapMsg = "a{}{}".format(jsonin['id'], command[0:9].upper())
                         while len(llapMsg) <12:
@@ -1134,7 +1135,7 @@ is running then run in the current terminal
         if not self._background:
             if not sys.platform == 'win32':
                 try:
-                    self.logger.info("Removeing Lock file")
+                    self.logger.info("Removing Lock file")
                     self._pidFile.release()
                 except:
                     pass

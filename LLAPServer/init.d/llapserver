@@ -8,12 +8,10 @@
 #
 ### BEGIN INIT INFO
 # Provides: llapserver
-# Required-Start: 
-# Should-Start: 
-# Required-Stop: 
-# Should-Stop:
-# Default-Start:  3 5
-# Default-Stop:   0 1 2 6
+# Required-Start: $remotefs $syslog
+# Required-Stop: $remotefs $syslog
+# Default-Start:  2 3 4 5
+# Default-Stop:   0 1 6
 # Short-Description: LLAP Translator service
 # Description:    LLAP Translator service to pass LLAP trafic between serial and UDP intrefaces
 ### END INIT INFO
