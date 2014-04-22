@@ -15,6 +15,8 @@
 import sys
 from time import time, sleep, gmtime, strftime
 import os
+import signal
+import errno
 import Queue
 import argparse
 import ConfigParser
@@ -25,6 +27,11 @@ import select
 import json
 import logging
 import AT
+if sys.platform == 'win32':
+    pass
+else:
+    from daemon import DaemonContext, pidlockfile
+    import lockfile
 
 """
    Big TODO list
@@ -45,13 +52,14 @@ import AT
        GUI
        DONE: restart dead threads
        DONE: restart dead serial
-       restart dead socket
+       restart dead socket ? how to check
    
    "SERVER" messages
         DONE: status
         reboot
         stop
-        config change
+        config changes
+        
         
    DONE: Set ATLH1 on start
    Improve checking and retries for ATLH1
@@ -78,8 +86,12 @@ class LLAPServer():
     
     
     """
-    
+
     _configFile = "./LLAPServer.cfg"
+    _pidFile = None
+    _pidFilePath = "./LLAPServer.pid"
+    _pidFileTimeout = 5
+    _background = False
     
     _SerialFailCount = 0
     _SerialFailCountLimit = 3
@@ -100,12 +112,30 @@ class LLAPServer():
     _state = ""
     RUNNING = "RUNNING"
     ERROR = "ERROR"
-    
+
+    _ActionHelp = """
+Start = Starts as a background daemon/service
+Stop = Stops a daemon/service if running
+Restart = Restarts the daemon/service if running
+If none of the above are given and no daemon/service
+is running then run in the current terminal
+"""
+
     def __init__(self, logger=None):
         """Instantiation
             
         Setup basic transport, Queue's, Threads etc
         """
+        if hasattr(sys,'frozen'): # only when running in py2exe this exists
+            self._path = sys.prefix
+        else: # otherwise this is a regular python script
+            self._path = os.path.dirname(os.path.realpath(__file__))
+        
+        self._signalMap = {
+                           signal.SIGTERM: self._cleanUp,
+                           signal.SIGHUP: self.terminate,
+                           signal.SIGUSR1: self._reloadProgramConfig,
+                          }
         
         self.tMainStop = threading.Event()
         self.qServer = Queue.Queue()
@@ -126,15 +156,154 @@ class LLAPServer():
         """
         # TODO: shut down anything we missed
         pass
-
-    def run(self):
-        """Start doing everything running
-           This is the main entry point
+    
+    def start(self):
+        """Start by check in the args and sorting out run context forground/service/daemon
+           This is the main entry point for most start conditions
         """
         self.logger.info("Start")
         
+        self._checkArgs()           # pull in the command line options
+        
+        if not self._checkDaemon():         # base on the commnad line argument stop|stop|restart as a deamon
+            self.logger.debug("Exiting")
+            return
+        self.run()
+        
+        
+        if not self._background:
+            if not sys.platform == 'win32':
+                try:
+                    self.logger.info("Removeing Lock file")
+                    self._pidFile.release()
+                except:
+                    pass
+    def _checkArgs(self):
+        """Parse the command line options
+        """
+        parser = argparse.ArgumentParser(description='LLAP Server', formatter_class=argparse.RawTextHelpFormatter)
+        parser.add_argument('action', nargs = '?', choices=('start', 'stop', 'restart'), help =self._ActionHelp)
+        parser.add_argument('-u', '--noupdate',
+                            help='disable checking for update',
+                            action='store_false')
+        parser.add_argument('-d', '--debug',
+                            help='Enable debug output to console, overrides LLAPServer.cfg setting',
+                            action='store_true')
+        parser.add_argument('-l', '--log',
+                            help='Override the debug logging level, DEBUG, INFO, WARNING, ERROR, CRITICAL'
+                            )
+                            
+        self.args = parser.parse_args()
+    
+    def _checkDaemon(self):
+        """ Based on the current os and command line arguments handle runing as
+            a backrogund daemon or service
+            returns 
+                True if we should continue running
+                Flase if we are done and should exit
+        """
+        if sys.platform == 'win32':
+            # need a way to check if we are allready runing on win32
+            self._background = False
+            return True
+        else:
+            # must be *nix based, right?
+            
+            #setup pidfile checking
+            self._pidFile = self._makePidlockfile(os.path.join(self._path, self._pidFilePath),
+                                                  self._pidFileTimeout)
+            
+            if self.args.action == None:
+                # run in forground unless a deamon is all ready running
+                
+                # check for valid or stale pid file, if there is allready a copy running somewhere we dont want to start again
+                if self._isPidfileStale(self._pidFile):
+                    self._pidFile.break_lock()
+                    self.logger.debug("Removed Stale Lock")
+                
+                # create and lock a new pid file
+                self.logger.info("Aquiring Lock file")
+                try:
+                    self._pidFile.acquire()
+                except lockfile.LockTimeout:
+                    self.logger.critical("Already running, exiting")
+                    return False
+                else:
+                    # register our own signal handlers
+                    for (signal_number, handler) in self._signalMap.items():
+                        signal.signal(signal_number, handler)
+                    
+                    self._background = False
+                    return True
+                        
+            elif self.args.action == 'start':
+                # start as a deamon
+                return self._dstart()
+            elif self.args.action == 'stop':
+                self._dstop()
+                return False
+            elif self.args.action == 'restart':
+                self.logger.debug("Stoping old daemon")
+                self._dstop()
+                self.logger.debug("Starting new daemon")
+                return self._dstart()
+                    
+    def _dstart(self):
+        """Kick off a daemon proceess
+        """
+
+        self._daemonContext = DaemonContext()
+        self._daemonContext.stdin = open('/dev/null', 'r')
+        self._daemonContext.stdout = open('/dev/null', 'w+')
+        self._daemonContext.stderr = open('/dev/null', 'w+', buffering=0)
+        self._daemonContext.pidfile = self._pidFile
+        self._daemonContext.working_directory = self._path
+        
+        self._daemonContext.signal_map = self._signalMap
+        if self._isPidfileStale(self._pidFile):
+            self._pidFile.break_lock()
+            self.logger.debug("Removed Stale Lock")
+
         try:
-            self._checkArgs()           # pull in the command line options
+            self._daemonContext.open()
+        except pidlockfile.AlreadyLocked:
+            self.logger.warn("Already running, exiting")
+            return Flase
+        
+        self._background = True
+        return True
+
+    def _dstop(self):
+        """ Stop a runnig process base on PID file
+        """
+        if not self._pidFile.is_locked():
+            self.logger.debug("Nothing to stop")
+            return False
+        
+        if self._isPidfileStale(self._pidFile):
+            self._pidFile.break_lock()
+            self.logger.debug("Removed Stale Lock")
+            return True
+        else:
+            pid = self._pidFile.read_pid()
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except OSError, exc:
+                self.logger.warn("Failed to terminate {}: {}".format(pid, exc))
+                return False
+            else:
+                # we stoped something :)
+                self.logger.debug("Stoped pid {}".format(pid))
+                return True
+
+
+    def run(self):
+        """Run Everything
+           At this point the Args have been checked and everything is setup if
+           we are running in the forground or as a daemon/service
+        """
+        
+        try:
             self._readConfig()          # read in the config file
             self._initLogging()         # setup the logging options
             self._initLCRThread()       # start the LLAPConfigRequest thread
@@ -178,7 +347,7 @@ class LLAPServer():
                     else:
                         self._SerialFailCount += 1
                         if self._SerialFailCount > self._SerialFailCountLimit:
-                            self.logger.error("Serial thread faile to recover after {} retries, Exiting".format(self._SerialFailCountLimit))
+                            self.logger.error("Serial thread failed to recover after {} retries, Exiting".format(self._SerialFailCountLimit))
                             self.die()
 
                 if not self.tUDPListen.is_alive():
@@ -206,25 +375,9 @@ class LLAPServer():
 
         except KeyboardInterrupt:
             self.logger.info("Keyboard Interrupt - Exiting")
-            self._clean_up()
+            self._cleanUp()
             sys.exit()
         self.logger.debug("Exiting")
-    
-    def _checkArgs(self):
-        """Parse the command line options
-        """
-        parser = argparse.ArgumentParser(description='LLAP Server')
-        parser.add_argument('-u', '--noupdate',
-                            help='disable checking for update',
-                            action='store_false')
-        parser.add_argument('-d', '--debug',
-                            help='Enable debug output to console, overrides LLAPServer.cfg setting',
-                            action='store_true')
-        parser.add_argument('-l', '--log',
-                            help='Override the debug logging level, DEBUG, INFO, WARNING, ERROR, CRITICAL'
-                            )
-                            
-        self.args = parser.parse_args()
 
     def _readConfig(self):
         """Read the server config file from disk
@@ -241,6 +394,12 @@ class LLAPServer():
         if not self.config.sections():
             self.logger.critical("No Config Loaded, Exiting")
             self.die()
+
+    def _reloadProgramConfig(self):
+        """ Reload the config file from disk
+        """
+        # TODO: do we want to be able reload config on SIGUSR1?
+        pass
 
     def _initLogging(self):
         """ now we have the config file loaded and the command line args setup
@@ -881,7 +1040,7 @@ class LLAPServer():
                         self.logger.debug("tUDPListen: Failed to put json on qLCRRequest")
 
                 elif jsonin['type'] == "Server":
-                    # TODO: we have a SERVER json do stuff with it
+                    # we have a SERVER json do stuff with it
                     self.logger.debug("tUDPListen: JSON of type SERVER, passing to qServer")
                     try:
                         self.qServer.put(jsonin)
@@ -910,8 +1069,42 @@ class LLAPServer():
         # self.logger.debug("JSON: {}".format(jsonout))
 
         return jsonout
+    
+    # TODO: catch errors and add logging
+    def _makePidlockfile(self, path, acquire_timeout):
+        """ Make a PIDLockFile instance with the given filesystem path. """
+        if not isinstance(path, basestring):
+            error = ValueError("Not a filesystem path: %(path)r" % vars())
+            raise error
+        if not os.path.isabs(path):
+            error = ValueError("Not an absolute path: %(path)r" % vars())
+            raise error
+        lockfile = pidlockfile.TimeoutPIDLockFile(path, acquire_timeout)
 
-    def _clean_up(self):
+        return lockfile
+
+    def _isPidfileStale(self, pidfile):
+        """ Determine whether a PID file is stale.
+            
+            Return ``True`` (“stale”) if the contents of the PID file are
+            valid but do not match the PID of a currently-running process;
+            otherwise return ``False``.
+            
+            """
+        result = False
+        
+        pidfile_pid = pidfile.read_pid()
+        if pidfile_pid is not None:
+            try:
+                os.kill(pidfile_pid, signal.SIG_DFL)
+            except OSError, exc:
+                if exc.errno == errno.ESRCH:
+                    # The specified PID does not exist
+                    result = True
+        
+        return result
+    
+    def _cleanUp(self, signal_number=None, stack_frame=None):
         """ clean up on exit
         """
         # first stop the main thread from try to restart stuff
@@ -938,16 +1131,39 @@ class LLAPServer():
         except:
             pass
         
+        if not self._background:
+            if not sys.platform == 'win32':
+                try:
+                    self.logger.info("Removeing Lock file")
+                    self._pidFile.release()
+                except:
+                    pass
+
+    def terminate(self, signal_number, stack_frame):
+        """ Signal handler for end-process signals.
+            :Return: ``None``
+            
+            Signal handler for the ``signal.SIGTERM`` signal. Performs the
+            following step:
+            
+            * Raise a ``SystemExit`` exception explaining the signal.
+            
+            """
+        exception = SystemExit(
+                               "Terminating on signal %(signal_number)r"
+                               % vars())
+        raise exception
+
     def die(self):
         """For some reason we can not longer go forward
             Try cleaning up what we can and exit
         """
         self.logger.critical("DIE")
-        self._clean_up()
+        self._cleanUp()
 
         sys.exit(1)
 
 # run code
 if __name__ == "__main__" :
     app = LLAPServer()
-    app.run()
+    app.start()

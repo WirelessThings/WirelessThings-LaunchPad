@@ -8,6 +8,11 @@
 *.sql
 *.sqlite
 
+# pid and lock files #
+######################
+*.pid
+*.lock
+
 # OS generated files #
 ######################
 .DS_Store
@@ -18,6 +23,7 @@
 Icon?
 ehthumbs.db
 Thumbs.db
+
 
 LLAPCM.cfg
 Download/
