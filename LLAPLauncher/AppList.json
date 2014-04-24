@@ -1,0 +1,41 @@
+{
+    "Apps": [
+        {
+            "id" : 0,
+            "Name" : "Transfer service",
+            "FileName" : "LLAPServer.py",
+            "CWD" : "../LLAPServer/",
+             "Service": 1,
+             "Autostart": 1,
+             "InitScript": "llapserver",
+            "Args" : "",
+             "Description" : "LLAP+ Transfer Service\r\r"
+        },
+         {
+             "id" : 1,
+             "Name" : "Configuration GUI",
+             "FileName" : "LLAPConfigMe.py",
+             "CWD" : "../LLAPConfigMeUI/",
+             "Service": 0,
+             "Args" : "",
+             "Description" : "LLAP+ Device Configuration UI\r\r"
+             },
+             {
+             "id" : 2,
+             "Name" : "Test serice",
+             "FileName" : "LLAPConfigMe.py",
+             "CWD" : "../LLAPConfigMeUI/",
+             "Service": 1,
+             "Args" : "",
+             "Description" : "LLAP+ Device Configuration UI\r\r"
+             }
+
+    ],
+    "Advanced": [
+        {
+            "id" : 0,
+            "Name" : "Update from Zip File",
+            "Description" : "Update using a downlaoded zip file"
+        }
+    ]
+}
