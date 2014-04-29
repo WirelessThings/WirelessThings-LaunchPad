@@ -4,7 +4,12 @@
     
     Send LLAP Json via UDP broadcasts on port 50141
     
-    """
+    Uasge
+    $ python commandUDPSend.py a--HELLO----
+    or
+    $ ./commnadUDPSend.py a--HELLO----
+    
+"""
 import sys
 from time import time, sleep
 import os

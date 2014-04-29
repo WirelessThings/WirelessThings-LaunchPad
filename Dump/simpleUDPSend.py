@@ -19,11 +19,15 @@ sock = socket.socket(socket.AF_INET, # Internet
 
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+if sys.platform == 'darwin':
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 
 jsonDict = {'type':"LLAP"}
 jsonDict['network'] = "Serial"      # could be 'Serial' or 'ALL'
-jsonDict['id'] = "MA"
-jsonDict['data'] = ["HELLO","TEMP"]
+jsonDict['id'] = "MA"               # sending to example device ID of MA
+jsonDict['data'] = ["HELLO","TEMP"] # sending two commands HELLO and TEMP
+                                    # this will result in two message going out via the radio
+                                    # aMAHELLO---- and aMATEMP-----
 
 jsonout = json.dumps(jsonDict)
 
