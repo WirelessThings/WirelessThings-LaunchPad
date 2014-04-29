@@ -59,11 +59,14 @@ else:
         reboot
         stop
         config changes
+        report AT settings on request
+        change AT settings on request
         
         
    DONE: Set ATLH1 on start
    Improve checking and retries for ATLH1
    make ATLH1 permanent on command line option
+   Read other AT settigns at launch and store in a memory config
    
    
    DONE: *nix Daemon behaviour
@@ -115,9 +118,10 @@ class LLAPServer():
     ERROR = "ERROR"
 
     _ActionHelp = """
-Start = Starts as a background daemon/service
-Stop = Stops a daemon/service if running
-Restart = Restarts the daemon/service if running
+start = Starts as a background daemon/service
+stop = Stops a daemon/service if running
+restart = Restarts the daemon/service if running
+status = Check if a LLAP transfer serveice is running
 If none of the above are given and no daemon/service
 is running then run in the current terminal
 """
@@ -183,7 +187,7 @@ is running then run in the current terminal
         """Parse the command line options
         """
         parser = argparse.ArgumentParser(description='LLAP Server', formatter_class=argparse.RawTextHelpFormatter)
-        parser.add_argument('action', nargs = '?', choices=('start', 'stop', 'restart'), help =self._ActionHelp)
+        parser.add_argument('action', nargs = '?', choices=('start', 'stop', 'restart', 'status'), help =self._ActionHelp)
         parser.add_argument('-u', '--noupdate',
                             help='disable checking for update',
                             action='store_false')
@@ -248,6 +252,9 @@ is running then run in the current terminal
                 self._dstop()
                 self.logger.debug("Starting new daemon")
                 return self._dstart()
+            elif self.args.action == 'status':
+                self._dstatus()
+                return False
                     
     def _dstart(self):
         """Kick off a daemon process
@@ -297,6 +304,24 @@ is running then run in the current terminal
                 self.logger.debug("Stopped pid {}".format(pid))
                 return True
 
+    def _dstatus(self):
+        """ Test the PID file to see if we are running some where
+            Return 
+                pid if running
+                None if not
+            """
+        pid = None
+        if self._isPidfileStale(self._pidFile):
+            self._pidFile.break_lock()
+            self.logger.debug("Removed Stale Lock")
+        
+        pid = self._pidFile.read_pid()
+        if pid is not None:
+            print("LLAPServer.py is running (PID {})".format(pid))
+        else:
+            print("LLAPServer.py is not running")
+
+        return pid
 
     def run(self):
         """Run Everything
