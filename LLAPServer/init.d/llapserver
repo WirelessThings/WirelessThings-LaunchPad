@@ -16,20 +16,24 @@
 # Description:    LLAP Translator service to pass LLAP trafic between serial and UDP intrefaces
 ### END INIT INFO
 
+###
+# This line will be auto updated with the path to your current install path
+# by LLAPLauncher on clicking the Enable Autostart button
 cd /home/pi/LLAPServer
+###
 
 case "$1" in
   start)
     echo "Starting translator"
-    python /home/pi/LLAPServer/LLAPServer.py start
+    python ./LLAPServer.py start
     ;;
   stop)
     echo "Stopping translator"
-    python /home/pi/LLAPServer/LLAPServer.py stop
+    python ./LLAPServer.py stop
     ;;
   restart)
     echo "Restarting translator"
-    python /home/pi/LLAPServer/LLAPServer.py restart
+    python ./LLAPServer.py restart
     ;;
   *)
     # Igonre everything else

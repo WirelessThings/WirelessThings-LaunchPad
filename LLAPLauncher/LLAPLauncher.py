@@ -27,6 +27,7 @@ import Queue
 import zipfile
 import time as time_
 import tkFileDialog
+import fileinput
 from distutils import dir_util
 import stat
 from Tabs import *
@@ -50,7 +51,7 @@ from Tabs import *
    
    dont kill other on exit
    
-   check if service is already runnning
+   check if service is already running
    
    service should record a pid file?
    
@@ -68,6 +69,10 @@ class LLAPLauncher:
     
     password = None
     def __init__(self):
+        if hasattr(sys,'frozen'): # only when running in py2exe this exists
+            self._path = sys.prefix
+        else: # otherwise this is a regular python script
+            self._path = os.path.dirname(os.path.realpath(__file__))
         self.debug = False # until we read config
         self.debugArg = False # or get command line
         self.configFileDefault = "launcher_defaults.cfg"
@@ -409,7 +414,9 @@ class LLAPLauncher:
                 if name.endswith(".py"):
                     self.debugPrint("Setting execute bits")
                     st = os.stat(self.extractDir + name)
-                    os.chmod(self.extractDir + name, (st.st_mode | stat.S_IXUSR | stat.S_IXGRP))
+                    os.chmod(self.extractDir + name,
+                             (st.st_mode | stat.S_IXUSR | stat.S_IXGRP)
+                             )
                 time_.sleep(0.1)
 
 
@@ -640,7 +647,8 @@ class LLAPLauncher:
                 app.append("status")
 
                 self.debugPrint("Querying {}".format(app))
-                output = subprocess.check_output(app, cwd=self.appList[int(self.appSelect.curselection()[0])]['CWD'])
+                output = subprocess.check_output(app,
+                                                 cwd=self.appList[int(self.appSelect.curselection()[0])]['CWD'])
                 if output.find("PID") is not -1:
                     running = True
                 elif output.find("not") is not -1:
@@ -675,9 +683,13 @@ class LLAPLauncher:
                     installed = False
                     
             if installed == True:
-                self.serviceButton.config(state=tk.ACTIVE, text=self._autoStartText['disable'], command=lambda: self.autostart('disable'))
+                self.serviceButton.config(state=tk.ACTIVE,
+                                          text=self._autoStartText['disable'],
+                                          command=lambda: self.autostart('disable'))
             elif installed == False:
-                self.serviceButton.config(state=tk.ACTIVE, text=self._autoStartText['enable'], command=lambda: self.autostart('enable'))
+                self.serviceButton.config(state=tk.ACTIVE,
+                                          text=self._autoStartText['enable'],
+                                          command=lambda: self.autostart('enable'))
             else:
                 self.serviceButton.config(state=tk.DISABLED, text=self._autoStartText['enable'])
 
@@ -709,7 +721,16 @@ class LLAPLauncher:
                 dst = ('/etc/init.d/' +
                        self.appList[int(self.appSelect.curselection()[0])]['InitScript']
                        )
-                
+                       
+                # modify init.d script path before copying file
+                for lines in fileinput.FileInput(src, inplace=1): ## edit file in place
+                    if lines.startswith("cd "):
+                        sys.stdout.write("cd {}/{}\r".format(self._path,
+                                                             self.appList[int(self.appSelect.curselection()[0])]['CWD']))
+                    else:
+                        sys.stdout.write(lines)
+
+                # copy new modified file into init.d folder
                 copyCommand = ['sudo', '-p','','-S',
                                'cp', src, dst
                                ]
@@ -720,6 +741,8 @@ class LLAPLauncher:
                 cproc.stdin.write(self.password+'\n')
                 cproc.stdin.close()
                 cproc.wait()
+                
+                # need to give it execute permissions
                 chCommand = ['sudo', '-p','','-S',
                              'chmod', '+x', dst
                              ]
@@ -730,7 +753,8 @@ class LLAPLauncher:
                 chproc.stdin.write(self.password+'\n')
                 chproc.stdin.close()
                 chproc.wait()
-                # run update-rc.d {} defualts
+                
+                # run update-rc.d {} defaults
                 self.updateRCd('defaults')
                 self.master.after(500, self.updateSSRButtons)
     
@@ -742,7 +766,10 @@ class LLAPLauncher:
                 self.updateRCd('remove')
                 # rm script from /etc/init.d ???
                 removeCommand = ['sudo', '-p','','-S',
-                                 'rm', ('/etc/init.d/' + self.appList[int(self.appSelect.curselection()[0])]['InitScript'])
+                                 'rm',
+                                 ('/etc/init.d/' +
+                                  self.appList[int(self.appSelect.curselection()[0])]['InitScript']
+                                  )
                                  ]
 
                 rproc = subprocess.Popen(removeCommand,
@@ -786,7 +813,8 @@ class LLAPLauncher:
                 app.append(command)
             
             self.debugPrint("Launching {}".format(app))
-            self.proc.append(subprocess.Popen(app, cwd=self.appList[int(self.appSelect.curselection()[0])]['CWD']))
+            self.proc.append(subprocess.Popen(app,
+                                              cwd=self.appList[int(self.appSelect.curselection()[0])]['CWD']))
 
             if command is not None and command is not 'launch':
                 self.disableSSRButtons()
