@@ -34,8 +34,6 @@ from Tabs import *
 """
    todo list:-
    
-   wik -> LLAP
-   
    Move advance list from json into py
    
    switch to debug prints to logging
@@ -68,7 +66,7 @@ class LLAPLauncher:
                       'disable': "Disable Autostart"
                      }
     
-
+    password = None
     def __init__(self):
         self.debug = False # until we read config
         self.debugArg = False # or get command line
@@ -429,7 +427,7 @@ class LLAPLauncher:
                                   )
                              )
                              
-        self.master.title("WIK Launcher v{}".format(self.currentVersion))
+        self.master.title("LLAP Launcher v{}".format(self.currentVersion))
         self.master.resizable(0,0)
         
         self.tabFrame = tk.Frame(self.master, name='tabFrame')
@@ -662,26 +660,26 @@ class LLAPLauncher:
             installed = None
             if sys.platform == 'win32':
                 pass
-            elif sys.platform == 'darwin' and not (self.debug or self.debugArg):    # TODO: remove skip if in debug mode before shipping
-                # OSX auto start is diffrent so pass for not
+            elif sys.platform == 'darwin':
+                # OSX auto start is diffrent so pass for now
                 pass
             else:
                 # check init.d and rc3.d
                 if os.path.exists("/etc/init.d/{}".format(self.appList[int(self.appSelect.curselection()[0])]['InitScript'])):
                     # ok script is there is it setup in rc3.d
+                    installed = False
                     for file in os.listdir("/etc/rc3.d/"):
                         if file.find(self.appList[int(self.appSelect.curselection()[0])]['InitScript']) is not -1:
                             installed = True
                 else:
                     installed = False
-
+                    
             if installed == True:
-                self.serviceButton.config(state=tk.ACTIVE, text=self._autoStartText['disable'])
+                self.serviceButton.config(state=tk.ACTIVE, text=self._autoStartText['disable'], command=lambda: self.autostart('disable'))
             elif installed == False:
-                self.serviceButton.config(state=tk.ACTIVE, text=self._autoStartText['enable'])
+                self.serviceButton.config(state=tk.ACTIVE, text=self._autoStartText['enable'], command=lambda: self.autostart('enable'))
             else:
                 self.serviceButton.config(state=tk.DISABLED, text=self._autoStartText['enable'])
-                    
 
     def disableSSRButtons(self):
         self.SSRFrame.children['start'].config(state=tk.DISABLED)
@@ -689,9 +687,88 @@ class LLAPLauncher:
         self.SSRFrame.children['restart'].config(state=tk.DISABLED)
         self.serviceButton.config(state=tk.DISABLED)
     
-    def autostart(self):
+    def autostart(self, command=None):
         self.debugPrint("Configer autostart")
-        self.serviceButton.pack_forget()
+        if sys.platform == 'win32':
+            pass
+        elif sys.platform == 'darwin':
+            # OSX auto start is diffrent so pass for now
+            pass
+        else:
+            if command == 'enable':
+                self.debugPrint("Setting up init.d script")
+                self.disableSSRButtons()
+                self.master.wait_window(PasswordDialog(self))
+                # run update-rc.d {} remove (if there is an older script there)
+                self.updateRCd('remove')
+                # copy script to init.d dir
+                src = (self.appList[int(self.appSelect.curselection()[0])]['CWD'] +
+                       'init.d/' +
+                       self.appList[int(self.appSelect.curselection()[0])]['InitScript']
+                       )
+                dst = ('/etc/init.d/' +
+                       self.appList[int(self.appSelect.curselection()[0])]['InitScript']
+                       )
+                
+                copyCommand = ['sudo', '-p','','-S',
+                               'cp', src, dst
+                               ]
+                cproc = subprocess.Popen(copyCommand,
+                                        stdin=subprocess.PIPE,
+                                        stdout=subprocess.PIPE
+                                        )
+                cproc.stdin.write(self.password+'\n')
+                cproc.stdin.close()
+                cproc.wait()
+                chCommand = ['sudo', '-p','','-S',
+                             'chmod', '+x', dst
+                             ]
+                chproc = subprocess.Popen(chCommand,
+                                          stdin=subprocess.PIPE,
+                                          stdout=subprocess.PIPE
+                                          )
+                chproc.stdin.write(self.password+'\n')
+                chproc.stdin.close()
+                chproc.wait()
+                # run update-rc.d {} defualts
+                self.updateRCd('defaults')
+                self.master.after(500, self.updateSSRButtons)
+    
+            elif command == 'disable':
+                self.debugPrint("Removing init.d script")
+                self.disableSSRButtons()
+                self.master.wait_window(PasswordDialog(self))
+                # run update-rc.d {} remove
+                self.updateRCd('remove')
+                # rm script from /etc/init.d ???
+                removeCommand = ['sudo', '-p','','-S',
+                                 'rm', ('/etc/init.d/' + self.appList[int(self.appSelect.curselection()[0])]['InitScript'])
+                                 ]
+
+                rproc = subprocess.Popen(removeCommand,
+                                        stdin=subprocess.PIPE,
+                                        stdout=subprocess.PIPE
+                                        )
+                rproc.stdin.write(self.password+'\n')
+                rproc.stdin.close()
+                rproc.wait()
+                self.master.after(500, self.updateSSRButtons)
+                
+
+    def updateRCd(self, command):
+        self.debugPrint("Calling updateRC.d with {}".format(command))
+        updateRCCommand = ['sudo','-p','','-S',
+                           'update-rc.d',
+                           self.appList[int(self.appSelect.curselection()[0])]['InitScript']
+                           ]
+        proc = subprocess.Popen(updateRCCommand +[command],
+                                stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE
+                                )
+        proc.stdin.write(self.password+'\n')
+        proc.stdin.close()
+        proc.wait()
+                            
 
     def launch(self, command):
         items = map(int, self.appSelect.curselection())
@@ -787,6 +864,36 @@ class LLAPLauncher:
                                 }]
             self.disableLaunch = True
 
+class PasswordDialog(tk.Toplevel):
+    def __init__(self, parent):
+        tk.Toplevel.__init__(self, )
+        self.parent = parent
+        position = self.parent.master.geometry().split("+")
+        self.geometry("+{}+{}".format(
+                                      int(position[1]
+                                          )+self.parent.widthMain/4,
+                                      int(position[2]
+                                          )+self.parent.heightMain/4
+                                      )
+                      )
+        if sys.platform == 'win32':
+            tk.Label(self, text="Please enter Admin password").pack()
+        else:
+            tk.Label(self, text="Please enter root password").pack()
+        self.entry = tk.Entry(self, show='*')
+        self.entry.bind("<KeyRelease-Return>", self.StorePassEvent)
+        self.entry.pack()
+        self.button = tk.Button(self)
+        self.button["text"] = "Submit"
+        self.button["command"] = self.StorePass
+        self.button.pack()
+    
+    def StorePassEvent(self, event):
+        self.StorePass()
+    
+    def StorePass(self):
+        self.parent.password = self.entry.get()
+        self.destroy()
 
 if __name__ == "__main__":
     app = LLAPLauncher()
