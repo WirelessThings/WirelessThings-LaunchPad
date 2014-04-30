@@ -397,6 +397,8 @@ class LLAPLauncher:
         elif value < self.zipFileCount:
             self.master.after(1, self.zipProgressUpdate)
         else:
+            self.updateAllAutoStarts()
+            self.restartAllServices()
             self.progressWindow.destroy()
             self.restart()
 
@@ -418,8 +420,33 @@ class LLAPLauncher:
                              (st.st_mode | stat.S_IXUSR | stat.S_IXGRP)
                              )
                 time_.sleep(0.1)
+                
+    def updateAllAutoStarts(self):
+        self.debugPrint("Updating all installed Autostart Services")
+        """
+            for each app in list that has auto start 1
+                check status
+                    if install 
+                        reinstall
+        """
+        for app in self.appList:
+            if app.get('Autostart', 0):
+                if self.checkAutoStart(app['id']):
+                    self.autostart(app['id'], 'enable', True)
 
-
+    def restartAllServices(self):
+        self.debugPrint("Restarting all running services")
+        """
+            for each app in list that has service 1
+                check status
+                    if running
+                        restart
+        """
+        for app in self.appList:
+            if app.get('Service', 0):
+                if self.checkStatus(app['id']):
+                    self.launch(app['id'], 'restart', True)
+    
     def runLauncher(self):
         self.debugPrint("Running Main Launcher")
         self.master = tk.Tk()
