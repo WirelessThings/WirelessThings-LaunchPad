@@ -66,8 +66,8 @@ class LLAPLauncher:
                       'enable': "Enable Autostart",
                       'disable': "Disable Autostart"
                      }
-    
     password = None
+
     def __init__(self):
         if hasattr(sys,'frozen'): # only when running in py2exe this exists
             self._path = sys.prefix
@@ -510,7 +510,7 @@ class LLAPLauncher:
                                 relief=tk.RAISED, justify=tk.LEFT, anchor=tk.NW)
         self.appText.grid(row=2, column=3, rowspan=2, sticky=tk.W+tk.E+tk.N,
                           padx=2)
-
+                          
         self.appSelect.selection_set(0)
         self.onAppSelect(None)
         
@@ -524,25 +524,35 @@ class LLAPLauncher:
         self.SSRFrame = tk.Frame(self.buttonFrame, name='ssrFrame')
 
         tk.Button(self.SSRFrame, name='start', text="Start",
-                  command=lambda: self.launch('start'), state=tk.DISABLED
+                  command=lambda: self.launch(int(self.appSelect.curselection()[0]),
+                                              'start'
+                                              ),
+                  state=tk.DISABLED
                   ).pack(side=tk.LEFT)
         tk.Button(self.SSRFrame, name='stop', text="Stop",
-                  command=lambda: self.launch('stop'), state=tk.DISABLED
+                  command=lambda: self.launch(int(self.appSelect.curselection()[0]),
+                                              'stop'
+                                              ),
+                  state=tk.DISABLED
                   ).pack(side=tk.LEFT)
         tk.Button(self.SSRFrame, name='restart', text="Restart",
-                  command=lambda: self.launch('start'), state=tk.DISABLED
+                  command=lambda: self.launch(int(self.appSelect.curselection()[0]),
+                                              'restart'
+                                              ),
+                  state=tk.DISABLED
                   ).pack(side=tk.LEFT)
 
         self.serviceButton = tk.Button(self.SSRFrame, name='autostart',
                                        text=self._autoStartText['enable'],
-                                       command=self.autostart,
                                        state=tk.DISABLED)
 
     def initLaunchFrame(self):
         # launch button
         self.launchFrame = tk.Frame(self.buttonFrame, name='launchFrame')
         tk.Button(self.launchFrame, name='launch', text="Launch",
-                  command=lambda: self.launch('launch')
+                  command=lambda: self.launch(int(self.appSelect.curselection()[0]),
+                                              'launch'
+                                              )
                   ).pack(side=tk.LEFT)
 
         if self.disableLaunch:
@@ -595,27 +605,29 @@ class LLAPLauncher:
                               relief=tk.RAISED, justify=tk.LEFT, anchor=tk.NW)
         self.advanceText.grid(row=2, column=3, rowspan=2, sticky=tk.W+tk.E+tk.N,
                         padx=2)
-                        
+
+
         self.advanceSelect.selection_set(0)
         self.onAdvanceSelect(None)
     
     def onAppSelect(self, *args):
         self.debugPrint("App select update")
-        #self.debugPrint(args)
-        self.appText.config(
-                        text=self.appList[int(self.appSelect.curselection()[0])
-                                          ]['Description'])
+        
+        # which app is selected
+        app = int(self.appSelect.curselection()[0])
+    
+        self.appText.config(text=self.appList[app]['Description'])
     
         # update buttons in self.launchFrame based on service or not
-        if self.appList[int(self.appSelect.curselection()[0])]['Service']:
+        if self.appList[app].get('Service', 0):
             self.launchFrame.pack_forget()
             self.SSRFrame.pack()
-            if self.appList[int(self.appSelect.curselection()[0])].get('Autostart', 0):
+            if self.appList[app].get('Autostart', 0):
                 self.serviceButton.pack()
             else:
                 self.serviceButton.pack_forget()
             if args[0] is not None:
-                self.updateSSRButtons()
+                self.updateSSRButtons(app)
         else:
             self.SSRFrame.pack_forget()
             self.launchFrame.pack()
@@ -623,11 +635,10 @@ class LLAPLauncher:
     def onAdvanceSelect(self, *args):
         self.debugPrint("Advnace select update")
         #self.debugPrint(args)
-        self.advanceText.config(
-                          text=self.advanceList[int(self.advanceSelect.curselection()[0])
-                                            ]['Description'])
+        app = int(self.advanceSelect.curselection()[0])
+        self.advanceText.config(text=self.advanceList[app]['Description'])
     
-    def updateSSRButtons(self):
+    def updateSSRButtons(self, app):
         """ Update buttons based on the state of the current selection in appList
         """
         # use status to find out if the service is currently running
@@ -636,23 +647,8 @@ class LLAPLauncher:
             pass
         else:
             # check using 'status'
-            items = map(int, self.appSelect.curselection())
-            if items:
-                app = ["./{}".format(
-                                     self.appList[int(self.appSelect.curselection()[0])]['FileName']
-                                     )]
-                if not self.appList[int(self.appSelect.curselection()[0])]['Args'] == "":
-                    app.append(self.appList[int(self.appSelect.curselection()[0])]['Args'])
-
-                app.append("status")
-
-                self.debugPrint("Querying {}".format(app))
-                output = subprocess.check_output(app,
-                                                 cwd=self.appList[int(self.appSelect.curselection()[0])]['CWD'])
-                if output.find("PID") is not -1:
-                    running = True
-                elif output.find("not") is not -1:
-                    running = False
+            if app is not None:
+                running = self.checkStatus(app)
                         
         if running:
             self.SSRFrame.children['start'].config(state=tk.DISABLED)
@@ -664,43 +660,67 @@ class LLAPLauncher:
             self.SSRFrame.children['restart'].config(state=tk.DISABLED)
 
         # if autostart find out if installed
-        if self.appList[int(self.appSelect.curselection()[0])].get('Autostart', 0):
-            installed = None
-            if sys.platform == 'win32':
-                pass
-            elif sys.platform == 'darwin':
-                # OSX auto start is diffrent so pass for now
-                pass
-            else:
-                # check init.d and rc3.d
-                if os.path.exists("/etc/init.d/{}".format(self.appList[int(self.appSelect.curselection()[0])]['InitScript'])):
-                    # ok script is there is it setup in rc3.d
-                    installed = False
-                    for file in os.listdir("/etc/rc3.d/"):
-                        if file.find(self.appList[int(self.appSelect.curselection()[0])]['InitScript']) is not -1:
-                            installed = True
-                else:
-                    installed = False
-                    
+        if self.appList[app].get('Autostart', 0):
+            installed = self.checkAutoStart(app)
             if installed == True:
                 self.serviceButton.config(state=tk.ACTIVE,
                                           text=self._autoStartText['disable'],
-                                          command=lambda: self.autostart('disable'))
+                                          command=lambda: self.autostart(app, 'disable'))
             elif installed == False:
                 self.serviceButton.config(state=tk.ACTIVE,
                                           text=self._autoStartText['enable'],
-                                          command=lambda: self.autostart('enable'))
+                                          command=lambda: self.autostart(app, 'enable'))
             else:
-                self.serviceButton.config(state=tk.DISABLED, text=self._autoStartText['enable'])
+                self.serviceButton.config(state=tk.DISABLED,
+                                          text=self._autoStartText['enable'])
 
+    def checkStatus(self, app):
+        running = None
+        appCommand = ["./{}".format(self.appList[app]['FileName'])]
+        
+        if not self.appList[app]['Args'] == "":
+            appCommand.append(self.appList[app]['Args'])
+        
+        appCommand.append("status")
+        
+        self.debugPrint("Querying {}".format(appCommand))
+        output = subprocess.check_output(appCommand,
+                                         cwd=self.appList[app]['CWD'])
+        if output.find("PID") is not -1:
+            running = True
+        elif output.find("not") is not -1:
+            running = False
+        return running
+
+    def checkAutoStart(self, app):
+        self.debugPrint("Checking autostart for app: {}".format(app))
+        installed = None
+        if sys.platform == 'win32':
+            pass
+        elif sys.platform == 'darwin':
+            # OSX auto start is diffrent so pass for now
+            pass
+        else:
+            # check init.d and rc3.d
+            if os.path.exists("/etc/init.d/{}".format(self.appList[app]['InitScript'])):
+                # ok script is there is it setup in rc3.d
+                installed = False
+                for file in os.listdir("/etc/rc3.d/"):
+                    if file.find(self.appList[app]['InitScript']) is not -1:
+                        installed = True
+            else:
+                installed = False
+
+        return installed
+    
     def disableSSRButtons(self):
         self.SSRFrame.children['start'].config(state=tk.DISABLED)
         self.SSRFrame.children['stop'].config(state=tk.DISABLED)
         self.SSRFrame.children['restart'].config(state=tk.DISABLED)
         self.serviceButton.config(state=tk.DISABLED)
     
-    def autostart(self, command=None):
-        self.debugPrint("Configer autostart")
+    def autostart(self, app, command, NoUIUpdate=False):
+        self.debugPrint("Configer autostart for app: {}".format(app))
         if sys.platform == 'win32':
             pass
         elif sys.platform == 'darwin':
@@ -708,25 +728,24 @@ class LLAPLauncher:
             pass
         else:
             if command == 'enable':
-                self.debugPrint("Setting up init.d script")
+                self.debugPrint("Setting up init.d script for app: {}".format(app))
                 self.disableSSRButtons()
-                self.master.wait_window(PasswordDialog(self))
+                if self.password is None:
+                    self.master.wait_window(PasswordDialog(self))
                 # run update-rc.d {} remove (if there is an older script there)
-                self.updateRCd('remove')
+                self.updateRCd(app, 'remove')
                 # copy script to init.d dir
-                src = (self.appList[int(self.appSelect.curselection()[0])]['CWD'] +
+                src = (self.appList[app]['CWD'] +
                        'init.d/' +
-                       self.appList[int(self.appSelect.curselection()[0])]['InitScript']
+                       self.appList[app]['InitScript']
                        )
-                dst = ('/etc/init.d/' +
-                       self.appList[int(self.appSelect.curselection()[0])]['InitScript']
-                       )
+                dst = ('/etc/init.d/' + self.appList[app]['InitScript'])
                        
                 # modify init.d script path before copying file
                 for lines in fileinput.FileInput(src, inplace=1): ## edit file in place
                     if lines.startswith("cd "):
                         sys.stdout.write("cd {}/{}\r".format(self._path,
-                                                             self.appList[int(self.appSelect.curselection()[0])]['CWD']))
+                                                             self.appList[app]['CWD']))
                     else:
                         sys.stdout.write(lines)
 
@@ -755,20 +774,23 @@ class LLAPLauncher:
                 chproc.wait()
                 
                 # run update-rc.d {} defaults
-                self.updateRCd('defaults')
-                self.master.after(500, self.updateSSRButtons)
+                self.updateRCd(app, 'defaults')
+                if not NoUIUpdate:
+                    self.password = None
+                    self.master.after(500, lambda: self.updateSSRButtons(app))
     
             elif command == 'disable':
-                self.debugPrint("Removing init.d script")
+                self.debugPrint("Removing init.d script for app: {}".format(app))
                 self.disableSSRButtons()
-                self.master.wait_window(PasswordDialog(self))
+                if self.password is None:
+                    self.master.wait_window(PasswordDialog(self))
                 # run update-rc.d {} remove
-                self.updateRCd('remove')
+                self.updateRCd(app, 'remove')
                 # rm script from /etc/init.d ???
                 removeCommand = ['sudo', '-p','','-S',
                                  'rm',
                                  ('/etc/init.d/' +
-                                  self.appList[int(self.appSelect.curselection()[0])]['InitScript']
+                                  self.appList[app]['InitScript']
                                   )
                                  ]
 
@@ -779,14 +801,16 @@ class LLAPLauncher:
                 rproc.stdin.write(self.password+'\n')
                 rproc.stdin.close()
                 rproc.wait()
-                self.master.after(500, self.updateSSRButtons)
+                if not NoUIUpdate:
+                    self.password = None
+                    self.master.after(500, lambda: self.updateSSRButtons(app))
                 
 
-    def updateRCd(self, command):
-        self.debugPrint("Calling updateRC.d with {}".format(command))
+    def updateRCd(self, app, command):
+        self.debugPrint("Calling updateRC.d for app: {} with: {}".format(app, command))
         updateRCCommand = ['sudo','-p','','-S',
                            'update-rc.d',
-                           self.appList[int(self.appSelect.curselection()[0])]['InitScript']
+                           self.appList[app]['InitScript']
                            ]
         proc = subprocess.Popen(updateRCCommand +[command],
                                 stdin=subprocess.PIPE,
@@ -797,35 +821,28 @@ class LLAPLauncher:
         proc.wait()
                             
 
-    def launch(self, command):
-        items = map(int, self.appSelect.curselection())
-        if items:
-            app = ["./{}".format(
-                 self.appList[int(self.appSelect.curselection()[0])]['FileName']
-                                 )]
-            if not self.appList[int(self.appSelect.curselection()[0])]['Args'] == "":
-                app.append(self.appList[int(self.appSelect.curselection()[0])]['Args'])
-        
-            if self.debugArg:
-                    app.append("-d")
-        
-            if command is not None and command is not 'launch':
-                app.append(command)
-            
-            self.debugPrint("Launching {}".format(app))
-            self.proc.append(subprocess.Popen(app,
-                                              cwd=self.appList[int(self.appSelect.curselection()[0])]['CWD']))
-
-            if command is not None and command is not 'launch':
-                self.disableSSRButtons()
-                if command == 'start':
-                    self.master.after(2000, self.updateSSRButtons)
-                else:
-                    self.master.after(5000, self.updateSSRButtons)
+    def launch(self, app, command, NoUIUpdate=False):
+        appCommand = ["./{}".format(self.appList[app]['FileName'])]
+        if not self.appList[app]['Args'] == "":
+            appCommand.append(self.appList[app]['Args'])
     
-        else:
-            self.debugPrint("Nothing Selected to Launch")
-                
+        if self.debugArg:
+                appCommand.append("-d")
+    
+        if command is not 'launch':
+            appCommand.append(command)
+        
+        self.debugPrint("Launching {}".format(appCommand))
+        self.proc.append(subprocess.Popen(appCommand,
+                                          cwd=self.appList[app]['CWD']))
+
+        if not NoUIUpdate and command is not 'launch':
+            self.disableSSRButtons()
+            if command == 'start':
+                self.master.after(2000, lambda: self.updateSSRButtons(app))
+            else:
+                self.master.after(5000, lambda: self.updateSSRButtons(app))
+                    
     def launchAdvance(self):
         items = map(int, self.advanceSelect.curselection())
         if items:
