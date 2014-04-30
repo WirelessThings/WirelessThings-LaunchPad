@@ -25,11 +25,13 @@ import tkMessageBox
 import threading
 import Queue
 import zipfile
-import time as time_
+from time import time, sleep
 import tkFileDialog
 import fileinput
 from distutils import dir_util
 import stat
+import socket
+import select
 from Tabs import *
 
 """
@@ -66,7 +68,19 @@ class LLAPLauncher:
                       'enable': "Enable Autostart",
                       'disable': "Disable Autostart"
                      }
+    _serviceStatusText = {
+                          'checking': "Checking network for a running Transfer Service",
+                          'found': "Transfer service running on network",
+                          'timeout': "Transfer service not found on network"
+                         }
     password = None
+    _UDPListenTimeout = 1   # timeout for UDP listen
+    _networkRecheckTimeout = 30
+    _networkRecheckTimer = 0
+    _networkUDPTimeout = 5
+    _networkUDPTimer = 0
+    _checking = False
+
 
     def __init__(self):
         if hasattr(sys,'frozen'): # only when running in py2exe this exists
@@ -81,6 +95,7 @@ class LLAPLauncher:
 
         self.widthMain = 550
         self.heightMain = 300
+        self.heightStatusBar = 24
         self.heightTab = self.heightMain - 40
         self.proc = []
         self.disableLaunch = False
@@ -120,6 +135,9 @@ class LLAPLauncher:
         self.config.set('Launcher', 'window_width_offset', position[1])
         self.config.set('Launcher', 'window_height_offset', position[2])
         self.master.destroy()
+        # stop UDP Threads
+        self.tUDPSendStop.set()
+        self.tUDPListenStop.set()
         self._running = False
 
     def cleanUp(self):
@@ -419,7 +437,7 @@ class LLAPLauncher:
                     os.chmod(self.extractDir + name,
                              (st.st_mode | stat.S_IXUSR | stat.S_IXGRP)
                              )
-                time_.sleep(0.1)
+                sleep(0.1)
                 
     def updateAllAutoStarts(self):
         self.debugPrint("Updating all installed Autostart Services")
@@ -453,7 +471,7 @@ class LLAPLauncher:
         self.master.protocol("WM_DELETE_WINDOW", self.endLauncher)
         self.master.geometry(
              "{}x{}+{}+{}".format(self.widthMain,
-                                  self.heightMain,
+                                  self.heightMain+self.heightStatusBar,
                                   self.config.get('Launcher',
                                                   'window_width_offset'),
                                   self.config.get('Launcher',
@@ -462,7 +480,7 @@ class LLAPLauncher:
                              )
                              
         self.master.title("LLAP Launcher v{}".format(self.currentVersion))
-        self.master.resizable(0,0)
+        #self.master.resizable(0,0)
         
         self.tabFrame = tk.Frame(self.master, name='tabFrame')
         self.tabFrame.pack(pady=2)
@@ -470,6 +488,7 @@ class LLAPLauncher:
         self.initTabBar()
         self.initMain()
         self.initAdvanced()
+        self.initStatusBar()
         
         self.tBarFrame.show()
         
@@ -636,7 +655,177 @@ class LLAPLauncher:
 
         self.advanceSelect.selection_set(0)
         self.onAdvanceSelect(None)
+
+    def initStatusBar(self):
+        self.debugPrint("Setting up status bar and network thread")
+        self._serviceStatus = tk.StringVar()
+        self._serviceStatus.set(self._serviceStatusText['checking'])
+        self.statusBar = tk.Label(self.master, textvariable=self._serviceStatus, bd=1, relief=tk.SUNKEN, anchor=tk.W)
+        self.statusBar.pack(side=tk.BOTTOM, fill=tk.X)
+        
+        self.tUDPListenStop = threading.Event()
+        
+        self.tUDPListen = threading.Thread(name='tUDPListen', target=self._UDPListenThread)
+        self.tUDPListen.deamon = False
+        
+        try:
+            self.tUDPListen.start()
+        except:
+            self.debugPrint("Failed to Start the UDP listen thread")
+
+        self._initUDPSendThread()
+        self.fServerGood = threading.Event()
+
+        self.master.after(100, self.checkNetwork)
+
+    def checkNetwork(self):
+        """
+            Check for a server running on the network
+            
+            Do we have a replay in the Que
+                update messge
+                restart timmers
+            has our udp time out expierd
+                update message
+            is it time to check again
+                send out UDP 
+                restart timmer
+            checkagain in 1s
+            
+        """
+        if self.fServerGood.is_set():
+            self._serviceStatus.set(self._serviceStatusText['found'])
+            self.fServerGood.clear()
+            self._checking = False
+            self._networkRecheckTimer = time()
+        elif self._checking and time() - self._networkUDPTimer > self._networkUDPTimeout:
+            self._serviceStatus.set(self._serviceStatusText['timeout'])
+            self._checking = False
+
+        elif time() - self._networkRecheckTimer > self._networkRecheckTimeout:
+            # time to check again
+            self.qUDPSend.put(json.dumps({"type": "Server"}))
+            self._serviceStatus.set(self._serviceStatusText['checking'])
+            self._checking = True
+            self._networkRecheckTimer = time()
+            self._networkUDPTimer = time()
+
+
+        self.master.after(1000, self.checkNetwork)
     
+    def _UDPListenThread(self):
+        """ UDP Listen Thread
+        """
+        self.debugPrint("tUDPListen: UDP listen thread started")
+        
+        try:
+            UDPListenSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        except socket.error:
+            self.debugPrint("tUDPListen: Failed to create socket, Exiting")
+
+        UDPListenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        UDPListenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        if sys.platform == 'darwin':
+            UDPListenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        
+        try:
+            UDPListenSocket.bind(('', int(self.config.get('UDP', 'listen_port'))))
+        except socket.error:
+            self.debugPrint("tUDPListen: Failed to bind port, Exiting")
+        
+        UDPListenSocket.setblocking(0)
+        
+        self.debugPrint("tUDPListen: listening")
+        while not self.tUDPListenStop.is_set():
+            datawaiting = select.select([UDPListenSocket], [], [], self._UDPListenTimeout)
+            if datawaiting[0]:
+                (data, address) = UDPListenSocket.recvfrom(2048)
+                self.debugPrint("tUDPListen: Received JSON: {} From: {}".format(data, address))
+                jsonin = json.loads(data)
+                
+                if jsonin['type'] == "LLAP":
+                    pass
+                elif jsonin['type'] == "LCR" and self.config.getboolean('LCR', 'lcr_enable'):
+                    pass
+                elif jsonin['type'] == "Server":
+                    # we have a SERVER json do stuff with it
+                    self.debugPrint("tUDPListen: JSON of type SERVER")
+                    if jsonin['state'] == "RUNNING":
+                        self.fServerGood.set()
+ 
+        self.debugPrint("tUDPListen: Thread stopping")
+        try:
+            UDPListenSocket.close()
+        except socket.error:
+            self.debugPrint("tUDPListen: Failed to close socket")
+        return
+
+    def _initUDPSendThread(self):
+        """ Start the UDP output thread
+            """
+        self.debugPrint("UDP Send Thread init")
+        
+        self.qUDPSend = Queue.Queue()
+        
+        self.tUDPSendStop = threading.Event()
+        
+        self.tUDPSend = threading.Thread(target=self._UDPSendTread)
+        self.tUDPSend.daemon = False
+        
+        try:
+            self.tUDPSend.start()
+        except:
+            self.debugPrint("Failed to Start the UDP send thread")
+
+    def _UDPSendTread(self):
+        """ UDP Send thread
+        """
+        self.debugPrint("tUDPSend: Send thread started")
+        # setup the UDP send socket
+        try:
+            UDPSendSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        except socket.error, msg:
+            self.debugPrint("tUDPSend: Failed to create socket. Error code : {} Message : {}".format(msg[0], msg[1]))
+            # TODO: tUDPSend needs to stop here
+            # TODO: need to send message to user saying could not open socket
+            self.die()
+            return
+        
+        UDPSendSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        UDPSendSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        
+        sendPort = int(self.config.get('UDP', 'send_port'))
+        
+        while not self.tUDPSendStop.is_set():
+            try:
+                message = self.qUDPSend.get(timeout=1)     # block for up to 30 seconds
+            except Queue.Empty:
+                # UDP Send que was empty
+                # extrem debug message
+                # self.debugPrint("tUDPSend: queue is empty")
+                pass
+            else:
+                self.debugPrint("tUDPSend: Got json to send: {}".format(message))
+                try:
+                    UDPSendSocket.sendto(message, ('<broadcast>', sendPort))
+                    self.debugPrint("tUDPSend: Put message out via UDP")
+                except socket.error, msg:
+                    self.debugPrint("tUDPSend: Failed to send via UDP. Error code : {} Message: {}".format(msg[0], msg[1]))
+                else:
+                    pass
+                # tidy up
+
+                self.qUDPSend.task_done()
+
+            # TODO: tUDPSend thread is alive, wiggle a pin?
+
+        self.debugPrint("tUDPSend: Thread stopping")
+        try:
+            UDPSendSocket.close()
+        except socket.error:
+            self.debugPrint("tUDPSend: Failed to close socket")
+        return
+
     def onAppSelect(self, *args):
         self.debugPrint("App select update")
         
