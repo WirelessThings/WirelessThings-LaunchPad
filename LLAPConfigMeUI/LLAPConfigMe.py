@@ -54,7 +54,7 @@ import logging
     
     DONE: disable next button while waiting for query
     
-    
+    read AT settings for PANID and ENCRYPTION from server and offer as defuats to the user on a new device
     
 """
 
@@ -365,24 +365,26 @@ class LLAPCongfigMeClient:
     def _initTkVariables(self):
         self.logger.debug("Init Tk Variables")
         
+        # format for each entry is as follows
+        # 'commmand': [current Value, old Value, type Off Output]
         self.entry = {
-                      "CHDEVID" : tk.StringVar(),
-                      "PANID" : tk.StringVar(),
-                      "RETRIES" : tk.StringVar(),
-                      "INTVL" : tk.StringVar(),
-                      "WAKEC" : tk.StringVar(),
-                      "SLEEPM" : tk.IntVar(),
-                      "SN" : tk.StringVar(),
-                      "SNL" : tk.StringVar(),
-                      "SNH" : tk.StringVar(),
-                      "ENC" : tk.StringVar(),
-                      "ENKEY" : tk.StringVar(),
-                      "EN1" : tk.StringVar(),
-                      "EN2" : tk.StringVar(),
-                      "EN3" : tk.StringVar(),
-                      "EN4" : tk.StringVar(),
-                      "EN5" : tk.StringVar(),
-                      "EN6" : tk.StringVar()
+                      "CHDEVID" : [tk.StringVar(), tk.StringVar(), 'ID'],
+                      "PANID" : [tk.StringVar(), tk.StringVar(), 'ID'],
+                      "RETRIES" : [tk.StringVar(), tk.StringVar(), 'Int'],
+                      "INTVL" : [tk.StringVar(), tk.StringVar(), 'Period'],
+                      "WAKEC" : [tk.StringVar(), tk.StringVar(), 'Int'],
+                      "SLEEPM" : [tk.IntVar(), tk.IntVar(), 'SleepMode'],
+                      "SN" : [tk.StringVar(), tk.StringVar(), 'String'],
+                      "SNL" : [tk.StringVar(), tk.StringVar(), 'String'],
+                      "SNH" : [tk.StringVar(), tk.StringVar(), 'String'],
+                      "ENC" : [tk.StringVar(), tk.StringVar(), 'ONOFF'],
+                      "ENKEY" : [tk.StringVar(), tk.StringVar(), 'ENKEY'],
+                      "EN1" : [tk.StringVar(), tk.StringVar(), 'HEX'],
+                      "EN2" : [tk.StringVar(), tk.StringVar(), 'HEX'],
+                      "EN3" : [tk.StringVar(), tk.StringVar(), 'HEX'],
+                      "EN4" : [tk.StringVar(), tk.StringVar(), 'HEX'],
+                      "EN5" : [tk.StringVar(), tk.StringVar(), 'HEX'],
+                      "EN6" : [tk.StringVar(), tk.StringVar(), 'HEX']
                      }
 
     def _displayIntro(self):
@@ -476,7 +478,7 @@ class LLAPCongfigMeClient:
         tk.Label(self.cframe, text="Device ID").grid(row=2, column=0, columnspan=3)
         tk.Label(self.cframe, text="CHDEVID").grid(row=3, column=0, sticky=tk.E)
         self._devIDInputs.append(tk.Entry(self.cframe,
-                                          textvariable=self.entry['CHDEVID'],
+                                          textvariable=self.entry['CHDEVID'][0],
                                           width=20,
                                           validate='key',
                                           invalidcommand='bell',
@@ -488,7 +490,7 @@ class LLAPCongfigMeClient:
                  
         tk.Label(self.cframe, text="Pan ID").grid(row=4, column=0, columnspan=3)
         tk.Label(self.cframe, text="PANID").grid(row=5, column=0, sticky=tk.E)
-        tk.Entry(self.cframe, textvariable=self.entry['PANID'], width=20,
+        tk.Entry(self.cframe, textvariable=self.entry['PANID'][0], width=20,
                  validate='key',
                  invalidcommand='bell',
                  validatecommand=self.vUpper,
@@ -497,7 +499,7 @@ class LLAPCongfigMeClient:
         tk.Label(self.cframe, text="Retries for Announcements"
                  ).grid(row=6, column=0, columnspan=3)
         tk.Label(self.cframe, text="RETRIES").grid(row=7, column=0, sticky=tk.E)
-        tk.Entry(self.cframe, textvariable=self.entry['RETRIES'], width=20
+        tk.Entry(self.cframe, textvariable=self.entry['RETRIES'][0], width=20
                  ).grid(row=7, column=1, columnspan=2, sticky=tk.W)
         
         if self.devices[self.device['id']]['SleepMode'] == "Cyclic":
@@ -507,7 +509,7 @@ class LLAPCongfigMeClient:
             tk.Label(self.cframe, text="Sleep Interval"
                      ).grid(row=10, column=0, columnspan=3)
             tk.Label(self.cframe, text="INTVL").grid(row=11, column=0, sticky=tk.E)
-            tk.Entry(self.cframe, textvariable=self.entry['INTVL'], width=20,
+            tk.Entry(self.cframe, textvariable=self.entry['INTVL'][0], width=20,
                      validate='key',
                      invalidcommand='bell',
                      validatecommand=self.vUpper,
@@ -516,7 +518,7 @@ class LLAPCongfigMeClient:
             tk.Label(self.cframe, text="Battery Wake Count"
                      ).grid(row=12, column=0, columnspan=3)
             tk.Label(self.cframe, text="WAKEC").grid(row=13, column=0, sticky=tk.E)
-            tk.Entry(self.cframe, textvariable=self.entry['WAKEC'], width=20,
+            tk.Entry(self.cframe, textvariable=self.entry['WAKEC'][0], width=20,
                     ).grid(row=13, column=1, columnspan=2, sticky=tk.W)
         
             tk.Label(self.cframe, text="Enable Cyclic Sleep"
@@ -544,13 +546,13 @@ class LLAPCongfigMeClient:
             tk.Label(self.cframe, text=n['Command']
                      ).grid(row=3+r, column=3, sticky=tk.E)
             if n['Format'] == "ONOFF":
-                e = tk.Checkbutton(self.cframe, variable=self.entry[n['Command']],
+                e = tk.Checkbutton(self.cframe, variable=self.entry[n['Command']][0],
                                    onvalue="ON", offvalue="OFF",
                                    name=n['Command'].lower()
                                    )
                 e.grid(row=3+r, column=4, columnspan=2, sticky=tk.W)
             else:
-                e = tk.Entry(self.cframe, textvariable=self.entry[n['Command']],
+                e = tk.Entry(self.cframe, textvariable=self.entry[n['Command']][0],
                              name=n['Command'].lower()
                              )
                 e.grid(row=3+r, column=4, columnspan=2, sticky=tk.W)
@@ -570,6 +572,9 @@ class LLAPCongfigMeClient:
                     
             r += 2
         
+        # copy config so we can compare it later
+        self._entryCopy()
+        
         # buttons
         tk.Button(self.cframe, text='Advanced', command=self._displayAdvance
                   ).grid(row=self._rows-2, column=2, columnspan=2,
@@ -579,6 +584,10 @@ class LLAPCongfigMeClient:
         tk.Button(self.cframe, name='next', text='Next', command=self._sendConfigRequest
                   ).grid(row=self._rows-2, column=5, sticky=tk.W)
     
+    def _entryCopy(self):
+        for key, value in self.entry.items():
+            value[1].set(value[0].get())
+
     def _displayAdvance(self):
         """Advance config diag to show Serial number and set ENC"""
         # TODO: rearrange to fit long ENKEY box
@@ -611,13 +620,13 @@ class LLAPCongfigMeClient:
     
         tk.Label(self.aframe, text="High Bytes").grid(row=2, column=0, columnspan=3)
         tk.Label(self.aframe, text="SNH").grid(row=3, column=0, sticky=tk.E)
-        tk.Entry(self.aframe, textvariable=self.entry['SNH'], width=20,
+        tk.Entry(self.aframe, textvariable=self.entry['SNH'][0], width=20,
                  state=tk.DISABLED
                  ).grid(row=3, column=1, columnspan=2, sticky=tk.W)
     
         tk.Label(self.aframe, text="Low Bytes").grid(row=4, column=0, columnspan=3)
         tk.Label(self.aframe, text="SNL").grid(row=5, column=0, sticky=tk.E)
-        tk.Entry(self.aframe, textvariable=self.entry['SNL'], width=20,
+        tk.Entry(self.aframe, textvariable=self.entry['SNL'][0], width=20,
                  state=tk.DISABLED
                  ).grid(row=5, column=1, columnspan=2, sticky=tk.W)
                  
@@ -634,7 +643,7 @@ class LLAPCongfigMeClient:
                  ).grid(row=4, column=3, columnspan=3)
         tk.Label(self.aframe, text="EN[1-6]").grid(row=5, column=3, sticky=tk.E)
         self._encryptionKeyInput = tk.Entry(self.aframe,
-                                            textvariable=self.entry['ENKEY'],
+                                            textvariable=self.entry['ENKEY'][0],
                                             width=33,
                                             validate='key',
                                             invalidcommand='bell',
@@ -723,7 +732,7 @@ class LLAPCongfigMeClient:
             return False
         
         if S.islower() and (len(P) <= 32):  # we already know is a HEX digit
-            self.entry[W.split('.')[-1].upper()].set(P.upper())
+            self.entry[W.split('.')[-1][0].upper()].set(P.upper())
             self.master.after_idle(self.vEnKeySet)
         elif valid and (len(P) <= 32):
             return True
@@ -740,7 +749,7 @@ class LLAPCongfigMeClient:
         if d == '0' or d == '-1':
             return True
         elif S.islower() and (len(P) <= 2):
-            self.entry[W.split('.')[-1].upper()].set(P.upper())
+            self.entry[W.split('.')[-1][0].upper()].set(P.upper())
             self.master.after_idle(self.vdevSet)
         elif (S.isupper() or valid) and (len(P) <= 2):
             return True
@@ -790,7 +799,7 @@ class LLAPCongfigMeClient:
     
     def _checkAdvance(self):
         self.logger.debug("Checking advance input")
-        if len(self.entry["ENKEY"].get()) == 32 or len(self.entry["ENKEY"].get()) == 0:
+        if len(self.entry["ENKEY"][0].get()) == 32 or len(self.entry["ENKEY"][0].get()) == 0:
             self.advanceWindow.destroy()
         else:
             # let user know KEY needs to be 0 or 32
@@ -805,18 +814,18 @@ class LLAPCongfigMeClient:
         # generic commands first
         query = [
                  {'command': "CHDEVID",
-                  'value': self.entry['CHDEVID'].get()
+                  'value': self.entry['CHDEVID'][0].get()
                  },
                  {'command': "PANID",
-                  'value': self.entry['PANID'].get()
+                  'value': self.entry['PANID'][0].get()
                  },
                  {'command': "RETRIES",
-                  'value': self.entry['RETRIES'].get()
+                  'value': self.entry['RETRIES'][0].get()
                  }
                 ]
         
         # Set encryption on/off
-        if self.entry["ENC"].get() == 1:
+        if self.entry["ENC"][0].get() == 1:
             query.append({'command': "ENC", 'value': "ON"})
         else:
             query.append({'command': "ENC", 'value': "OFF"})
@@ -827,42 +836,42 @@ class LLAPCongfigMeClient:
         #      ><    ><    ><    ><    ><>
         # 12345678901234567890123456789012
         # A1B2C3D4E5F6A2B3C4DE6F7A3B4C5D6E
-        self.logger.debug("ENKEY Length: {}".format(len(self.entry["ENKEY"].get())))
-        if len(self.entry["ENKEY"].get()) == 32:
+        self.logger.debug("ENKEY Length: {}".format(len(self.entry["ENKEY"][0].get())))
+        if len(self.entry["ENKEY"][0].get()) == 32:
             # key is long enough
-            query.append({'command': "EN1", 'value': self.entry["ENKEY"].get()[0:6]})
-            query.append({'command': "EN2", 'value': self.entry["ENKEY"].get()[6:12]})
-            query.append({'command': "EN3", 'value': self.entry["ENKEY"].get()[12:18]})
-            query.append({'command': "EN4", 'value': self.entry["ENKEY"].get()[18:24]})
-            query.append({'command': "EN5", 'value': self.entry["ENKEY"].get()[24:30]})
-            query.append({'command': "EN6", 'value': self.entry["ENKEY"].get()[30:32]})
-            self.entry["ENKEY"].set("") # clear encryption key box
+            query.append({'command': "EN1", 'value': self.entry["ENKEY"][0].get()[0:6]})
+            query.append({'command': "EN2", 'value': self.entry["ENKEY"][0].get()[6:12]})
+            query.append({'command': "EN3", 'value': self.entry["ENKEY"][0].get()[12:18]})
+            query.append({'command': "EN4", 'value': self.entry["ENKEY"][0].get()[18:24]})
+            query.append({'command': "EN5", 'value': self.entry["ENKEY"][0].get()[24:30]})
+            query.append({'command': "EN6", 'value': self.entry["ENKEY"][0].get()[30:32]})
+            self.entry["ENKEY"][0].set("") # clear encryption key box
         
         # device specific commands next
         for n in self.devices[self.device['id']]['Options']:
             query.append(
                          {'command': n['Command'],
-                          'value': self.entry[n['Command']].get()
+                          'value': self.entry[n['Command']][0].get()
                          }
                         )
         
         # cyclic stuff last (cycle acts as save and exit)       
         if self.devices[self.device['id']]['SleepMode'] == "Cyclic":
             query.append({'command': "INTVL",
-                          'value': self.entry['INTVL'].get()
+                          'value': self.entry['INTVL'][0].get()
                          }
                         )
             query.append({'command': "WAKEC",
-                          'value': self.entry['WAKEC'].get()
+                          'value': self.entry['WAKEC'][0].get()
                          }
                         )
             query.append({'command': "SLEEPM",
-                          'value': ("16" if self.entry['SLEEPM'].get() else "0")
+                          'value': ("16" if self.entry['SLEEPM'][0].get() else "0")
                          }
                         )
         elif self.devices[self.device['id']]['SleepMode'] == "Interrupt":
             query.append({'command': "SLEEPM",
-                          'value': ("8" if self.entry['SLEEPM'].get() else "0")
+                          'value': ("8" if self.entry['SLEEPM'][0].get() else "0")
                           }
                          )
         else:
@@ -945,8 +954,8 @@ class LLAPCongfigMeClient:
                                      ):
                 # send query again
                 self._sendRequest(self._lastLCR[-1])
-                                     else:
-                                         pass
+            else:
+                pass
         elif reply['state'] == "PASS":
             # got a good reply
             
@@ -1009,31 +1018,31 @@ class LLAPCongfigMeClient:
                     # this was an information request
                     # populate fields
                     if self.device['devID'] == '':
-                        self.entry['CHDEVID'].set("--")
+                        self.entry['CHDEVID'][0].set("--")
                     else:
-                        self.entry['CHDEVID'].set(self.device['devID'])
+                        self.entry['CHDEVID'][0].set(self.device['devID'])
                         
                     for command, args in reply['replies'].items():
                         if command == "CHREMID" and args['reply'] == '':
-                            self.entry[command].set("--")
+                            self.entry[command][0].set("--")
                         elif command == "SLEEPM":
                             value = int(args['reply'])
                             if value != 0:
-                                self.entry[command].set(1)
+                                self.entry[command][0].set(1)
                             else:
-                                self.entry[command].set(0)
+                                self.entry[command][0].set(0)
                         elif command == "ENC":
                             if args['reply'] == "OFF":
-                                self.entry[command].set(0)
+                                self.entry[command][0].set(0)
                             elif args['reply'] == "ON":
-                                self.entry[command].set(1)
+                                self.entry[command][0].set(1)
                             else:
                                 #should not get here
                                 self.logger.debug("Error in reply to ENC")
                         else:
                             if command in self.entry:
                                 # TODO: need to handle check box entry (Format: ONOFF
-                                self.entry[command].set(args['reply'])
+                                self.entry[command][0].set(args['reply'])
 
                     # show config screen
                     self.logger.debug("Setting keepAwake")
@@ -1099,7 +1108,7 @@ class LLAPCongfigMeClient:
         
         for n in self.devices[self.device['id']]['Options']:
             # create place to put the reply later
-            self.entry[n['Command']] = tk.StringVar()
+            self.entry[n['Command']] = [tk.StringVar(), tk.StringVar(), 'String']
             query.append({'command': n['Command'].encode('ascii', 'ignore')})
         
         
