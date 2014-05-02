@@ -30,8 +30,20 @@
                "Description":"Hex value"
                },
                {
+               "Name":"ReadOnlyHex",
+               "Description":"Hex value read only (Used by Serial Number)"
+               },
+               {
                "Name":"Period",
                "Description":"Period of time represented as 3 digit value and period multiplier of T(milli seconds), S(seconds), M(minutes), H(hours), D(days)"
+               },
+               {
+               "Name":"SleepMode",
+               "Description":"Sleep mode represented as one of the follow. Sleep Off = 0 \n AP_SLEEP_INTERRUPT = 8 \n AP_SLEEP_CYCLIC = 16 \n AP_SLEEP_ONESHOT = 32 "
+               },
+               {
+               "Name":"ENKey",
+               "Description":"Hex string when sent to a radio, ACK in response"
                }
                ],
     "Valid Characters":{
@@ -90,12 +102,12 @@
                         },
                         {
                         "Command":"SNH",
-                        "Format":"String",
+                        "Format":"ReadOnlyHex",
                         "Description":"Request the manufacturer serial number HIGH Bytes (LLAP 2.0)"
                         },
                         {
                         "Command":"SNL",
-                        "Format":"String",
+                        "Format":"ReadOnlyHex",
                         "Description":"Request the manufacturer serial number LOW Bytes (LLAP 2.0"
                         },
                         {
@@ -105,32 +117,32 @@
                         },
                         {
                         "Command":"EN1",
-                        "Format":"HEX",
+                        "Format":"ENKey",
                         "Description":"Set 1st set of six bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"EN2",
-                        "Format":"HEX",
+                        "Format":"ENKey",
                         "Description":"Set 2nd set of six bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"EN3",
-                        "Format":"HEX",
+                        "Format":"ENKey",
                         "Description":"Set 3rd set of six bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"EN4",
-                        "Format":"HEX",
+                        "Format":"ENKey",
                         "Description":"Set 4th set of six bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"EN5",
-                        "Format":"HEX",
+                        "Format":"ENKey",
                         "Description":"Set 5th set of six bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"EN6",
-                        "Format":"HEX",
+                        "Format":"ENKey",
                         "Description":"Set last two bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
@@ -185,7 +197,7 @@
                         },
                         {
                         "Command":"SLEEPM",
-                        "Format":"Int",
+                        "Format":"SleepMode",
                         "Description":"Set and return the sleep mode. (LLAP 2.0). AP_SLEEP_INTERRUPT = 8 \n AP_SLEEP_CYCLIC = 16 \n AP_SLEEP_ONESHOT = 32 "
                         }
                         ],
