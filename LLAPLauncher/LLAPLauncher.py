@@ -59,6 +59,8 @@ from Tabs import *
    
    restart services on update
    
+   TODO: catch permisions error on exec and set permission if needed
+   
    
 """
 
@@ -745,7 +747,7 @@ class LLAPLauncher:
                 
                 if jsonin['type'] == "LLAP":
                     pass
-                elif jsonin['type'] == "LCR" and self.config.getboolean('LCR', 'lcr_enable'):
+                elif jsonin['type'] == "LCR":
                     pass
                 elif jsonin['type'] == "Server":
                     # we have a SERVER json do stuff with it
