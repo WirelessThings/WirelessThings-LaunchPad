@@ -27,6 +27,7 @@ import select
 import json
 import logging
 import AT
+import re
 if sys.platform == 'win32':
     pass
 else:
@@ -40,6 +41,7 @@ else:
     DONE: first pass at processing a request in and out
     DONE: check DTY
     DONE: timeouts from config or JSON
+    TODO: Fix Processing EN{1-6} replies
     
    DONE: better serial read logic
    
@@ -112,6 +114,7 @@ class LLAPServer():
     
     _validID = "ABCDEFGHIJKLMNOPQRSTUVWXYZ-#@?\\*"
     _validData = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !\"#$%&'()*+,-.:;<=>?@[\\\/]^_`{|}~"
+    _encryptionCommandMatch = re.compile('^EN[1-6]')
     
     _state = ""
     RUNNING = "RUNNING"
@@ -889,10 +892,14 @@ is running then run in the current terminal
                             return
         
                 # check reply was to the last question
-                if llapMsg.startswith(self._SerialToQuery[self._SerialToQueryState-1]['command']):
+                if llapMsg.startswith(self._SerialToQuery[self._SerialToQueryState-1]['command']) or (self._encryptionCommandMatch.match(self._SerialToQuery[self._SerialToQueryState-1]['command']) and llapMsg == "ENACK"):
                     # reduce the state count and reset retry count
                     self._SerialToQueryState -= 1
                     self._SerialRetryCount = 0
+                    
+                    # special case for encryption
+                    if self._encryptionCommandMatch.match(self._SerialToQuery[self._SerialToQueryState-1]['command']):
+                        llapMsg = self._SerialToQuery[self._SerialToQueryState-1]['command'] + llapMsg
                     
                     # store the reply
                     try:

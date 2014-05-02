@@ -1096,7 +1096,7 @@ class LLAPCongfigMeClient:
                     for command, arg in reply['replies'].items():
                         if en.match(command):
                             enkeyCount += 1
-                            if arg['reply'] == "ACK":
+                            if arg['reply'] == "ENACK":
                                 enkeyMatch += 1
                         elif arg['value'] != arg['reply']:
                             # values don't match we should warn user
