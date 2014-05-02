@@ -364,9 +364,22 @@ class LLAPCongfigMeClient:
     
     def _initTkVariables(self):
         self.logger.debug("Init Tk Variables")
+        # any tk varaibles we need to keep permentant
         
+        # init the entry variables we will need to reset between each run
+        self._initEntryVariables()
+        
+    def _initEntryVariables(self):
+        self.logger.debug("Init entry Variables")
         # format for each entry is as follows
         # 'commmand': [current Value, old Value, type Off Output]
+        #
+        # type of Output
+        # this is based on the format field from the json
+        # with the execption of ENKEY
+        # type is used in conjuction with how these fields are dispayed for user
+        # input and how we procees that for LCR output
+        # most are just stright copy outputs but some like ONOF and ENKEY require speical handeling
         self.entry = {
                       "CHDEVID" : [tk.StringVar(), tk.StringVar(), 'ID'],
                       "PANID" : [tk.StringVar(), tk.StringVar(), 'ID'],
@@ -374,17 +387,10 @@ class LLAPCongfigMeClient:
                       "INTVL" : [tk.StringVar(), tk.StringVar(), 'Period'],
                       "WAKEC" : [tk.StringVar(), tk.StringVar(), 'Int'],
                       "SLEEPM" : [tk.IntVar(), tk.IntVar(), 'SleepMode'],
-                      "SN" : [tk.StringVar(), tk.StringVar(), 'String'],
-                      "SNL" : [tk.StringVar(), tk.StringVar(), 'String'],
-                      "SNH" : [tk.StringVar(), tk.StringVar(), 'String'],
-                      "ENC" : [tk.StringVar(), tk.StringVar(), 'ONOFF'],
-                      "ENKEY" : [tk.StringVar(), tk.StringVar(), 'ENKEY'],
-                      "EN1" : [tk.StringVar(), tk.StringVar(), 'HEX'],
-                      "EN2" : [tk.StringVar(), tk.StringVar(), 'HEX'],
-                      "EN3" : [tk.StringVar(), tk.StringVar(), 'HEX'],
-                      "EN4" : [tk.StringVar(), tk.StringVar(), 'HEX'],
-                      "EN5" : [tk.StringVar(), tk.StringVar(), 'HEX'],
-                      "EN6" : [tk.StringVar(), tk.StringVar(), 'HEX']
+                      "SNL" : [tk.StringVar(), tk.StringVar(), 'ReadOnlyHex'],
+                      "SNH" : [tk.StringVar(), tk.StringVar(), 'ReadOnlyHex'],
+                      "ENC" : [tk.IntVar(), tk.IntVar(), 'ONOFF'],
+                      "ENKEY" : [tk.StringVar(), tk.StringVar(), 'ENKey']
                      }
 
     def _displayIntro(self):
@@ -524,14 +530,14 @@ class LLAPCongfigMeClient:
             tk.Label(self.cframe, text="Enable Cyclic Sleep"
                      ).grid(row=14, column=0, columnspan=3)
             tk.Label(self.cframe, text="CYCLE").grid(row=15, column=0, sticky=tk.E)
-            tk.Checkbutton(self.cframe, variable=self.entry['SLEEPM']
+            tk.Checkbutton(self.cframe, variable=self.entry['SLEEPM'][0]
                           ).grid(row=15, column=1, columnspan=2, sticky=tk.W)
         elif self.devices[self.device['id']]['SleepMode'] == "Cyclic":
             # Interrupt sleep devices
             tk.Label(self.cframe, text="Interrupt Sleep"
                      ).grid(row=9, column=0, columnspan=3)
             tk.Label(self.cframe, text="SLEEP").grid(row=10, column=0, sticky=tk.E)
-            tk.Checkbutton(self.cframe, variable=self.entry['SLEEPM']
+            tk.Checkbutton(self.cframe, variable=self.entry['SLEEPM'][0]
                           ).grid(row=10, column=1, columnspan=2, sticky=tk.W)
         
         # device config options
@@ -571,9 +577,6 @@ class LLAPCongfigMeClient:
                     self._devIDInputs.append(e)
                     
             r += 2
-        
-        # copy config so we can compare it later
-        self._entryCopy()
         
         # buttons
         tk.Button(self.cframe, text='Advanced', command=self._displayAdvance
@@ -636,7 +639,7 @@ class LLAPCongfigMeClient:
         tk.Label(self.aframe, text="Enable Encryption"
                  ).grid(row=2, column=3, columnspan=3)
         tk.Label(self.aframe, text="ENC").grid(row=3, column=3, sticky=tk.E)
-        tk.Checkbutton(self.aframe, variable=self.entry['ENC']
+        tk.Checkbutton(self.aframe, variable=self.entry['ENC'][0]
                        ).grid(row=3, column=4, columnspan=2, sticky=tk.W)
     
         tk.Label(self.aframe, text="Encryption Key (set Only)"
@@ -732,7 +735,7 @@ class LLAPCongfigMeClient:
             return False
         
         if S.islower() and (len(P) <= 32):  # we already know is a HEX digit
-            self.entry[W.split('.')[-1][0].upper()].set(P.upper())
+            self.entry[W.split('.')[-1].upper()][0].set(P.upper())
             self.master.after_idle(self.vEnKeySet)
         elif valid and (len(P) <= 32):
             return True
@@ -749,7 +752,7 @@ class LLAPCongfigMeClient:
         if d == '0' or d == '-1':
             return True
         elif S.islower() and (len(P) <= 2):
-            self.entry[W.split('.')[-1][0].upper()].set(P.upper())
+            self.entry[W.split('.')[-1].upper()][0].set(P.upper())
             self.master.after_idle(self.vdevSet)
         elif (S.isupper() or valid) and (len(P) <= 2):
             return True
@@ -770,6 +773,8 @@ class LLAPCongfigMeClient:
         self.eframe.pack_forget()
         self.pframe.pack()
         self._currentFrame = 'pairFrame'
+        # clear out entry variables
+        self._initEntryVariables
 
     def _displayProgress(self):
         self.logger.debug("Displaying progress pop up")
@@ -800,7 +805,9 @@ class LLAPCongfigMeClient:
     def _checkAdvance(self):
         self.logger.debug("Checking advance input")
         if len(self.entry["ENKEY"][0].get()) == 32 or len(self.entry["ENKEY"][0].get()) == 0:
+            print self.entry["ENC"][0].get()
             self.advanceWindow.destroy()
+            print self.entry["ENC"][0].get()
         else:
             # let user know KEY needs to be 0 or 32
             tkMessageBox.showerror("Encryption Key Length",
@@ -810,76 +817,15 @@ class LLAPCongfigMeClient:
     def _sendConfigRequest(self):
         self.logger.debug("Sending config request to device")
         # TODO: add a line here to disable NEXT button on cfame and advance
-        # build config query from values in entry
-        # generic commands first
-        query = [
-                 {'command': "CHDEVID",
-                  'value': self.entry['CHDEVID'][0].get()
-                 },
-                 {'command': "PANID",
-                  'value': self.entry['PANID'][0].get()
-                 },
-                 {'command': "RETRIES",
-                  'value': self.entry['RETRIES'][0].get()
-                 }
-                ]
+        query = []
+        for command, value in self.entry.items():
+            print("Checking {}: {} != {}".format(command, value[0].get(), value[1].get()))
+            if not value[0].get() == value[1].get():
+                query = self._entryAppend(query, command, value)
+                print query
         
-        # Set encryption on/off
-        if self.entry["ENC"][0].get() == 1:
-            query.append({'command': "ENC", 'value': "ON"})
-        else:
-            query.append({'command': "ENC", 'value': "OFF"})
-    
-        # set encryption key
-        # need to split into each EN[1-6]
-        # Test keys
-        #      ><    ><    ><    ><    ><>
-        # 12345678901234567890123456789012
-        # A1B2C3D4E5F6A2B3C4DE6F7A3B4C5D6E
-        self.logger.debug("ENKEY Length: {}".format(len(self.entry["ENKEY"][0].get())))
-        if len(self.entry["ENKEY"][0].get()) == 32:
-            # key is long enough
-            query.append({'command': "EN1", 'value': self.entry["ENKEY"][0].get()[0:6]})
-            query.append({'command': "EN2", 'value': self.entry["ENKEY"][0].get()[6:12]})
-            query.append({'command': "EN3", 'value': self.entry["ENKEY"][0].get()[12:18]})
-            query.append({'command': "EN4", 'value': self.entry["ENKEY"][0].get()[18:24]})
-            query.append({'command': "EN5", 'value': self.entry["ENKEY"][0].get()[24:30]})
-            query.append({'command': "EN6", 'value': self.entry["ENKEY"][0].get()[30:32]})
-            self.entry["ENKEY"][0].set("") # clear encryption key box
-        
-        # device specific commands next
-        for n in self.devices[self.device['id']]['Options']:
-            query.append(
-                         {'command': n['Command'],
-                          'value': self.entry[n['Command']][0].get()
-                         }
-                        )
-        
-        # cyclic stuff last (cycle acts as save and exit)       
-        if self.devices[self.device['id']]['SleepMode'] == "Cyclic":
-            query.append({'command': "INTVL",
-                          'value': self.entry['INTVL'][0].get()
-                         }
-                        )
-            query.append({'command': "WAKEC",
-                          'value': self.entry['WAKEC'][0].get()
-                         }
-                        )
-            query.append({'command': "SLEEPM",
-                          'value': ("16" if self.entry['SLEEPM'][0].get() else "0")
-                         }
-                        )
-        elif self.devices[self.device['id']]['SleepMode'] == "Interrupt":
-            query.append({'command': "SLEEPM",
-                          'value': ("8" if self.entry['SLEEPM'][0].get() else "0")
-                          }
-                         )
-        else:
-            # append save and exits command?
-            pass
-        # always finish with reboot to save and apply
-        query.append({'command': "REBOOT"})
-        
+        query.append({'command': "REBOOT"}) # we always send at least a reboot
+
         self._keepAwake = 0
 
         lcr = {"type": "LCR",
@@ -894,6 +840,94 @@ class LLAPCongfigMeClient:
                     }
         self._lastLCR.append(lcr)
         self._sendRequest(lcr)
+
+    def _entryAppend(self, query, command, value):
+        """
+            The following are use to append the correct LLAP commands
+            to the passed query and return the altered query
+            based on the type of Entery
+            
+        """
+        if value[2] == 'String':
+            query.append(
+                         {'command': command,
+                          'value': value[0].get()
+                         }
+                         )
+        elif value[2] == 'Float':
+            query.append(
+                         {'command': command,
+                         'value': value[0].get()
+                         }
+                         )
+        elif value[2] == 'Int':
+            query.append(
+                         {'command': command,
+                         'value': value[0].get()
+                         }
+                         )
+        elif value[2] == 'ONOFF':
+            if value[0].get() == 1:
+                query.append({'command': command, 'value': "ON"})
+            else:
+                query.append({'command': command, 'value': "OFF"})
+
+        elif value[2] == 'ONOFFTOG':
+            query.append(
+                         {'command': command,
+                         'value': value[0].get()
+                         }
+                         )
+        elif value[2] == 'ID':
+            query.append(
+                         {'command': command,
+                         'value': value[0].get()
+                         }
+                         )
+        elif value[2] == 'Hex':
+            query.append(
+                         {'command': command,
+                         'value': value[0].get()
+                         }
+                         )
+        elif value[2] == 'ReadOnlyHex':
+            pass
+        elif value[2] == 'Period':
+            query.append(
+                         {'command': command,
+                         'value': value[0].get()
+                         }
+                         )
+        elif value[2] == 'SleepMode':
+            if self.devices[self.device['id']]['SleepMode'] == "Cyclic":
+                query.append({'command': "SLEEPM",
+                             'value': ("16" if self.entry['SLEEPM'][0].get() else "0")
+                             }
+                             )
+            elif self.devices[self.device['id']]['SleepMode'] == "Interrupt":
+                query.append({'command': "SLEEPM",
+                             'value': ("8" if self.entry['SLEEPM'][0].get() else "0")
+                             }
+                             )
+        elif value[2] == 'ENKey':
+            # set encryption key
+            # need to split into each EN[1-6]
+            # Test keys
+            #      ><    ><    ><    ><    ><>
+            # 12345678901234567890123456789012
+            # A1B2C3D4E5F6A2B3C4DE6F7A3B4C5D6E
+            #self.logger.debug("ENKEY Length: {}".format(len(self.entry["ENKEY"][0].get())))
+            if len(value[0].get()) == 32:
+                # key is long enough
+                query.append({'command': "EN1", 'value': value[0].get()[0:6]})
+                query.append({'command': "EN2", 'value': value[0].get()[6:12]})
+                query.append({'command': "EN3", 'value': value[0].get()[12:18]})
+                query.append({'command': "EN4", 'value': value[0].get()[18:24]})
+                query.append({'command': "EN5", 'value': value[0].get()[24:30]})
+                query.append({'command': "EN6", 'value': value[0].get()[30:32]})
+                self.entry[command][0].set("") # clear encryption key box
+
+        return query
 
     def _queryType(self):
         """ Time to send a query to see if we have a device in pair mode
@@ -1044,6 +1078,8 @@ class LLAPCongfigMeClient:
                                 # TODO: need to handle check box entry (Format: ONOFF
                                 self.entry[command][0].set(args['reply'])
 
+                    # copy config so we can compare it later
+                    self._entryCopy()
                     # show config screen
                     self.logger.debug("Setting keepAwake")
                     # TODO: set keepAwake via UDP LCR
