@@ -61,14 +61,13 @@ import logging
 
 INTRO = """Welcome to LLAP Config me wizard
     
-Please wait while we try to reach a LLAPServer"""
+Please wait while we try to reach a LLAP Trasnfer service"""
 
 INTRO1 = """Welcome to LLAP Config me wizard
     
-There is a LLAPServer running on this network plese click next to begin"""
-
-
-PAIR = """Please press the Config Me button on your device and click next"""
+A LLAP Transfer service has be found running on this network.
+    
+Please press the Config Me button on your device and click next"""
 
 CONFIG = """Select your device config options"""
 
@@ -408,7 +407,7 @@ class LLAPCongfigMeClient:
 
         tk.Button(self.iframe, text='Back', state=tk.DISABLED
                   ).grid(row=self._rows-2, column=4, sticky=tk.E)
-        tk.Button(self.iframe, name='introNext', text='Next', command=self._displayPair,
+        tk.Button(self.iframe, name='next', text='Next', command=self._queryType,
                   state=tk.DISABLED
                   ).grid(row=self._rows-2, column=5, sticky=tk.W)
         self._checkServerCount = 0
@@ -420,7 +419,7 @@ class LLAPCongfigMeClient:
             #we have a good server update Intro page
             self.logger.debug("Server found ok")
             self.iframe.children['introText'].config(text=INTRO1)
-            self.iframe.children['introNext'].config(state=tk.ACTIVE)
+            self.iframe.children['next'].config(state=tk.ACTIVE)
             return
         elif self._checkServerCount == 5:
             # half of time out send request again
@@ -441,31 +440,10 @@ class LLAPCongfigMeClient:
                 return
         self._checkServerCount += 1
         self.master.after(1000, self._checkServerUpdate)
-                
-    def _displayPair(self):
-        self.logger.debug("Connecting and Displaying Pair window")
         
-        self.iframe.pack_forget()
-
-        self.pframe = tk.Frame(self.master, name='pairFrame', relief=tk.RAISED,
-                               borderwidth=2, width=self._widthMain,
-                               height=self._heightMain)
-        self.pframe.pack()
-        self._currentFrame = 'pairFrame'
-    
-        self._buildGrid(self.pframe)
-
-        tk.Label(self.pframe, text=PAIR).grid(row=1, column=0, columnspan=6,
-                                              rowspan=self._rows-4)
-    
-        tk.Button(self.pframe, text='Back', state=tk.DISABLED
-                  ).grid(row=self._rows-2, column=4, sticky=tk.E)
-        tk.Button(self.pframe, name='next', text='Next', command=self._queryType
-                  ).grid(row=self._rows-2, column=5, sticky=tk.W)
-                
     def _displayConfig(self):
         self.logger.debug("Displaying Deceive type based config screen")
-        self.pframe.pack_forget()
+        self.master.children[self._currentFrame].pack_forget()
                 
         self.cframe = tk.Frame(self.master, name='configFrame', relief=tk.RAISED,
                                borderwidth=2, width=self._widthMain,
@@ -662,7 +640,7 @@ class LLAPCongfigMeClient:
     def _displayEnd(self):
         self.logger.debug("Displaying end screen")
     
-        self.cframe.pack_forget()
+        self.master.children[self._currentFrame].pack_forget()
 
         self.eframe = tk.Frame(self.master, name='endFrame', relief=tk.RAISED,
                                borderwidth=2, width=self._widthMain,
@@ -770,9 +748,9 @@ class LLAPCongfigMeClient:
 
     def _startOver(self):
         self.logger.debug("Starting over")
-        self.eframe.pack_forget()
-        self.pframe.pack()
-        self._currentFrame = 'pairFrame'
+        self.master.children[self._currentFrame].pack_forget()
+        self.iframe.pack()
+        self._currentFrame = 'introFrame'
         # clear out entry variables
         self._initEntryVariables
 
