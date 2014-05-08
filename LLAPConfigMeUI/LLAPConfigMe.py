@@ -56,6 +56,11 @@ import logging
     
     read AT settings for PANID and ENCRYPTION from server and offer as defuats to the user on a new device
     
+    get JSON device file from network
+    
+    offer susgested settings based on json
+    
+    
 """
 
 

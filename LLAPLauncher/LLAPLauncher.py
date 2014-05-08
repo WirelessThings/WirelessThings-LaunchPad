@@ -41,23 +41,19 @@ from Tabs import *
    
    switch to debug prints to logging
    
-   apps list to be llap service
+   DONE: apps list to be llap service
    
-   auto update to new folder
+   DONE: Service buttons
+        start(restart?)
+       stop
+       auto start buttons
    
-   start(restart?)
-   stop
-   auto start buttons
+   DONE: service status indicators
+        needs better UX
+        
+   DONE: check if service is already running
    
-   service status indicators
-   
-   dont kill other on exit
-   
-   check if service is already running
-   
-   service should record a pid file?
-   
-   restart services on update
+   DONE: restart services on update
    
    TODO: catch permisions error on exec and set permission if needed
    
@@ -754,14 +750,14 @@ class LLAPLauncher:
                     self.debugPrint("tUDPListen: JSON of type SERVER")
                     if jsonin['state'] == "RUNNING":
                         self.fServerGood.set()
- 
+                            
         self.debugPrint("tUDPListen: Thread stopping")
         try:
             UDPListenSocket.close()
         except socket.error:
             self.debugPrint("tUDPListen: Failed to close socket")
         return
-
+            
     def _initUDPSendThread(self):
         """ Start the UDP output thread
             """
@@ -790,7 +786,6 @@ class LLAPLauncher:
             self.debugPrint("tUDPSend: Failed to create socket. Error code : {} Message : {}".format(msg[0], msg[1]))
             # TODO: tUDPSend needs to stop here
             # TODO: need to send message to user saying could not open socket
-            self.die()
             return
         
         UDPSendSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -818,8 +813,6 @@ class LLAPLauncher:
                 # tidy up
 
                 self.qUDPSend.task_done()
-
-            # TODO: tUDPSend thread is alive, wiggle a pin?
 
         self.debugPrint("tUDPSend: Thread stopping")
         try:

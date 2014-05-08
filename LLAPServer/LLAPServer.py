@@ -51,10 +51,10 @@ else:
    
    Thread state monitor
        gpio state display
-       GUI
        DONE: restart dead threads
        DONE: restart dead serial
        restart dead socket ? how to check
+       need to find a way to test broken threads are getting restarted
    
    "SERVER" messages
         DONE: status
@@ -74,6 +74,9 @@ else:
    DONE: *nix Daemon behaviour
    windows service dehaviour
    
+   self update via web
+        started via a Server message
+        
    
 """
 
@@ -123,7 +126,7 @@ class LLAPServer():
     _ActionHelp = """
 start = Starts as a background daemon/service
 stop = Stops a daemon/service if running
-restart = Restarts the daemon/service if running
+restart = Restarts the daemon/service
 status = Check if a LLAP transfer serveice is running
 If none of the above are given and no daemon/service
 is running then run in the current terminal
@@ -191,9 +194,9 @@ is running then run in the current terminal
         """
         parser = argparse.ArgumentParser(description='LLAP Server', formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('action', nargs = '?', choices=('start', 'stop', 'restart', 'status'), help =self._ActionHelp)
-        parser.add_argument('-u', '--noupdate',
-                            help='disable checking for update',
-                            action='store_false')
+        #parser.add_argument('-u', '--noupdate',
+        #                    help='disable checking for update',
+        #                    action='store_false')
         parser.add_argument('-d', '--debug',
                             help='Enable debug output to console, overrides LLAPServer.cfg setting',
                             action='store_true')
@@ -581,7 +584,6 @@ is running then run in the current terminal
             if not self.qLCRRequest.empty():
                 self.logger.debug("tLCR: Got a request to process")
                 # if we are not in the middle of an LCR
-                # TODO: what if its a cancel (shouldn't need them with timeouts
                 if not self._currentLCR:
                     # lets get it out the queue and start processing it
                     try:
@@ -735,8 +737,6 @@ is running then run in the current terminal
                 # tidy up
                 self.qUDPSend.task_done()
 
-            # TODO: tUDPSend thread is alive, wiggle a pin?
-
         self.logger.info("tUDPSend: Thread stopping")
         try:
             UDPSendSocket.close()
@@ -837,7 +837,7 @@ is running then run in the current terminal
             count = 0
             while count < 11:
                 char = self._serial.read()
-                if not char:    # TODO: check this is right for a time out
+                if not char:
                     self.logger.debug("tSerial: RX:{}".format(char))
                     return
             
