@@ -201,7 +201,7 @@ is running then run in the current terminal
                             help='Enable debug output to console, overrides LLAPServer.cfg setting',
                             action='store_true')
         parser.add_argument('-l', '--log',
-                            help='Override the debug logging level, DEBUG, INFO, WARNING, ERROR, CRITICAL'
+                            help='Override the console debug logging level, DEBUG, INFO, WARNING, ERROR, CRITICAL'
                             )
                             
         self.args = parser.parse_args()
