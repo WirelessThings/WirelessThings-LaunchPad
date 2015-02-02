@@ -926,6 +926,7 @@ is running then run in the current terminal
                         self._SerialDTYSync = False
                         self.logger.debug("tSerial: Checking DTY again before sending next toQuery")
                         self._SerialSendDTY()
+                        return
                     else:
                         # send last again
                         self.logger.debug("tSerial: Retry toQuery, State: {}".format(self._SerialToQueryState))
@@ -954,6 +955,7 @@ is running then run in the current terminal
                     if self.devType:
                         self.logger.debug("tSerial: Checking DTY before sending first toQuery")
                         self._SerialSendDTY()
+                        return
                     else:
                         # send first
                         self.logger.debug("tSerial: Send first toQuery, State: {}".format(self._SerialToQueryState))
