@@ -106,6 +106,9 @@ class LLAPCongfigMeClient:
     _lastLCR = []
     _keepAwake = 0
     _currentFrame = None
+    
+    _validID = "ABCDEFGHIJKLMNOPQRSTUVWXYZ-#@?\\*"
+    _validData = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !\"#$%&'()*+,-.:;<=>?@[\\\/]^_`{|}~"
 
     def __init__(self):
         """
@@ -447,7 +450,7 @@ class LLAPCongfigMeClient:
         self.master.after(1000, self._checkServerUpdate)
         
     def _displayConfig(self):
-        self.logger.debug("Displaying Deceive type based config screen")
+        self.logger.debug("Displaying Device type based config screen")
         self.master.children[self._currentFrame].pack_forget()
                 
         self.cframe = tk.Frame(self.master, name='configFrame', relief=tk.RAISED,
@@ -975,9 +978,15 @@ class LLAPCongfigMeClient:
                 pass
         elif reply['state'] == "PASS":
             # got a good reply
+            self.logger.debug("got a good reply")
             
             # check reply ID with Expected ID
-            if reply['id'] == self._lastLCR[-1]['data']['id']:
+            if reply['id'] != self._lastLCR[-1]['data']['id']:
+                # added this to cope with receiving multiple replies
+                # e.g. if there are multiple network interfaces active
+                self.master.after(500, self._replyCheck)
+            else:
+                self.logger.debug("reply is expected ID")
                 
                 # process reply
                 if reply['id'] == 1:
@@ -988,6 +997,7 @@ class LLAPCongfigMeClient:
                         for n in range(len(self.devices)):
                             if self.devices[n]['DTY'] == reply['replies']['DTY']['reply']:
                                 # we have a match
+                                self.logger.debug("Matched device")
                                 self.device = {'id': n,
                                                'DTY': self.devices[n]['DTY'],   # copy form JSON not reply
                                                'devID': reply['replies']['CHDEVID']['reply'],
@@ -1032,6 +1042,7 @@ class LLAPCongfigMeClient:
                         # apver mismatch, show error screen
                         pass
                 elif reply['id'] == 2:
+                    self.logger.debug("reply id is 2")
                     # this was an information request
                     # populate fields
                     if self.device['devID'] == '':
@@ -1064,7 +1075,7 @@ class LLAPCongfigMeClient:
                     # copy config so we can compare it later
                     self._entryCopy()
                     # show config screen
-                    self.logger.debug("Setting keepAwake")
+                    self.logger.debug("Setting keepAwake, display config")
                     # TODO: set keepAwake via UDP LCR
                     self._keepAwake = 1
                     self._displayConfig()
@@ -1110,6 +1121,7 @@ class LLAPCongfigMeClient:
 
     def _askCurrentConfig(self):
         # assuming we know what it is ask for the current config
+        self.logger.debug("Ask current config")
         query = [
                  {'command': "PANID"},
                  {'command': "RETRIES"},
@@ -1192,6 +1204,7 @@ class LLAPCongfigMeClient:
             # close wait diag and return reply
             self.progressWindow.destroy()
             self.master.children[self._currentFrame].children['next'].config(state=tk.ACTIVE)
+            self.logger.debug("processing reply(replyCheck)")
             self._processReply()
     
     def _buildGrid(self, frame, quit=True, halfSize=False):
