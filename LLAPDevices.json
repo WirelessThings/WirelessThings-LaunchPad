@@ -450,6 +450,75 @@
                           "Format":"Int"
                           }
                           ]
+               },
+               {
+               "id":7,
+               "DEVTYPE":"",
+               "DTY":"AAAH01",
+               "Name":"Switch",
+               "Description":"LLAP+ Switch Sensor",
+               "SleepMode":"Cyclic",
+               "Actions":[
+               
+               ],
+               "Options":[
+                          {
+                          "Command":"MSG",
+                          "Description":"Set message (Default SWITCH)",
+                          "Format":"String"
+                          },
+                          {
+                          "Command":"DEB",
+                          "Description":"Sensor debounce in mS (Default 30)",
+                          "Format":"Int"
+                          },
+                          {
+                          "Command":"STS",
+                          "Description":"Sleep period whilst debounceing \r(Default 10)",
+                          "Format":"Int"
+                          },
+                          {
+                          "Command":"WOS",
+                          "Description":"Sleep period whilst waiting for sensor\r to return to off (Default 100)",
+                          "Format":"Int"
+                          }
+                          ]
+               },
+               {
+               "id":8,
+               "DEVTYPE":"",
+               "DTY":"AAAI01",
+               "Name":"Dual Relay",
+               "Description":"LLAP+ Dual Relay",
+               "SleepMode":"Polled",
+               "Actions":[
+               
+               ],
+               "Options":[
+                          {
+                          "Command":"DEB",
+                          "Description":"Bunnton debounce in mS (Default 30)",
+                          "Format":"Int"
+                          }
+                          ]
+               },
+               {
+               "id":11,
+               "DEVTYPE":"",
+               "DTY":"AAAE01",
+               "Name":"LIGHT",
+               "Description":"LLAP+ LIGHT",
+               "SleepMode":"Cyclic",
+               "Actions":[
+                          {
+                          "Command":"LIGHT",
+                          "Description":"Request Temperature",
+                          "Format":"Int",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+               ]
                }
                ]
 }
