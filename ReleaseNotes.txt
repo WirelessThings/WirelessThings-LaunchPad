@@ -1,5 +1,13 @@
 LLAPFiles from Ciseco
 
+0.06:
+    Server: move AT into module DIR
+    Server: Update documentation in settings file
+    Server: Missing return's cause radio clash of DTY and keep alive HELLO's
+    UDPUI: Added Readme. Fix to catch multiple server replies. Typo's, extra debug tracking
+    JSON: adding new devices, Switch, Relay, Light
+	JSON: Adding ActionsType description, new Devices Light and Pulse Counter
+
 0.05:
     UDPUI: update to condense first two screens
 
