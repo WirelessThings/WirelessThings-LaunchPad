@@ -1,5 +1,19 @@
 {
     "Version":2.0,
+	"ActionsType":[
+				   {
+				   "Name":"Polled",
+				   "Description":"Message is a command use to query or set a value"
+				   },
+				   {
+				   "Name":"Announce",
+				   "Description":"Message may be sent by the device at any time to report a value"
+				   },
+				   {
+				   "Name":"Both",
+				   "Description":"Message may be sent by the device at any time to report a value, or a used to query or set a value"
+				   }
+				  ],
     "Formats":[
                {
                "Name":"String",
@@ -492,8 +506,13 @@
                "Description":"LLAP+ Dual Relay",
                "SleepMode":"Polled",
                "Actions":[
-               
-               ],
+						  {
+						  "Command":"RELAY",
+						  "Description":"RELAY",
+						  "Format":"ONOFFTOG",
+						  "Type":"Both"
+						  }
+						 ],
                "Options":[
                           {
                           "Command":"DEB",
@@ -518,7 +537,59 @@
                           }
                           ],
                "Options":[
-               ]
-               }
+                         ]
+               },
+               {
+               "id":11,
+               "DEVTYPE":"",
+               "DTY":"AAAD01",
+               "Name":"Light",
+               "Description":"LLAP+ Light",
+               "SleepMode":"Cyclic",
+               "Actions":[
+                          {
+                          "Command":"LVAL",
+                          "Description":"Request Light",
+                          "Format":"Float",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+                          ]
+			   },
+			   {
+			   "id":12,
+			   "DEVTYPE":"",
+			   "DTY":"AAAL01",
+			   "Name":"Count",
+			   "Description":"LLAP+ Pulse Counter",
+			   "SleepMode":"Cyclic",
+			   "Actions":[
+						  {
+						  "Command":"VAL",
+						  "Description":"Return the count value",
+						  "Format":"Int",
+						  "Type":"Both"
+						  },
+						  {
+						  "Command":"RESET",
+						  "Description":"Resets the count to 0",
+						  "Format":"Int",
+						  "Type":"Polled"
+						  }
+						  ],
+			   "Options":[
+						  {
+						  "Command":"DEB",
+						  "Description":"Bunnton debounce in mS (Default 30)",
+						  "Format":"Int"
+						  },
+						  {
+						  "Command":"TRG",
+						  "Description":"Count trigger level",
+						  "Format":"Int"
+						  }
+						  ]
+			   }
                ]
 }
