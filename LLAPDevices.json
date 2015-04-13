@@ -466,6 +466,52 @@
                           ]
                },
                {
+               "id":5,
+               "DEVTYPE":"",
+               "DTY":"AAAF01",
+               "Name":"Volatage (2-15V)",
+               "Description":"LLAP+ Voltage (2-15V)",
+               "SleepMode":"Cyclic",
+               "Actions":[
+                          {
+                          "Command":"VOLTS",
+                          "Description":"Request Voltage",
+                          "Format":"Float",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+                          {
+                          "Command":"CAL",
+                          "Description":"Set the calibration\r (default 0 – no calibration same as aXXCAL1.0---\r otherwise is a floating point multiplier for the volts)",
+                          "Format":"Float"
+                          }
+                          ]
+               },
+               {
+               "id":6,
+               "DEVTYPE":"",
+               "DTY":"AAAG01",
+               "Name":"Volatage (2-30V)",
+               "Description":"LLAP+ Voltage (2-30V)",
+               "SleepMode":"Cyclic",
+               "Actions":[
+                          {
+                          "Command":"VOLTS",
+                          "Description":"Request Voltage",
+                          "Format":"Float",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+                          {
+                          "Command":"CAL",
+                          "Description":"Set the calibration\r (default 0 – no calibration same as aXXCAL1.0---\r otherwise is a floating point multiplier for the volts)",
+                          "Format":"Float"
+                          }
+                          ]
+               },
+               {
                "id":7,
                "DEVTYPE":"",
                "DTY":"AAAH01",
@@ -507,12 +553,18 @@
                "SleepMode":"Polled",
                "Actions":[
 						  {
-						  "Command":"RELAY",
-						  "Description":"RELAY",
+						  "Command":"RELAYA",
+						  "Description":"Change or report state of relay A",
 						  "Format":"ONOFFTOG",
 						  "Type":"Both"
-						  }
-						 ],
+                          },
+                          {
+                          "Command":"RELAYB",
+                          "Description":"Change or report state of relay B",
+                          "Format":"ONOFFTOG",
+                          "Type":"Both"
+                          }
+						  ],
                "Options":[
                           {
                           "Command":"DEB",
@@ -522,9 +574,55 @@
                           ]
                },
                {
+               "id":9,
+               "DEVTYPE":"",
+               "DTY":"AAAJ02",
+               "Name":"Current Sensor",
+               "Description":"LLAP+ Current Sensor",
+               "SleepMode":"Cyclic",
+               "Actions":[
+                          {
+                          "Command":"AMPS",
+                          "Description":"Request current ampere reading (rms)",
+                          "Format":"FLOAT",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+                          {
+                          "Command":"NUMR",
+                          "Description":"Set number of samples",
+                          "Format":"Int"
+                          },
+                          {
+                          "Command":"CAL",
+                          "Description":"Calibration constant",
+                          "Format":"Float"
+                          }
+                          ]
+               },
+               {
+			   "id":10,
+			   "DEVTYPE":"",
+			   "DTY":"AAAK01",
+			   "Name":"Moisture Sensor",
+			   "Description":"LLAP+ Moisture Sensor",
+			   "SleepMode":"Cyclic",
+			   "Actions":[
+                          {
+                          "Command":"MOSIT",
+                          "Description":"Request current moisture (%)",
+                          "Format":"FLOAT",
+                          "Type":"Both"
+                          }
+			              ],
+			   "Options":[
+			   ]
+               },
+               {
                "id":11,
                "DEVTYPE":"",
-               "DTY":"AAAE01",
+               "DTY":"AAAD01",
                "Name":"LIGHT",
                "Description":"LLAP+ LIGHT",
                "SleepMode":"Cyclic",
@@ -539,24 +637,6 @@
                "Options":[
                          ]
                },
-               {
-               "id":11,
-               "DEVTYPE":"",
-               "DTY":"AAAD01",
-               "Name":"Light",
-               "Description":"LLAP+ Light",
-               "SleepMode":"Cyclic",
-               "Actions":[
-                          {
-                          "Command":"LVAL",
-                          "Description":"Request Light",
-                          "Format":"Float",
-                          "Type":"Both"
-                          }
-                          ],
-               "Options":[
-                          ]
-			   },
 			   {
 			   "id":12,
 			   "DEVTYPE":"",
@@ -577,7 +657,7 @@
 						  "Format":"Int",
 						  "Type":"Polled"
 						  }
-						  ],
+                          ],
 			   "Options":[
 						  {
 						  "Command":"DEB",
@@ -589,7 +669,87 @@
 						  "Description":"Count trigger level",
 						  "Format":"Int"
 						  }
-						  ]
-			   }
+                          ]
+               },
+               {
+               "id":13,
+               "DEVTYPE":"",
+               "DTY":"AAAC01",
+               "Name":"Thermistor XL",
+               "Description":"LLAP+ Thermistor XL",
+               "SleepMode":"Cyclic",
+               "Actions":[
+                          {
+                          "Command":"TEMP",
+                          "Description":"Request Temperature",
+                          "Format":"Float",
+                          "Type":"Both"
+                          },
+                          {
+                          "Command":"TMPA",
+                          "Description":"Request Temperature",
+                          "Format":"Float",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+                          {
+                          "Command":"BVAL",
+                          "Description":"Beta Value of Thermistor",
+                          "Format":"Int"
+                          },
+                          {
+                          "Command":"RNOM",
+                          "Description":"Resistance at 20C",
+                          "Format":"Int"
+                          },
+                          {
+                          "Command":"IR",
+                          "Description":"Internal Resistance",
+                          "Format":"Int"
+                          },
+                          {
+                          "Command":"SRES",
+                          "Description":"Series Resistance",
+                          "Format":"Int"
+                          }
+                          ]
+               },
+               {
+               "id":14,
+               "DEVTYPE":"",
+               "DTY":"AAAE01",
+               "Name":"Light XL",
+               "Description":"LLAP+ LIGHT XL",
+               "SleepMode":"Cyclic",
+               "Actions":[
+                          {
+                          "Command":"LIGHT",
+                          "Description":"Request Temperature",
+                          "Format":"Int",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+               ]
+               },
+               {
+               "id":15,
+               "DEVTYPE":"",
+               "DTY":"AAAM01",
+               "Name":"ADC",
+               "Description":"LLAP+ ADC",
+               "SleepMode":"Cyclic",
+               "Actions":[
+                          {
+                          "Command":"ANA",
+                          "Description":"Request Analog reading",
+                          "Format":"Int",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+               ]
+               }
                ]
 }
