@@ -60,7 +60,7 @@ else:
         DONE: status
         reboot
         stop
-        config changes
+        config changes (local ENC and PANID)
         report AT settings on request
         change AT settings on request
         
@@ -77,6 +77,12 @@ else:
    self update via web
         started via a Server message
         
+   Auto configure Encryption if set on server and flag confirmed from GUI
+   Auto configure PANID
+   
+   Wake message logic
+   configme enable/disable logic
+   
    
 """
 

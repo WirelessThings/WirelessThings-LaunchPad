@@ -60,6 +60,10 @@ import logging
     
     offer susgested settings based on json
     
+    UUID in LCR JSON's so only listen for my own replies
+        either another field or dont hard code stages via id
+    
+    if more that one server on the netowrk offer LCR target dropdown
     
 """
 
