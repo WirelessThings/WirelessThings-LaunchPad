@@ -148,11 +148,12 @@ is running then run in the current terminal
         else: # otherwise this is a regular python script
             self._path = os.path.dirname(os.path.realpath(__file__))
         
-        self._signalMap = {
-                           signal.SIGTERM: self._cleanUp,
-                           signal.SIGHUP: self.terminate,
-                           signal.SIGUSR1: self._reloadProgramConfig,
-                          }
+        if not sys.platform = 'win32':
+            self._signalMap = {
+                               signal.SIGTERM: self._cleanUp,
+                               signal.SIGHUP: self.terminate,
+                               signal.SIGUSR1: self._reloadProgramConfig,
+                              }
         
         self.tMainStop = threading.Event()
         self.qServer = Queue.Queue()
