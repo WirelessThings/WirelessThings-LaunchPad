@@ -80,7 +80,7 @@
                 "value":""
             },
             "DTY":{
-                "reply":"THERM2",
+                "reply":"AAAB01",
                 "value":""
             },
             "CHDEVID":{
@@ -97,7 +97,7 @@
     "network":"ALL",
     "data":{
         "id":3,
-        "devType":"THERM2",
+        "devType":"AAAB01",
         "keepAwake":1,
         "toQuery":[
                    {
