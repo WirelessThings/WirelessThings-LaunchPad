@@ -406,7 +406,7 @@ is running then run in the current terminal
                     except Queue.Empty():
                         pass
                     else:
-                        self.qUDPSend.put(json.dumps({"type": "Server", "state": self._state}))
+                        self.qUDPSend.put(json.dumps({"type": "Server", "netowrk": self.config.get('Serial', 'network'), "state": self._state}))
             
                 # flash led's if GPIO debug
                 
