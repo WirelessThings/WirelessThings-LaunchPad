@@ -148,7 +148,7 @@ is running then run in the current terminal
         else: # otherwise this is a regular python script
             self._path = os.path.dirname(os.path.realpath(__file__))
         
-        if not sys.platform = 'win32':
+        if not sys.platform == 'win32':
             self._signalMap = {
                                signal.SIGTERM: self._cleanUp,
                                signal.SIGHUP: self.terminate,
