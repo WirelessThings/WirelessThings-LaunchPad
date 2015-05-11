@@ -29,3 +29,6 @@ LLAPCM.cfg
 Download/
 launcher.cfg
 Dump
+py2exe/build
+py2exe/LLAPPlus
+py2exe/*.zip
