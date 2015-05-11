@@ -522,7 +522,7 @@ class LLAPCongfigMeClient:
             tk.Label(self.cframe, text="CYCLE").grid(row=15, column=0, sticky=tk.E)
             tk.Checkbutton(self.cframe, variable=self.entry['SLEEPM'][0]
                           ).grid(row=15, column=1, columnspan=2, sticky=tk.W)
-        elif self.devices[self.device['id']]['SleepMode'] == "Cyclic":
+        elif self.devices[self.device['id']]['SleepMode'] == "Interrupt":
             # Interrupt sleep devices
             tk.Label(self.cframe, text="Interrupt Sleep"
                      ).grid(row=9, column=0, columnspan=3)
