@@ -165,8 +165,17 @@
     
 }
 
+// Genral call to find state of any severs
 {
     "type":"Server",    // type SERVER for server status request
+    "network":"ALL",     // require, network destination, "ALL" will query all servers, anything else will target a spefic server
+    "data":{}           // optional, config server commands
+}
+
+// Server response from a gateway
+{
+    "type":"Server",    // type SERVER for server status request
+    "network":"Serial",     // require, network source, "ALL", "Serial" are current defined values
     "state":"RUNNING",  // overview state retruned by server RUNNING, ERROR
     "data":{}           // optional, config server commands or expaneded run time info from server
 }

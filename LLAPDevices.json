@@ -210,6 +210,10 @@
                         "Description":"Exit config mode resetting working ID to the stored ID, any config changes are not saved"
                         },
                         {
+                        "Command":"CONFIGON",
+                        "Description":"Enter config mode, the device will go into CONFIGME just as if the config button had been pressed"
+                        },
+                        {
                         "Command":"SLEEPM",
                         "Format":"SleepMode",
                         "Description":"Set and return the sleep mode. (LLAP 2.0). AP_SLEEP_INTERRUPT = 8 \n AP_SLEEP_CYCLIC = 16 \n AP_SLEEP_ONESHOT = 32 "
@@ -243,7 +247,7 @@
                      {
                      "Command":"ERROR",
                      "Format":"Int",
-                     "Description":"his is to notify that something unexpected happened at the device and that should be investigated. The nnnn can be used by the manufacturer to denote what type of error occurred"
+                     "Description":"This is to notify that something unexpected happened at the device and that should be investigated. The nnnn can be used by the manufacturer to denote what type of error occurred"
                      },
                      {
                      "Command":"SLEEPING",
@@ -262,6 +266,20 @@
                      "Description":"A device is in configme mode"
                      }
                      ],
+    "Sleep Modes":[
+                   {
+                   "Mode":"Cyclic",
+                   "Description":""
+                   },
+                   {
+                   "Mode":"Interrupt",
+                   "Description":"Sleep until an pin interrupt is received. Used by Button and switch devices"
+                   },
+                   {
+                   "Mode":"Polled",
+                   "Description":""
+                   }
+                   ],
     "Devices":[
                {
                "id":0,
