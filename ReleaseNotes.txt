@@ -1,5 +1,13 @@
 LLAPFiles from Ciseco
 
+0.08:
+    Server: Don't need singalMap on windows
+    Server: report Network in server status messages
+    JSON: Add Sleep modes description and missing CONFIGON command
+    UDPUI: Correct Sleepmode display for Interrupt devices
+    PY2EXE: first pass at setup file for windows
+    PY2EXE: needs copies of the included modules for now
+
 0.07:
     JSON: Update for all the current device firmwares
 
