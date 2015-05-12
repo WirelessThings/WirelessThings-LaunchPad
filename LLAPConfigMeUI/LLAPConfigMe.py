@@ -1013,15 +1013,13 @@ class LLAPCongfigMeClient:
         self._lastLCR.append(lcr)
         self._sendRequest(lcr)
     
-    def _processReply(self):
+    def _processReply(self, json):
         self.logger.debug("Processing reply")
-        # TODO: UDP get reply
-        json = self.qLCRReply.get()
         reply = json['data']
         self.logger.debug("id: {}, devType:{}, Replies:{}".format(reply['id'],
-                                                                reply.get('devType', ""),
-                                                                reply['replies']))
-        
+                                                                  reply.get('devType', ""),
+                                                                  reply['replies']))
+
         # check if reply is valid
         if reply['state'] == "FAIL_TIMEOUT":
             # TODO: handle failed due to timeout
@@ -1053,149 +1051,134 @@ class LLAPCongfigMeClient:
                 if self._currentFrame == "pressFrame":
                     self._startOver
         elif reply['state'] == "PASS":
-            # got a good reply
-            self.logger.debug("got a good reply")
-            
-            # check reply ID with Expected ID
-            if reply['id'] != self._lastLCR[-1]['data']['id']:
-                # added this to cope with receiving multiple replies
-                # e.g. if there are multiple network interfaces active
-                self.master.after(500, self._replyCheck)
-            else:
-                self.logger.debug("reply is expected ID")
-                
-                # process reply
-                if self._configState == 1:
-                    # this was a query type request
-                    if float(reply['replies']['APVER']['reply']) >= 2.0:
-                        # valid apver
-                        # so check what replied
-                        for n in range(len(self.devices)):
-                            if self.devices[n]['DTY'] == reply['replies']['DTY']['reply']:
-                                # we have a match
-                                self.logger.debug("Matched device")
-                                self.device = {'id': n,
-                                               'DTY': self.devices[n]['DTY'],   # copy form JSON not reply
-                                               'devID': reply['replies']['CHDEVID']['reply'],
-                                               'network': json['network']
-                                              }
-                                
-                                # ask user about reseting device if devID is not ??
-                                # for testing lets just reset if devID is MB
-#                                if self.device['devID'] != "??":
-#                                    if tkMessageBox.askyesno("Device Previously configured",
-#                                                             ("This device has been previously configured, \n"
-#                                                              "Do you wish to reset the device to defaults (Yes),\n"
-#                                                              "Or to alter the current configuration (No)")
-#                                                             ):
-#                                        query = [
-#                                                 {'command': "LLAPRESET"},
-#                                                 {'command': "CHDEVID"}
-#                                                ]
-#                                                
-#                                        self.logger.debug("Setting keepAwake")
-#                                        self._keepAwake = 1
+            # process reply
+            if self._configState == 1:
+                # this was a query type request
+                if float(reply['replies']['APVER']['reply']) >= 2.0:
+                    # valid apver
+                    # so check what replied
+                    for n in range(len(self.devices)):
+                        if self.devices[n]['DTY'] == reply['replies']['DTY']['reply']:
+                            # we have a match
+                            self.logger.debug("Matched device")
+                            self.device = {'id': n,
+                                           'DTY': self.devices[n]['DTY'],   # copy form JSON not reply
+                                           'devID': reply['replies']['CHDEVID']['reply'],
+                                           'network': json['network']
+                                          }
+                            
+#                            # ask user about reseting device if devID is not ??
+#                            # for testing lets just reset if devID is MB
+#                            if self.device['devID'] != "??":
+#                                if tkMessageBox.askyesno("Device Previously configured",
+#                                                         ("This device has been previously configured, \n"
+#                                                          "Do you wish to reset the device to defaults (Yes),\n"
+#                                                          "Or to alter the current configuration (No)")
+#                                                         ):
+#                                    query = [
+#                                             {'command': "LLAPRESET"},
+#                                             {'command': "CHDEVID"}
+#                                            ]
+#                                            
+#                                    self.logger.debug("Setting keepAwake")
+#                                    self._keepAwake = 1
 #
-#                                        self._configState = 5
-#                                        lcr = {"type": "LCR",
-#                                               "network":self.device['network'],
-#                                               "data":{
-#                                                       "id": str(uuid.uuid4()),
-#                                                       "timeout": self.config.get('LCR', 'timeout'),
-#                                                       "keepAwake":self._keepAwake,
-#                                                       "devType": self.device['DTY'],
-#                                                       "toQuery": query
-#                                                      }
-#                                              }
-#                                                
-#                                        self._lastLCR.append(lcr)
-#                                        self._sendRequest(lcr)
-#                                    else:
-#                                        self._askCurrentConfig()
+#                                    self._configState = 5
+#                                    lcr = {"type": "LCR",
+#                                           "network":self.device['network'],
+#                                           "data":{
+#                                                   "id": str(uuid.uuid4()),
+#                                                   "timeout": self.config.get('LCR', 'timeout'),
+#                                                   "keepAwake":self._keepAwake,
+#                                                   "devType": self.device['DTY'],
+#                                                   "toQuery": query
+#                                                  }
+#                                          }
+#                                            
+#                                    self._lastLCR.append(lcr)
+#                                    self._sendRequest(lcr)
 #                                else:
-                                self._askCurrentConfig()
-                                
-                    else:
-                        # apver mismatch, show error screen
-                        pass
-                elif self._configState == 2:
-                    self.logger.debug("reply id is 2")
-                    # this was an information request
-                    # populate fields
-                    if self.device['devID'] == '':
-                        self.entry['CHDEVID'][0].set("--")
-                    else:
-                        self.entry['CHDEVID'][0].set(self.device['devID'])
-                        
-                    for command, args in reply['replies'].items():
-                        if command == "CHREMID" and args['reply'] == '':
-                            self.entry[command][0].set("--")
-                        elif command == "SLEEPM":
-                            value = int(args['reply'])
-                            if value != 0:
-                                self.entry[command][0].set(1)
-                            else:
-                                self.entry[command][0].set(0)
-                        elif command == "ENC":
-                            if args['reply'] == "OFF":
-                                self.entry[command][0].set(0)
-                            elif args['reply'] == "ON":
-                                self.entry[command][0].set(1)
-                            else:
-                                #should not get here
-                                self.logger.debug("Error in reply to ENC")
-                        else:
-                            if command in self.entry:
-                                # TODO: need to handle check box entry (Format: ONOFF
-                                self.entry[command][0].set(args['reply'])
-
-                    # copy config so we can compare it later
-                    self._entryCopy()
-                    # show config screen
-                    self.logger.debug("Setting keepAwake, display config")
-                    # TODO: set keepAwake via UDP LCR
-                    self._keepAwake = 1
-                    self._displayConfig()
-
-                elif self._configState == 3:
-                    # this was a config request
-                    # TODO: check replies were good and let user know device is now ready
-                    enkeyCount = 0
-                    enkeyMatch = 0
-                    en = re.compile('^EN[1-6]')
-
-                    for command, arg in reply['replies'].items():
-                        if en.match(command):
-                            enkeyCount += 1
-                            if arg['reply'] == "ENACK":
-                                enkeyMatch += 1
-                        elif arg['value'] != arg['reply']:
-                            # values don't match we should warn user
-                            tkMessageBox.showerror("Value mismatch",
-                                                   "The {} value was not set, \n Sent: {}\n Got back: {}".format(command, arg['value'], arg['reply']))
-
-                    if enkeyCount != 0 and enkeyMatch != 6:
-                        # encryption key not fully set
-                        tkMessageBox.showerror("Encryption Key Error",
-                                               "Your encryption key was not correctly set please try again")
-
-
-                    # show end screen
-                    self._displayEnd()
-                elif self._configState == 4:
+#                                    self._askCurrentConfig()
+#                            else:
+                            self._askCurrentConfig()
+                            
+                else:
+                    # apver mismatch, show error screen
                     pass
-                elif self._configState == 5:
-                    # have done a reset so should get back factory settings
-                    # check devi id is now ?? and update local
-                    self.device['devID'] = reply['replies']['CHDEVID']['reply']
-                    if self.device['devID'] == "??":
-                        self._askCurrentConfig()
+            elif self._configState == 2:
+                # this was an information request
+                # populate fields
+                if self.device['devID'] == '':
+                    self.entry['CHDEVID'][0].set("--")
+                else:
+                    self.entry['CHDEVID'][0].set(self.device['devID'])
+                    
+                for command, args in reply['replies'].items():
+                    if command == "CHREMID" and args['reply'] == '':
+                        self.entry[command][0].set("--")
+                    elif command == "SLEEPM":
+                        value = int(args['reply'])
+                        if value != 0:
+                            self.entry[command][0].set(1)
+                        else:
+                            self.entry[command][0].set(0)
+                    elif command == "ENC":
+                        if args['reply'] == "OFF":
+                            self.entry[command][0].set(0)
+                        elif args['reply'] == "ON":
+                            self.entry[command][0].set(1)
+                        else:
+                            #should not get here
+                            self.logger.debug("Error in reply to ENC")
                     else:
-                        # TODO: LLAPRESET didnt work ERROR
-                        pass
+                        if command in self.entry:
+                            # TODO: need to handle check box entry (Format: ONOFF
+                            self.entry[command][0].set(args['reply'])
+
+                # copy config so we can compare it later
+                self._entryCopy()
+                # show config screen
+                self.logger.debug("Setting keepAwake, display config")
+                # TODO: set keepAwake via UDP LCR
+                self._keepAwake = 1
+                self._displayConfig()
+            elif self._configState == 3:
+                # this was a config request
+                # TODO: check replies were good and let user know device is now ready
+                enkeyCount = 0
+                enkeyMatch = 0
+                en = re.compile('^EN[1-6]')
+
+                for command, arg in reply['replies'].items():
+                    if en.match(command):
+                        enkeyCount += 1
+                        if arg['reply'] == "ENACK":
+                            enkeyMatch += 1
+                    elif arg['value'] != arg['reply']:
+                        # values don't match we should warn user
+                        tkMessageBox.showerror("Value mismatch",
+                                               "The {} value was not set, \n Sent: {}\n Got back: {}".format(command, arg['value'], arg['reply']))
+
+                if enkeyCount != 0 and enkeyMatch != 6:
+                    # encryption key not fully set
+                    tkMessageBox.showerror("Encryption Key Error",
+                                           "Your encryption key was not correctly set please try again")
+
+                # show end screen
+                self._displayEnd()
+            elif self._configState == 4:
+                pass
+            elif self._configState == 5:
+                # have done a reset so should get back factory settings
+                # check devi id is now ?? and update local
+                self.device['devID'] = reply['replies']['CHDEVID']['reply']
+                if self.device['devID'] == "??":
+                    self._askCurrentConfig()
+                else:
+                    # TODO: LLAPRESET didnt work ERROR
+                    pass
         # TODO: clean up
-        self.qLCRReply.task_done()
-    
+        
     def _askCurrentConfig(self):
         # assuming we know what it is ask for the current config
         self.logger.debug("Ask current config")
@@ -1285,15 +1268,24 @@ class LLAPCongfigMeClient:
                 # update wait diag and check again
                 self.master.after(500, self._replyCheck)
         else:
-            # close wait diag and return reply
-            if self._currentFrame != "pressFrame":
-                try:
-                    self.progressWindow.destroy()
-                except:
-                    pass
-                self.master.children[self._currentFrame].children['next'].config(state=tk.ACTIVE)
-            self.logger.debug("processing reply(replyCheck)")
-            self._processReply()
+            json = self.qLCRReply.get()
+            reply = json['data']
+            # check reply ID with Expected ID
+            if reply['id'] != self._lastLCR[-1]['data']['id']:
+                # added this to cope with receiving multiple replies
+                # e.g. if there are multiple network interfaces active
+                self.master.after(500, self._replyCheck)
+            else:
+                self.logger.debug("reply is expected ID")
+                # close wait diag and return reply
+                if self._currentFrame != "pressFrame":
+                    try:
+                        self.progressWindow.destroy()
+                    except:
+                        pass
+                    self.master.children[self._currentFrame].children['next'].config(state=tk.ACTIVE)
+                self._processReply(json)
+            self.qLCRReply.task_done()
     
     def _buildGrid(self, frame, quit=True, halfSize=False):
         self.logger.debug("Building Grid for {}".format(frame.winfo_name()))
