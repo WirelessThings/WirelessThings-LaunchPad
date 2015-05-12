@@ -659,7 +659,7 @@
 			   "id":12,
 			   "DEVTYPE":"",
 			   "DTY":"AAAL01",
-			   "Name":"Count",
+			   "Name":"Pulse",
 			   "Description":"LLAP+ Pulse Counter",
 			   "SleepMode":"Cyclic",
 			   "Actions":[
@@ -768,6 +768,35 @@
                           ],
                "Options":[
                ]
+               },
+               {
+               "id":16,
+               "DEVTYPE":"",
+               "DTY":"AAAL02",
+               "Name":"Pulse",
+               "Description":"LLAP+ Pulse Counter",
+               "SleepMode":"Cyclic",
+               "Actions":[
+                          {
+                          "Command":"VAL",
+                          "Description":"Return the count value",
+                          "Format":"Int",
+                          "Type":"Both"
+                          },
+                          {
+                          "Command":"RESET",
+                          "Description":"Resets the count to 0",
+                          "Format":"Int",
+                          "Type":"Polled"
+                          }
+                          ],
+               "Options":[
+                          {
+                          "Command":"TRG",
+                          "Description":"Count trigger level",
+                          "Format":"Int"
+                          }
+                          ]
                }
                ]
 }
