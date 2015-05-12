@@ -406,7 +406,7 @@ is running then run in the current terminal
                     except Queue.Empty():
                         pass
                     else:
-                        self.qUDPSend.put(json.dumps({"type": "Server", "netowrk": self.config.get('Serial', 'network'), "state": self._state}))
+                        self.qUDPSend.put(json.dumps({"type": "Server", "network": self.config.get('Serial', 'network'), "state": self._state}))
             
                 # flash led's if GPIO debug
                 
@@ -1053,19 +1053,18 @@ is running then run in the current terminal
                 self.logger.debug("tUDPListen: Received JSON: {} From: {}".format(data, address))
                 jsonin = json.loads(data)
                 
-                if jsonin['type'] == "LLAP":
-                    self.logger.debug("tUDPListen: JSON of type LLAP, send out messages")
-                    # got a LLAP type json, need to generate the LLAP message and
-                    # put them on the TX queue
-                    for command in jsonin['data']:
-                        llapMsg = "a{}{}".format(jsonin['id'], command[0:9].upper())
-                        while len(llapMsg) <12:
-                            llapMsg += '-'
-                        
-                        # send to each network requested
-                        if (jsonin['network'] == self.config.get('Serial', 'network') or
-                            jsonin['network'] == "ALL"):
-                            # yep its for serial
+                if (jsonin['network'] == self.config.get('Serial', 'network') or
+                    jsonin['network'] == "ALL"):
+                    # yep its for our network or "ALL"
+                    if jsonin['type'] == "LLAP":
+                        self.logger.debug("tUDPListen: JSON of type LLAP, send out messages")
+                        # got a LLAP type json, need to generate the LLAP message and
+                        # put them on the TX queue
+                        for command in jsonin['data']:
+                            llapMsg = "a{}{}".format(jsonin['id'], command[0:9].upper())
+                            while len(llapMsg) <12:
+                                llapMsg += '-'
+                            
                             try:
                                 self.qSerialOut.put_nowait(llapMsg)
                             except Queue.Full:
@@ -1073,21 +1072,21 @@ is running then run in the current terminal
                             else:
                                 self.logger.debug("tUDPListen Put {} on qSerialOut".format(llapMsg))
 
-                elif jsonin['type'] == "LCR" and self.config.getboolean('LCR', 'lcr_enable'):
-                    # we have a LLAPConfigRequest pass in onto the LCR thread
-                    self.logger.debug("tUDPListen: JSON of type LCR, passing to qLCRRequest")
-                    try:
-                        self.qLCRRequest.put_nowait(jsonin)
-                    except Queue.Full:
-                        self.logger.debug("tUDPListen: Failed to put json on qLCRRequest")
+                    elif jsonin['type'] == "LCR" and self.config.getboolean('LCR', 'lcr_enable'):
+                        # we have a LLAPConfigRequest pass in onto the LCR thread
+                        self.logger.debug("tUDPListen: JSON of type LCR, passing to qLCRRequest")
+                        try:
+                            self.qLCRRequest.put_nowait(jsonin)
+                        except Queue.Full:
+                            self.logger.debug("tUDPListen: Failed to put json on qLCRRequest")
 
-                elif jsonin['type'] == "Server":
-                    # we have a SERVER json do stuff with it
-                    self.logger.debug("tUDPListen: JSON of type SERVER, passing to qServer")
-                    try:
-                        self.qServer.put(jsonin)
-                    except Queue.Full():
-                        self.logger.debug("tUDPListen: Failed to put json on qServer")
+                    elif jsonin['type'] == "Server":
+                        # we have a SERVER json do stuff with it
+                        self.logger.debug("tUDPListen: JSON of type SERVER, passing to qServer")
+                        try:
+                            self.qServer.put(jsonin)
+                        except Queue.Full():
+                            self.logger.debug("tUDPListen: Failed to put json on qServer")
  
         self.logger.info("tUDPListen: Thread stopping")
         try:
