@@ -36,7 +36,7 @@ import logging
     DONE: UDP open sockets
     
     DONE: JSON encode outgoing messages
-    DONE: JSON decode incomming messages
+    DONE: JSON decode incoming messages
     
     DONE: JSON debug window
     Pretty JSON format for window?
@@ -54,16 +54,16 @@ import logging
     
     DONE: disable next button while waiting for query
     
-    read AT settings for PANID and ENCRYPTION from server and offer as defuats to the user on a new device
+    read AT settings for PANID and ENCRYPTION from server and offer as defaults to the user on a new device
     
     get JSON device file from network
     
-    offer susgested settings based on json
+    offer suggested settings based on json
     
     UUID in LCR JSON's so only listen for my own replies
-        either another field or dont hard code stages via id
+        either another field or don't hard code stages via id
     
-    if more that one server on the netowrk offer LCR target dropdown
+    if more that one server on the network offer LCR target dropdown
     
     fix self.die()
     
@@ -72,7 +72,7 @@ import logging
 
 INTRO = """Welcome to LLAP Config me wizard
     
-Please wait while we try to reach a LLAP Trasnfer service"""
+Please wait while we try to reach a LLAP Transfer service"""
 
 INTRO1 = """Welcome to LLAP Config me wizard
     
@@ -84,6 +84,9 @@ CONFIG = """Select your device config options"""
 
 END = """Your device has been configured"""
 
+PRESSTEXT = """Please press the Config button on your device"""
+PRESSTEXT1 = """Communicating with device"""
+
 
 class LLAPCongfigMeClient:
     """
@@ -92,7 +95,7 @@ class LLAPCongfigMeClient:
         pass requests onto LLAPConfigMeCore
     """
 
-    _version = 0.01
+    _version = 0.08
     
     _configFileDefault = "LLAPCM_defaults.cfg"
     _configFile = "LLAPCM.cfg"
@@ -135,9 +138,9 @@ class LLAPCongfigMeClient:
     
         # JSON Debug window Q
         self.qJSONDebug = Queue.Queue()
-        # LCR Reply Q, Incomming JSON's from the server
+        # LCR Reply Q, Incoming JSON's from the server
         self.qLCRReply = Queue.Queue()
-        # flag to show a server msg has been recieved
+        # flag to show a server msg has been received
         self.fServerUpdate = threading.Event()
 
     def _initLogging(self):
@@ -382,7 +385,7 @@ class LLAPCongfigMeClient:
     
     def _initTkVariables(self):
         self.logger.debug("Init Tk Variables")
-        # any tk varaibles we need to keep permentant
+        # any tk variables we need to keep permanent
         
         # init the entry variables we will need to reset between each run
         self._initEntryVariables()
@@ -390,14 +393,14 @@ class LLAPCongfigMeClient:
     def _initEntryVariables(self):
         self.logger.debug("Init entry Variables")
         # format for each entry is as follows
-        # 'commmand': [current Value, old Value, type Off Output]
+        # 'command': [current Value, old Value, type Off Output]
         #
         # type of Output
         # this is based on the format field from the json
-        # with the execption of ENKEY
-        # type is used in conjuction with how these fields are dispayed for user
-        # input and how we procees that for LCR output
-        # most are just stright copy outputs but some like ONOF and ENKEY require speical handeling
+        # with the exception of ENKEY
+        # type is used in conjunction with how these fields are displayed for user
+        # input and how we process that for LCR output
+        # most are just straight copy outputs but some like ONOF and ENKEY require special handling
         self.entry = {
                       "CHDEVID" : [tk.StringVar(), tk.StringVar(), 'ID'],
                       "PANID" : [tk.StringVar(), tk.StringVar(), 'ID'],
@@ -456,19 +459,19 @@ class LLAPCongfigMeClient:
         
         self._checkServerCount += 1
         if self._checkServer:
-            # carry on checking untill user moves from first page
+            # carry on checking until user moves from first page
             self.master.after(1000, self._checkServerUpdate)
 
     def _updateServerList(self):
         self.logger.debug("Updating Server list buttons")
         self.iframe.children['introText'].config(text=INTRO1)
         for network, server in self._servers.items():
-            # if we dont allready have a button create a new one
+            # if we don't all-ready have a button create a new one
             if network not in self._serverButtons.keys():
                 self._serverButtons[network] = tk.Button(self.iframe,
                                                          name="n{}".format(network),
                                                          text=network,
-                                                         command=lambda n=network:self._queryType(n),
+                                                         command=lambda n=network:self._displayPressButton(n),
                                                          state=tk.ACTIVE if server['state'] == "RUNNING" else tk.DISABLED
                                                          )
                 self._serverButtons[network].grid(row=5+len(self._serverButtons),
@@ -478,7 +481,34 @@ class LLAPCongfigMeClient:
               # need to update button state
               self._serverButtons[network].config(state=tk.ACTIVE if server['state'] == "RUNNING" else tk.DISABLED
                                                   )
-            
+
+    def _displayPressButton(self, network):
+        self.logger.debug("Displaying PressButton")
+        
+        self._network = network
+        
+        self.master.children[self._currentFrame].pack_forget()
+        
+    
+        self.pframe = tk.Frame(self.master, name='pressFrame', relief=tk.RAISED,
+                               borderwidth=2, width=self._widthMain,
+                               height=self._heightMain)
+        self.pframe.pack()
+        self._currentFrame = 'pressFrame'
+        
+        self._buildGrid(self.pframe)
+        
+        tk.Label(self.pframe, name='pressText', text=PRESSTEXT
+                 ).grid(row=1, column=0, columnspan=6, rowspan=4)
+
+        tk.Button(self.pframe, text='Back',
+                  command = self._startOver,
+                  ).grid(row=self._rows-2, column=4, sticky=tk.E)
+        tk.Button(self.pframe, name='next', text='Next',
+                  state=tk.DISABLED
+                  ).grid(row=self._rows-2, column=5, sticky=tk.W)
+        self.master.after(1, self._queryType)
+    
     def _displayConfig(self):
         self.logger.debug("Displaying Device type based config screen")
         self.master.children[self._currentFrame].pack_forget()
@@ -791,33 +821,42 @@ class LLAPCongfigMeClient:
         self._currentFrame = 'introFrame'
         # clear out entry variables
         self._initEntryVariables
-
+    
     def _displayProgress(self):
         self.logger.debug("Displaying progress pop up")
         
         # disable current Next Button
         self.master.children[self._currentFrame].children['next'].config(state=tk.DISABLED)
         
-        position = self.master.geometry().split("+")
-        
-        self.progressWindow = tk.Toplevel()
-        self.progressWindow.geometry("+{}+{}".format(
-                                             int(position[1])+self._widthMain/4,
-                                             int(position[2])+self._heightMain/4
-                                                     )
-                                     )
+        if self._currentFrame != "pressFrame":
+            # display a popup progress bar window
+            position = self.master.geometry().split("+")
             
-        self.progressWindow.title("Working")
+            self.progressWindow = tk.Toplevel()
+            self.progressWindow.geometry("+{}+{}".format(
+                                                 int(position[1])+self._widthMain/4,
+                                                 int(position[2])+self._heightMain/4
+                                                         )
+                                         )
+                
+            self.progressWindow.title("Working")
 
-        tk.Label(self.progressWindow,
-                 text="Communicating with device please wait").pack()
+            tk.Label(self.progressWindow,
+                     text="Communicating with device please wait").pack()
 
-        self.progressBar = ttk.Progressbar(self.progressWindow,
-                                           orient="horizontal", length=200,
-                                           mode="indeterminate")
-        self.progressBar.pack()
-        self.progressBar.start()
-    
+            self.progressBar = ttk.Progressbar(self.progressWindow,
+                                               orient="horizontal", length=200,
+                                               mode="indeterminate")
+            self.progressBar.pack()
+            self.progressBar.start()
+        else:
+            # use the progress bar in the pressFrame
+            self.progressBar = ttk.Progressbar(self.pframe,
+                                               orient="horizontal", length=200,
+                                               mode="indeterminate")
+            self.progressBar.grid(row=7, column=1, columnspan=4)
+            self.progressBar.start()
+                
     def _checkAdvance(self):
         self.logger.debug("Checking advance input")
         if len(self.entry["ENKEY"][0].get()) == 32 or len(self.entry["ENKEY"][0].get()) == 0:
@@ -848,7 +887,7 @@ class LLAPCongfigMeClient:
                 "network":self.device['network'],
                 "data":{
                     "id": 3,
-                    "timeout": 60,
+                    "timeout": self.config.get('LCR', 'timeout'),
                     "keepAwake":self._keepAwake,
                     "devType": self.device['DTY'],
                     "toQuery": query
@@ -861,7 +900,7 @@ class LLAPCongfigMeClient:
         """
             The following are use to append the correct LLAP commands
             to the passed query and return the altered query
-            based on the type of Entery
+            based on the type of Entry
             
         """
         if value[2] == 'String':
@@ -945,23 +984,22 @@ class LLAPCongfigMeClient:
 
         return query
 
-    def _queryType(self, network):
+    def _queryType(self):
         """ Time to send a query to see if we have a device in pair mode
             this is going to need time out's? possible retries
             devtype and apver request
         """
         self.logger.debug("Query type")
         self._checkServer = False
-        self._network = network
         # TODO: add a line here to disable NEXT button on pfame
         query = [
                  {'command': "DTY"},
                  {'command': "APVER"},
                  {'command': "CHDEVID"}
                 ]
-        # TODO: set network for inital request based on chosen server
+        # TODO: set network for initial request based on chosen server
         lcr = {"type": "LCR",
-               "network":network,
+               "network":self._network,
                "data":{
                        "id": 1,
                        "timeout": 30,   # short time out
@@ -986,29 +1024,31 @@ class LLAPCongfigMeClient:
             # TODO: handle failed due to timeout
             self.logger.debug("LCR timeout")
             # display pop up ask user to check configme mode and try again
-            if tkMessageBox.askyesno("Comunications Timeout",
-                                     ("Please check the deivce is in CONFIGME mode and \n"
+            if tkMessageBox.askyesno("Communications Timeout",
+                                     ("Please check the device is in CONFIGME mode and \n"
                                       "Click yes to retry\n"
                                       "No to return to pervious screen")
                                      ):
                 # send query again
                 self._sendRequest(self._lastLCR[-1])
             else:
-                pass
+                if self._currentFrame == "pressFrame":
+                    self._startOver
     
         elif reply['state'] == "FAIL_RETRY":
             # TODO: handle failed due to retry
             self.logger.debug("LCR retry error")
             # display pop up ask user to check configme mode and try again
-            if tkMessageBox.askyesno("Comunications Timeout",
-                                     ("Please check the deivce is in CONFIGME mode and \n"
+            if tkMessageBox.askyesno("Communications Timeout",
+                                     ("Please check the device is in CONFIGME mode and \n"
                                       "Click yes to retry\n"
                                       "No to return to pervious screen")
                                      ):
                 # send query again
                 self._sendRequest(self._lastLCR[-1])
             else:
-                pass
+                if self._currentFrame == "pressFrame":
+                    self._startOver
         elif reply['state'] == "PASS":
             # got a good reply
             self.logger.debug("got a good reply")
@@ -1151,10 +1191,11 @@ class LLAPCongfigMeClient:
                         pass
         # TODO: clean up
         self.qLCRReply.task_done()
-
+    
     def _askCurrentConfig(self):
         # assuming we know what it is ask for the current config
         self.logger.debug("Ask current config")
+        self.pframe.children['pressText'].config(text=PRESSTEXT1)
         query = [
                  {'command': "PANID"},
                  {'command': "RETRIES"},
@@ -1209,9 +1250,10 @@ class LLAPCongfigMeClient:
             self._replyCheck()
         else:
             # TODO: we need to cancel the LCR with the core
-            # TODO: UDP JSON has no cancle but it will time out
+            # TODO: UDP JSON has no cancel but it will time out
             #            self._lcm.cancelLCR()
-            pass
+            if self._currentFrame == "pressFrame":
+                self._startOver
             
     def _sendRequest(self, lcr):
         self.logger.debug("Sending Request to LCMC")
@@ -1227,16 +1269,24 @@ class LLAPCongfigMeClient:
             if time()-self._starttime > self._lastLCR[-1]['data']['timeout']+10:
                 # if timeout passed, let user know no reply
                 # close wait diag
-                self.progressWindow.destroy()
-                self.master.children[self._currentFrame].children['next'].config(state=tk.ACTIVE)
+                if self._currentFrame != "pressFrame":
+                    try:
+                        self.progressWindow.destroy()
+                    except:
+                        pass
+                    self.master.children[self._currentFrame].children['next'].config(state=tk.ACTIVE)
                 self._processNoReply()
             else:
                 # update wait diag and check again
                 self.master.after(500, self._replyCheck)
         else:
             # close wait diag and return reply
-            self.progressWindow.destroy()
-            self.master.children[self._currentFrame].children['next'].config(state=tk.ACTIVE)
+            if self._currentFrame != "pressFrame":
+                try:
+                    self.progressWindow.destroy()
+                except:
+                    pass
+                self.master.children[self._currentFrame].children['next'].config(state=tk.ACTIVE)
             self.logger.debug("processing reply(replyCheck)")
             self._processReply()
     
@@ -1330,11 +1380,11 @@ class LLAPCongfigMeClient:
             while self.qLCRReply.empty() and time()-self._starttime < 15:
                 sleep(0.1)
     
-        # cancle anything outstanding
-        # TODO: we have no cancle, we have time outs
+        # cancel anything outstanding
+        # TODO: we have no cancel, we have time outs
         # self._lcm.cancelLCR()
         # disconnect resources
-        # TODO: close scokets
+        # TODO: close sockets
         # self._lcm.disconnect_transport()
         self._writeConfig()
         self.tUDPSendStop.set()
