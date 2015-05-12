@@ -27,6 +27,7 @@ import string
 import re
 from time import sleep, asctime, time
 import logging
+import uuid
 
 """
     Big TODO list
@@ -118,6 +119,7 @@ class LLAPCongfigMeClient:
     _servers = {}
     _serverButtons = {}
     _serverQueryJSON = json.dumps({"type": "Server", "network": "ALL"})
+    _configState = 0
     
     _validID = "ABCDEFGHIJKLMNOPQRSTUVWXYZ-#@?\\*"
     _validData = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !\"#$%&'()*+,-.:;<=>?@[\\\/]^_`{|}~"
@@ -819,6 +821,7 @@ class LLAPCongfigMeClient:
         self.master.children[self._currentFrame].pack_forget()
         self.iframe.pack()
         self._currentFrame = 'introFrame'
+        self._configState = 0
         # clear out entry variables
         self._initEntryVariables
     
@@ -882,11 +885,11 @@ class LLAPCongfigMeClient:
         query.append({'command': "REBOOT"}) # we always send at least a reboot
 
         self._keepAwake = 0
-
+        self._configState = 3
         lcr = {"type": "LCR",
                 "network":self.device['network'],
                 "data":{
-                    "id": 3,
+                    "id": str(uuid.uuid4()),
                     "timeout": self.config.get('LCR', 'timeout'),
                     "keepAwake":self._keepAwake,
                     "devType": self.device['DTY'],
@@ -997,11 +1000,11 @@ class LLAPCongfigMeClient:
                  {'command': "APVER"},
                  {'command': "CHDEVID"}
                 ]
-        # TODO: set network for initial request based on chosen server
+        self._configState = 1
         lcr = {"type": "LCR",
                "network":self._network,
                "data":{
-                       "id": 1,
+                       "id": str(uuid.uuid4()),
                        "timeout": 30,   # short time out
                        "toQuery": query
                        }
@@ -1062,7 +1065,7 @@ class LLAPCongfigMeClient:
                 self.logger.debug("reply is expected ID")
                 
                 # process reply
-                if reply['id'] == 1:
+                if self._configState == 1:
                     # this was a query type request
                     if float(reply['replies']['APVER']['reply']) >= 2.0:
                         # valid apver
@@ -1079,42 +1082,43 @@ class LLAPCongfigMeClient:
                                 
                                 # ask user about reseting device if devID is not ??
                                 # for testing lets just reset if devID is MB
-                                if self.device['devID'] != "??":
-                                    if tkMessageBox.askyesno("Device Previously configured",
-                                                             ("This device has been previously configured, \n"
-                                                              "Do you wish to reset the device to defaults (Yes),\n"
-                                                              "Or to alter the current configuration (No)")
-                                                             ):
-                                        query = [
-                                                 {'command': "LLAPRESET"},
-                                                 {'command': "CHDEVID"}
-                                                ]
-                                                
-                                        self.logger.debug("Setting keepAwake")
-                                        self._keepAwake = 1
-                                        
-                                        lcr = {"type": "LCR",
-                                               "network":self.device['network'],
-                                               "data":{
-                                                       "id": 5,
-                                                       "timeout": 60,
-                                                       "keepAwake":self._keepAwake,
-                                                       "devType": self.device['DTY'],
-                                                       "toQuery": query
-                                                      }
-                                              }
-                                                
-                                        self._lastLCR.append(lcr)
-                                        self._sendRequest(lcr)
-                                    else:
-                                        self._askCurrentConfig()
-                                else:
-                                    self._askCurrentConfig()
+#                                if self.device['devID'] != "??":
+#                                    if tkMessageBox.askyesno("Device Previously configured",
+#                                                             ("This device has been previously configured, \n"
+#                                                              "Do you wish to reset the device to defaults (Yes),\n"
+#                                                              "Or to alter the current configuration (No)")
+#                                                             ):
+#                                        query = [
+#                                                 {'command': "LLAPRESET"},
+#                                                 {'command': "CHDEVID"}
+#                                                ]
+#                                                
+#                                        self.logger.debug("Setting keepAwake")
+#                                        self._keepAwake = 1
+#
+#                                        self._configState = 5
+#                                        lcr = {"type": "LCR",
+#                                               "network":self.device['network'],
+#                                               "data":{
+#                                                       "id": str(uuid.uuid4()),
+#                                                       "timeout": self.config.get('LCR', 'timeout'),
+#                                                       "keepAwake":self._keepAwake,
+#                                                       "devType": self.device['DTY'],
+#                                                       "toQuery": query
+#                                                      }
+#                                              }
+#                                                
+#                                        self._lastLCR.append(lcr)
+#                                        self._sendRequest(lcr)
+#                                    else:
+#                                        self._askCurrentConfig()
+#                                else:
+                                self._askCurrentConfig()
                                 
                     else:
                         # apver mismatch, show error screen
                         pass
-                elif reply['id'] == 2:
+                elif self._configState == 2:
                     self.logger.debug("reply id is 2")
                     # this was an information request
                     # populate fields
@@ -1153,7 +1157,7 @@ class LLAPCongfigMeClient:
                     self._keepAwake = 1
                     self._displayConfig()
 
-                elif reply['id'] == 3:
+                elif self._configState == 3:
                     # this was a config request
                     # TODO: check replies were good and let user know device is now ready
                     enkeyCount = 0
@@ -1178,9 +1182,9 @@ class LLAPCongfigMeClient:
 
                     # show end screen
                     self._displayEnd()
-                elif reply['id'] == 4:
+                elif self._configState == 4:
                     pass
-                elif reply['id'] == 5:
+                elif self._configState == 5:
                     # have done a reset so should get back factory settings
                     # check devi id is now ?? and update local
                     self.device['devID'] = reply['replies']['CHDEVID']['reply']
@@ -1220,10 +1224,11 @@ class LLAPCongfigMeClient:
         self.logger.debug("Setting keepAwake")
         self._keepAwake = 1
         
+        self._configState = 2
         lcr = {"type": "LCR",
                 "network":self.device['network'],
                 "data":{
-                    "id": 2,
+                    "id": str(uuid.uuid4()),
                     "timeout": 60,
                     "keepAwake":self._keepAwake,
                     "devType": self.device['DTY'],
@@ -1364,10 +1369,11 @@ class LLAPCongfigMeClient:
             self.logger.debug("Stopping keepAwake")
             self._keepAwake = 0
             query = [{'command': "CONFIGEND"}]
+            self._configState = 4
             lcr = {"type": "LCR",
                     "network":self.device['network'],
                     "data":{
-                        "id": 4,
+                        "id": str(uuid.uuid4()),
                         "keepAwake":self._keepAwake,
                         "timeout": 30,                  # short time out on this one
                         "devType": self.device['DTY'],
