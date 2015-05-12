@@ -177,6 +177,7 @@
     "type":"Server",    // type SERVER for server status request
     "network":"Serial",     // require, network source, "ALL", "Serial" are current defined values
     "state":"RUNNING",  // overview state retruned by server RUNNING, ERROR
+    "timestamp":"12 Mar 2014 14:19:21 +0000",          // optional, always provided by the Gateway
     "data":{}           // optional, config server commands or expaneded run time info from server
 }
 

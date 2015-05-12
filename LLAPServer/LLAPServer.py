@@ -406,10 +406,14 @@ is running then run in the current terminal
                     except Queue.Empty():
                         pass
                     else:
-                        self.qUDPSend.put(json.dumps({"type": "Server", "network": self.config.get('Serial', 'network'), "state": self._state}))
-            
+                        self.qUDPSend.put(json.dumps({"type": "Server",
+                                                     "network": self.config.get('Serial', 'network'),
+                                                     "state": self._state,
+                                                     "timestamp": strftime("%d %b %Y %H:%M:%S +0000", gmtime())
+                                                     })
+                                          )
+                            
                 # flash led's if GPIO debug
-                
                 self.tMainStop.wait(0.5)
 
         except KeyboardInterrupt:
