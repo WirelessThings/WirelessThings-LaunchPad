@@ -39,7 +39,7 @@ import logging
     DONE: JSON decode incomming messages
     
     DONE: JSON debug window
-    Pretty JSON formation for window?
+    Pretty JSON format for window?
     
     DONE: type: SERVER status check on start up
         basic PING
@@ -65,6 +65,8 @@ import logging
     
     if more that one server on the netowrk offer LCR target dropdown
     
+    fix self.die()
+    
 """
 
 
@@ -75,8 +77,8 @@ Please wait while we try to reach a LLAP Trasnfer service"""
 INTRO1 = """Welcome to LLAP Config me wizard
     
 A LLAP Transfer service has be found running on this network.
-    
-Please press the Config Me button on your device and click next"""
+
+Please select a service to use from the list bellow"""
 
 CONFIG = """Select your device config options"""
 
@@ -110,6 +112,9 @@ class LLAPCongfigMeClient:
     _lastLCR = []
     _keepAwake = 0
     _currentFrame = None
+    _servers = {}
+    _serverButtons = {}
+    _serverQueryJSON = json.dumps({"type": "Server", "network": "ALL"})
     
     _validID = "ABCDEFGHIJKLMNOPQRSTUVWXYZ-#@?\\*"
     _validData = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !\"#$%&'()*+,-.:;<=>?@[\\\/]^_`{|}~"
@@ -132,8 +137,8 @@ class LLAPCongfigMeClient:
         self.qJSONDebug = Queue.Queue()
         # LCR Reply Q, Incomming JSON's from the server
         self.qLCRReply = Queue.Queue()
-        # flag to show the server is alive
-        self.fServerGood = threading.Event()
+        # flag to show a server msg has been recieved
+        self.fServerUpdate = threading.Event()
 
     def _initLogging(self):
         """ now we have the config file loaded and the command line args setup
@@ -226,7 +231,7 @@ class LLAPCongfigMeClient:
             # TODO: do we have an error form the UDP to show?
         else:
             # dispatch a server status request
-            self.qUDPSend.put(json.dumps({"type": "Server"}))
+            self.qUDPSend.put(self._serverQueryJSON)
             
             self._displayIntro()
             
@@ -322,7 +327,7 @@ class LLAPCongfigMeClient:
             UDPListenSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         except socket.error:
             self.logger.exception("tUDPListen: Failed to create socket, stopping")
-            # TODO: need to send message to user saying could not open socket
+            # TODO: need to send message to user saying could not create socket object
             self.die()
             return
 
@@ -335,6 +340,7 @@ class LLAPCongfigMeClient:
             UDPListenSocket.bind(('', int(self.config.get('UDP', 'listen_port'))))
         except socket.error:
             self.logger.exception("tUDPListen: Failed to bind port")
+            # TODO: need to send message to user saying could not open socket
             self.die()
             return
         UDPListenSocket.setblocking(0)
@@ -363,9 +369,10 @@ class LLAPCongfigMeClient:
                 elif jsonin['type'] == "Server":
                     # TODO: we have a SERVER json do stuff with it
                     self.logger.debug("tUDPListen: JSON of type SERVER")
-                    if jsonin['state'] == "RUNNING":
-                        self.fServerGood.set()
-
+                    # update server entry in our list
+                    self._servers[jsonin['network']] = jsonin
+                    self.fServerUpdate.set()
+            
         self.logger.info("tUDPListen: Thread stopping")
         try:
             UDPListenSocket.close()
@@ -415,7 +422,7 @@ class LLAPCongfigMeClient:
         self._buildGrid(self.iframe)
         
         tk.Label(self.iframe, name='introText', text=INTRO
-                 ).grid(row=1, column=0, columnspan=6, rowspan=self._rows-4)
+                 ).grid(row=1, column=0, columnspan=6, rowspan=4)
 
         tk.Button(self.iframe, text='Back', state=tk.DISABLED
                   ).grid(row=self._rows-2, column=4, sticky=tk.E)
@@ -423,36 +430,55 @@ class LLAPCongfigMeClient:
                   state=tk.DISABLED
                   ).grid(row=self._rows-2, column=5, sticky=tk.W)
         self._checkServerCount = 0
+        self._checkServer = True
         self.master.after(1000, self._checkServerUpdate)
     
     def _checkServerUpdate(self):
-        self.logger.debug("Checking server reply flag")
-        if self.fServerGood.is_set():
-            #we have a good server update Intro page
-            self.logger.debug("Server found ok")
-            self.iframe.children['introText'].config(text=INTRO1)
-            self.iframe.children['next'].config(state=tk.ACTIVE)
-            return
-        elif self._checkServerCount == 5:
-            # half of time out send request again
-            self.qUDPSend.put(json.dumps({"type": "Server"}))
-        elif self._checkServerCount == 10:
-            # timeout (should be about 30 seconds
-            # cant find a server display pop up and quit?
-            if tkMessageBox.askyesno("Server Timeout",
-                                     ("Unable to get a response from a LLAPServer \n"
-                                      "Click Yes to try again \n"
-                                      "Click No to Quit")
-                                     ):
-                # try again
-                self.qUDPSend.put(json.dumps({"type": "Server"}))
-                self._checkServerCount = 0
-            else:
-                self._endConfigMe()
-                return
-        self._checkServerCount += 1
-        self.master.after(1000, self._checkServerUpdate)
+#        self.logger.debug("Checking server reply flag")
+        if self.fServerUpdate.is_set():
+            # flag set, re-draw buttons
+            self._updateServerList()
+            # clear flag and schedule next check
+            self.fServerUpdate.clear()
         
+        
+        if self._checkServerCount == 5:
+            # send out another status ping
+            self.qUDPSend.put(self._serverQueryJSON)
+        elif self._checkServerCount == 10:
+            # let user know we are still looking but have not found anything yet
+            if len(self._servers) == 0:
+                pass
+
+            # send out another query and reset count
+            self._checkServerCount = 0
+            self.qUDPSend.put(self._serverQueryJSON)
+        
+        self._checkServerCount += 1
+        if self._checkServer:
+            # carry on checking untill user moves from first page
+            self.master.after(1000, self._checkServerUpdate)
+
+    def _updateServerList(self):
+        self.logger.debug("Updating Server list buttons")
+        self.iframe.children['introText'].config(text=INTRO1)
+        for network, server in self._servers.items():
+            # if we dont allready have a button create a new one
+            if network not in self._serverButtons.keys():
+                self._serverButtons[network] = tk.Button(self.iframe,
+                                                         name="n{}".format(network),
+                                                         text=network,
+                                                         command=lambda n=network:self._queryType(n),
+                                                         state=tk.ACTIVE if server['state'] == "RUNNING" else tk.DISABLED
+                                                         )
+                self._serverButtons[network].grid(row=5+len(self._serverButtons),
+                                                  column=1,
+                                                  columnspan=4, sticky=tk.E+tk.W)
+            else:
+              # need to update button state
+              self._serverButtons[network].config(state=tk.ACTIVE if server['state'] == "RUNNING" else tk.DISABLED
+                                                  )
+            
     def _displayConfig(self):
         self.logger.debug("Displaying Device type based config screen")
         self.master.children[self._currentFrame].pack_forget()
@@ -919,20 +945,23 @@ class LLAPCongfigMeClient:
 
         return query
 
-    def _queryType(self):
+    def _queryType(self, network):
         """ Time to send a query to see if we have a device in pair mode
             this is going to need time out's? possible retries
             devtype and apver request
         """
         self.logger.debug("Query type")
+        self._checkServer = False
+        self._network = network
         # TODO: add a line here to disable NEXT button on pfame
         query = [
                  {'command': "DTY"},
                  {'command': "APVER"},
                  {'command': "CHDEVID"}
                 ]
+        # TODO: set network for inital request based on chosen server
         lcr = {"type": "LCR",
-               "network":"ALL",
+               "network":network,
                "data":{
                        "id": 1,
                        "timeout": 30,   # short time out
@@ -1366,8 +1395,15 @@ class LLAPCongfigMeClient:
                              'Description': 'Error loading DevList file'
                             }]
 
-
-
+#    def die(self):
+#        """For some reason we can not longer go forward
+#            Try cleaning up what we can and exit
+#        """
+#        self.logger.critical("DIE")
+##        self._endConfigMe()
+#        self._cleanUp()
+#
+#        sys.exit(1)
 
 if __name__ == "__main__":
     app = LLAPCongfigMeClient()
