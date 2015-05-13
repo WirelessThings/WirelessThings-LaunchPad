@@ -144,6 +144,7 @@ class LLAPCongfigMeClient:
         self.qLCRReply = Queue.Queue()
         # flag to show a server msg has been received
         self.fServerUpdate = threading.Event()
+        self.fWaitingForReply = threading.Event()
 
     def _initLogging(self):
         """ now we have the config file loaded and the command line args setup
@@ -362,7 +363,7 @@ class LLAPCongfigMeClient:
                     self.logger.debug("tUDPListen: JSON of type LLAP")
                     # got a LLAP type json, need to generate the LLAP message and
                     # TODO: we should pass on LLAP type to the JSON window if enabled
-                    
+                    pass
                 elif jsonin['type'] == "LCR":
                     # we have a LLAPConfigRequest reply pass it back to the GUI to deal with
                     self.logger.debug("tUDPListen: JSON of type LCR, passing to qLCRReply")
@@ -429,11 +430,6 @@ class LLAPCongfigMeClient:
         tk.Label(self.iframe, name='introText', text=INTRO
                  ).grid(row=1, column=0, columnspan=6, rowspan=4)
 
-        tk.Button(self.iframe, text='Back', state=tk.DISABLED
-                  ).grid(row=self._rows-2, column=4, sticky=tk.E)
-        tk.Button(self.iframe, name='next', text='Next', command=self._queryType,
-                  state=tk.DISABLED
-                  ).grid(row=self._rows-2, column=5, sticky=tk.W)
         self._checkServerCount = 0
         self._checkServer = True
         self.master.after(1000, self._checkServerUpdate)
@@ -506,9 +502,6 @@ class LLAPCongfigMeClient:
         tk.Button(self.pframe, text='Back',
                   command = self._startOver,
                   ).grid(row=self._rows-2, column=4, sticky=tk.E)
-        tk.Button(self.pframe, name='next', text='Next',
-                  state=tk.DISABLED
-                  ).grid(row=self._rows-2, column=5, sticky=tk.W)
         self.master.after(1, self._queryType)
     
     def _displayConfig(self):
@@ -630,9 +623,10 @@ class LLAPCongfigMeClient:
         tk.Button(self.cframe, text='Advanced', command=self._displayAdvance
                   ).grid(row=self._rows-2, column=2, columnspan=2,
                          sticky=tk.E+tk.W)
-        tk.Button(self.cframe, text='Back', state=tk.DISABLED
+        tk.Button(self.cframe, text='Back', state=tk.ACTIVE,
+                  command=self._startOver,
                   ).grid(row=self._rows-2, column=4, sticky=tk.E)
-        tk.Button(self.cframe, name='next', text='Next', command=self._sendConfigRequest
+        tk.Button(self.cframe, name='next', text='Done', command=self._sendConfigRequest
                   ).grid(row=self._rows-2, column=5, sticky=tk.W)
     
     def _entryCopy(self):
@@ -818,10 +812,12 @@ class LLAPCongfigMeClient:
 
     def _startOver(self):
         self.logger.debug("Starting over")
+        self._stopKeepAwake()
         self.master.children[self._currentFrame].pack_forget()
         self.iframe.pack()
         self._currentFrame = 'introFrame'
         self._configState = 0
+        self.fWaitingForReply.clear()
         # clear out entry variables
         self._initEntryVariables
     
@@ -829,7 +825,8 @@ class LLAPCongfigMeClient:
         self.logger.debug("Displaying progress pop up")
         
         # disable current Next Button
-        self.master.children[self._currentFrame].children['next'].config(state=tk.DISABLED)
+        if self._currentFrame is not "pressFrame" and self._currentFrame is not "introFrame":
+            self.master.children[self._currentFrame].children['next'].config(state=tk.DISABLED)
         
         if self._currentFrame != "pressFrame":
             # display a popup progress bar window
@@ -1015,6 +1012,9 @@ class LLAPCongfigMeClient:
     
     def _processReply(self, json):
         self.logger.debug("Processing reply")
+        # no longer waiting on a reply
+        self.fWaitingForReply.clear()
+        # split up the json
         reply = json['data']
         self.logger.debug("id: {}, devType:{}, Replies:{}".format(reply['id'],
                                                                   reply.get('devType', ""),
@@ -1247,45 +1247,47 @@ class LLAPCongfigMeClient:
         self.logger.debug("Sending Request to LCMC")
         self._displayProgress()
         self._starttime = time()
+        self.fWaitingForReply.set()
         self.qUDPSend.put(json.dumps(lcr))
         self._replyCheck()
     
     def _replyCheck(self):
         # look for a reply
         # TODO: wait on UDP reply (how long)
-        if self.qLCRReply.empty():
-            if time()-self._starttime > self._lastLCR[-1]['data']['timeout']+10:
-                # if timeout passed, let user know no reply
-                # close wait diag
-                if self._currentFrame != "pressFrame":
-                    try:
-                        self.progressWindow.destroy()
-                    except:
-                        pass
-                    self.master.children[self._currentFrame].children['next'].config(state=tk.ACTIVE)
-                self._processNoReply()
+        if self.fWaitingForReply.is_set():
+            if self.qLCRReply.empty():
+                if time()-self._starttime > self._lastLCR[-1]['data']['timeout']+10:
+                    # if timeout passed, let user know no reply
+                    # close wait diag
+                    if self._currentFrame != "pressFrame":
+                        try:
+                            self.progressWindow.destroy()
+                        except:
+                            pass
+                        self.master.children[self._currentFrame].children['next'].config(state=tk.ACTIVE)
+                    self._processNoReply()
+                else:
+                    # update wait diag and check again
+                    self.master.after(500, self._replyCheck)
             else:
-                # update wait diag and check again
-                self.master.after(500, self._replyCheck)
-        else:
-            json = self.qLCRReply.get()
-            reply = json['data']
-            # check reply ID with Expected ID
-            if reply['id'] != self._lastLCR[-1]['data']['id']:
-                # added this to cope with receiving multiple replies
-                # e.g. if there are multiple network interfaces active
-                self.master.after(500, self._replyCheck)
-            else:
-                self.logger.debug("reply is expected ID")
-                # close wait diag and return reply
-                if self._currentFrame != "pressFrame":
-                    try:
-                        self.progressWindow.destroy()
-                    except:
-                        pass
-                    self.master.children[self._currentFrame].children['next'].config(state=tk.ACTIVE)
-                self._processReply(json)
-            self.qLCRReply.task_done()
+                json = self.qLCRReply.get()
+                # check reply ID with Expected ID
+                if json['data']['id'] != self._lastLCR[-1]['data']['id']:
+                    # added this to cope with receiving multiple replies
+                    # e.g. if there are multiple network interfaces active
+                    self.master.after(500, self._replyCheck)
+                else:
+                    self.logger.debug("reply is expected ID: {}".format(json['data']['id']))
+                    # close wait diag and return reply
+                    if self._currentFrame != "pressFrame":
+                        try:
+                            self.progressWindow.destroy()
+                        except:
+                            pass
+                        if self._currentFrame is not "pressFrame" and self._currentFrame is not "introFrame":
+                            self.master.children[self._currentFrame].children['next'].config(state=tk.ACTIVE)
+                    self._processReply(json)
+                self.qLCRReply.task_done()
     
     def _buildGrid(self, frame, quit=True, halfSize=False):
         self.logger.debug("Building Grid for {}".format(frame.winfo_name()))
@@ -1357,6 +1359,21 @@ class LLAPCongfigMeClient:
         # if we were talking to a device we should send a CONFIGEND
         # TODO: send JSON in stead
         
+        self._stopKeepAwake()
+    
+        # cancel anything outstanding
+        # TODO: we have no cancel, we have time outs
+        # self._lcm.cancelLCR()
+        # disconnect resources
+        # TODO: close sockets
+        # self._lcm.disconnect_transport()
+        self._writeConfig()
+        self.tUDPSendStop.set()
+        self.tUDPSend.join()
+        self.tUDPListenStop.set()
+        self.tUDPListen.join()
+    
+    def _stopKeepAwake(self):
         if self._keepAwake:
             self.logger.debug("Stopping keepAwake")
             self._keepAwake = 0
@@ -1372,24 +1389,12 @@ class LLAPCongfigMeClient:
                         "toQuery": query
                         }
                     }
-            self.logger.debug("Sending ConfigEnd LCMC")
+            self.logger.debug("Sending ConfigEnd LCR")
             self._starttime = time()
             self.qUDPSend.put(json.dumps(lcr))
-            while self.qLCRReply.empty() and time()-self._starttime < 15:
+            while self.qLCRReply.empty() and time()-self._starttime < 10:
                 sleep(0.1)
-    
-        # cancel anything outstanding
-        # TODO: we have no cancel, we have time outs
-        # self._lcm.cancelLCR()
-        # disconnect resources
-        # TODO: close sockets
-        # self._lcm.disconnect_transport()
-        self._writeConfig()
-        self.tUDPSendStop.set()
-        self.tUDPSend.join()
-        self.tUDPListenStop.set()
-        self.tUDPListen.join()
-    
+
     def _checkArgs(self):
         self.logger.debug("Parse Args")
         parser = argparse.ArgumentParser(description='LLAP Config Me Client')
