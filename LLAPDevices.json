@@ -217,6 +217,11 @@
                         "Command":"SLEEPM",
                         "Format":"SleepMode",
                         "Description":"Set and return the sleep mode. (LLAP 2.0). AP_SLEEP_INTERRUPT = 8 \n AP_SLEEP_CYCLIC = 16 \n AP_SLEEP_ONESHOT = 32 "
+                        },
+                        {
+                        "Command":"RSSI",
+                        "Format":"Int",
+                        "Description":"Request an RSSI reading from the device, Returns a negative dBm RSSI of the RSSI enquiry message when received"
                         }
                         ],
     "Cyclic Commands":[
