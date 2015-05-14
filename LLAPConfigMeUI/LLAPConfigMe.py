@@ -357,8 +357,10 @@ class LLAPCongfigMeClient:
             if ready[0]:
                 (data, address) = UDPListenSocket.recvfrom(2048)
                 self.logger.debug("tUDPListen: Received JSON: {} From: {}".format(data, address))
+                # TODO: Test its actuall json/catch errors
                 jsonin = json.loads(data)
                 self.qJSONDebug.put([data, "RX"])
+                # TODO: Check for keys before trying to use them
                 if jsonin['type'] == "LLAP":
                     self.logger.debug("tUDPListen: JSON of type LLAP")
                     # got a LLAP type json, need to generate the LLAP message and
@@ -414,7 +416,8 @@ class LLAPCongfigMeClient:
                       "SNL" : [tk.StringVar(), tk.StringVar(), 'ReadOnlyHex'],
                       "SNH" : [tk.StringVar(), tk.StringVar(), 'ReadOnlyHex'],
                       "ENC" : [tk.IntVar(), tk.IntVar(), 'ONOFF'],
-                      "ENKEY" : [tk.StringVar(), tk.StringVar(), 'ENKey']
+                      "ENKEY" : [tk.StringVar(), tk.StringVar(), 'ENKey'],
+                      "RSSI" : [tk.IntVar(), tk.IntVar(), 'Int']
                      }
 
     def _displayIntro(self):
@@ -501,9 +504,136 @@ class LLAPCongfigMeClient:
 
         tk.Button(self.pframe, text='Back',
                   command = self._startOver,
-                  ).grid(row=self._rows-2, column=4, sticky=tk.E)
+                  ).grid(row=0, column=1, sticky=tk.W)
         self.master.after(1, self._queryType)
     
+    def _displaySimpleConfig(self):
+        self.logger.debug("Displaying Device type based simple config screen")
+        self.master.children[self._currentFrame].pack_forget()
+                
+        self.sframe = tk.Frame(self.master, name='simpleFrame', relief=tk.RAISED,
+                               borderwidth=2, width=self._widthMain,
+                               height=self._heightMain)
+        self.sframe.pack()
+        self._currentFrame = 'simpleFrame'
+
+        self._buildGrid(self.sframe)
+        
+        # device name and rssi (topbar)
+        tk.Label(self.sframe,
+                 text="{}".format(self.devices[self.device['id']]['Name'])
+                 ).grid(row=0, column=0, columnspan=6)
+        tk.Label(self.sframe,
+                 text="RSSI: -{}".format(self.entry['RSSI'][0].get()),
+                 ).grid(row=0, column=4)
+    
+        # buttons
+        tk.Button(self.sframe, text='Back', state=tk.ACTIVE,
+                  command=self._startOver,
+                  ).grid(row=0, column=1, sticky=tk.W)
+        tk.Button(self.sframe, name='next', text='Done',
+                 command=self._sendConfigRequest
+                 ).grid(row=self._rows-4, column=2, columnspan=2,
+                        sticky=tk.E+tk.W)
+        tk.Button(self.sframe, name='reset', text='Reset to Defaults',
+                  #command=self._resetDefautls
+                  ).grid(row=self._rows-3, column=2, columnspan=2,
+                         sticky=tk.E+tk.W)
+        tk.Button(self.sframe, text='Advanced Config',
+                  command=self._displayConfig
+                  ).grid(row=self._rows-2, column=2, columnspan=2,
+                         sticky=tk.E+tk.W)
+    
+        # description
+        tk.Label(self.sframe,
+                 text="{}".format(self.devices[self.device['id']]['Description']),
+                 wraplength=self._widthMain/6*4,
+                 ).grid(row=1, column=1, columnspan=4, rowspan=3)
+    
+        # device ID
+        tk.Label(self.sframe, text="Device ID:").grid(row=4, column=1,
+                                                      sticky=tk.E)
+        tk.Label(self.sframe, textvariable=self.entry['CHDEVID'][0]
+                 ).grid(row=4, column=3, sticky=tk.W+tk.E)
+        tk.Button(self.sframe, text="Change", command=self._displayChangeDevID
+                  ).grid(row=4, column=4)
+    
+        r = 6 # start row for next set of options
+        
+        # if supports message
+        for option in self.devices[self.device['id']]['Options']:
+            if option['Command'] == "MSG":
+                # display message filed
+                tk.Label(self.sframe, text="Message text:"
+                         ).grid(row=r, column=1,sticky=tk.E)
+                e = tk.Entry(self.sframe,
+                             textvariable=self.entry[option['Command']][0],
+                             name=option['Command'].lower()
+                             )
+                e.grid(row=r, column=3, columnspan=2, sticky=tk.W+tk.E)
+                e.config(validate='key',
+                         invalidcommand='bell',
+                         validatecommand=self.vUpper)
+                self._devIDInputs.append(e)
+                r +=2
+    
+
+
+    def _displayChangeDevID(self):
+        self.logger.debug("Displaying change DevID screen")
+        self.master.children[self._currentFrame].pack_forget()
+                
+        self.dframe = tk.Frame(self.master, name='chdevidFrame', relief=tk.RAISED,
+                               borderwidth=2, width=self._widthMain,
+                               height=self._heightMain)
+        self.dframe.pack()
+        self._currentFrame = 'chdevidFrame'
+
+        self._buildGrid(self.dframe)
+
+        # device name and rssi (topbar)
+        tk.Label(self.dframe,
+                 text="{}".format(self.devices[self.device['id']]['Name'])
+                 ).grid(row=0, column=0, columnspan=6)
+        tk.Label(self.dframe,
+                 text="RSSI: -{}".format(self.entry['RSSI'][0].get()),
+                 ).grid(row=0, column=4)
+    
+        # buttons
+        tk.Button(self.dframe, text='Back', state=tk.ACTIVE,
+                  command=self._displaySimpleConfig,
+                  ).grid(row=0, column=1, sticky=tk.W)
+
+        # description and RSSI
+        tk.Label(self.dframe,
+                 text="Enter a device ID below",
+                 wraplength=self._widthMain/6*4,
+                 ).grid(row=1, column=1, columnspan=4, rowspan=3)
+
+    
+        tk.Label(self.dframe, text="Device ID:"
+                 ).grid(row=4, column=1, sticky=tk.E)
+        self._devIDInputs.append(tk.Entry(self.dframe,
+                                          textvariable=self.entry['CHDEVID'][0],
+                                          width=20,
+                                          validate='key',
+                                          invalidcommand='bell',
+                                          validatecommand=self.vDevID,
+                                          name='chdevid'
+                                         )
+                                )
+        self._devIDInputs[-1].grid(row=4, column=3, columnspan=2, sticky=tk.W)
+        tk.Label(self.dframe, text="Previous ID's seen by this hub"
+                 ).grid(row=6, column=1, columnspan=4)
+    
+        self._devIDListbox = tk.Listbox(self.dframe)
+        # fill list box entries
+        
+        self._devIDListbox.grid(row=7, column=1, columnspan=4,
+                                rowspan=9, sticky=tk.E+tk.W+tk.N+tk.S)
+    
+    
+
     def _displayConfig(self):
         self.logger.debug("Displaying Device type based config screen")
         self.master.children[self._currentFrame].pack_forget()
@@ -515,15 +645,33 @@ class LLAPCongfigMeClient:
         self._currentFrame = 'configFrame'
 
         self._buildGrid(self.cframe)
+        
+        # device name and rssi (topbar)
+        tk.Label(self.cframe,
+                 text="{}".format(self.devices[self.device['id']]['Name'])
+                 ).grid(row=0, column=0, columnspan=6)
+        tk.Label(self.cframe,
+                 text="RSSI: -{}".format(self.entry['RSSI'][0].get()),
+                 ).grid(row=0, column=4)
+                 
+        # buttons
+        tk.Button(self.cframe, text='Back', state=tk.ACTIVE,
+                  command=self._displaySimpleConfig,
+                  ).grid(row=0, column=1, sticky=tk.W)
+        tk.Button(self.cframe, text='Encryption Settings',
+                  command=self._displayAdvance
+                  ).grid(row=self._rows-2, column=2, columnspan=2,
+                         sticky=tk.E+tk.W)
 
-        tk.Label(self.cframe, text=CONFIG).grid(row=0, column=0, columnspan=6)
+        # description text
+        tk.Label(self.cframe, text=CONFIG).grid(row=1, column=0, columnspan=6)
         
         # generic config options
         tk.Label(self.cframe, text="Generic Commands"
-                 ).grid(row=1, column=0, columnspan=3)
+                 ).grid(row=2, column=0, columnspan=3)
                  
-        tk.Label(self.cframe, text="Device ID").grid(row=2, column=0, columnspan=3)
-        tk.Label(self.cframe, text="CHDEVID").grid(row=3, column=0, sticky=tk.E)
+        tk.Label(self.cframe, text="Device ID").grid(row=3, column=0, columnspan=3)
+        tk.Label(self.cframe, text="CHDEVID").grid(row=4, column=0, sticky=tk.E)
         self._devIDInputs.append(tk.Entry(self.cframe,
                                           textvariable=self.entry['CHDEVID'][0],
                                           width=20,
@@ -533,59 +681,59 @@ class LLAPCongfigMeClient:
                                           name='chdevid'
                                          )
                                 )
-        self._devIDInputs[-1].grid(row=3, column=1, columnspan=2, sticky=tk.W)
+        self._devIDInputs[-1].grid(row=4, column=1, columnspan=2, sticky=tk.W)
                  
-        tk.Label(self.cframe, text="Pan ID").grid(row=4, column=0, columnspan=3)
-        tk.Label(self.cframe, text="PANID").grid(row=5, column=0, sticky=tk.E)
+        tk.Label(self.cframe, text="Pan ID").grid(row=5, column=0, columnspan=3)
+        tk.Label(self.cframe, text="PANID").grid(row=6, column=0, sticky=tk.E)
         tk.Entry(self.cframe, textvariable=self.entry['PANID'][0], width=20,
                  validate='key',
                  invalidcommand='bell',
                  validatecommand=self.vUpper,
-                 ).grid(row=5, column=1, columnspan=2, sticky=tk.W)
+                 ).grid(row=6, column=1, columnspan=2, sticky=tk.W)
          
         tk.Label(self.cframe, text="Retries for Announcements"
-                 ).grid(row=6, column=0, columnspan=3)
-        tk.Label(self.cframe, text="RETRIES").grid(row=7, column=0, sticky=tk.E)
+                 ).grid(row=7, column=0, columnspan=3)
+        tk.Label(self.cframe, text="RETRIES").grid(row=8, column=0, sticky=tk.E)
         tk.Entry(self.cframe, textvariable=self.entry['RETRIES'][0], width=20
-                 ).grid(row=7, column=1, columnspan=2, sticky=tk.W)
+                 ).grid(row=8, column=1, columnspan=2, sticky=tk.W)
         
         if self.devices[self.device['id']]['SleepMode'] == "Cyclic":
             # cyclic config options
             tk.Label(self.cframe, text="Cyclic Commands"
-                     ).grid(row=9, column=0, columnspan=3)
-            tk.Label(self.cframe, text="Sleep Interval"
                      ).grid(row=10, column=0, columnspan=3)
-            tk.Label(self.cframe, text="INTVL").grid(row=11, column=0, sticky=tk.E)
+            tk.Label(self.cframe, text="Sleep Interval"
+                     ).grid(row=11, column=0, columnspan=3)
+            tk.Label(self.cframe, text="INTVL").grid(row=12, column=0, sticky=tk.E)
             tk.Entry(self.cframe, textvariable=self.entry['INTVL'][0], width=20,
                      validate='key',
                      invalidcommand='bell',
                      validatecommand=self.vUpper,
-                    ).grid(row=11, column=1, columnspan=2, sticky=tk.W)
+                    ).grid(row=12, column=1, columnspan=2, sticky=tk.W)
     
             tk.Label(self.cframe, text="Battery Wake Count"
-                     ).grid(row=12, column=0, columnspan=3)
-            tk.Label(self.cframe, text="WAKEC").grid(row=13, column=0, sticky=tk.E)
+                     ).grid(row=13, column=0, columnspan=3)
+            tk.Label(self.cframe, text="WAKEC").grid(row=14, column=0, sticky=tk.E)
             tk.Entry(self.cframe, textvariable=self.entry['WAKEC'][0], width=20,
-                    ).grid(row=13, column=1, columnspan=2, sticky=tk.W)
+                    ).grid(row=14, column=1, columnspan=2, sticky=tk.W)
         
             tk.Label(self.cframe, text="Enable Cyclic Sleep"
-                     ).grid(row=14, column=0, columnspan=3)
-            tk.Label(self.cframe, text="CYCLE").grid(row=15, column=0, sticky=tk.E)
+                     ).grid(row=15, column=0, columnspan=3)
+            tk.Label(self.cframe, text="CYCLE").grid(row=16, column=0, sticky=tk.E)
             tk.Checkbutton(self.cframe, variable=self.entry['SLEEPM'][0]
-                          ).grid(row=15, column=1, columnspan=2, sticky=tk.W)
+                          ).grid(row=16, column=1, columnspan=2, sticky=tk.W)
         elif self.devices[self.device['id']]['SleepMode'] == "Interrupt":
             # Interrupt sleep devices
             tk.Label(self.cframe, text="Interrupt Sleep"
-                     ).grid(row=9, column=0, columnspan=3)
-            tk.Label(self.cframe, text="SLEEP").grid(row=10, column=0, sticky=tk.E)
+                     ).grid(row=10, column=0, columnspan=3)
+            tk.Label(self.cframe, text="SLEEP").grid(row=11, column=0, sticky=tk.E)
             tk.Checkbutton(self.cframe, variable=self.entry['SLEEPM'][0]
-                          ).grid(row=10, column=1, columnspan=2, sticky=tk.W)
+                          ).grid(row=11, column=1, columnspan=2, sticky=tk.W)
         
         # device config options
         tk.Label(self.cframe,
-                 text="{} Options".format(self.devices[self.device['id']]['Name'])
-                 ).grid(row=1, column=3, columnspan=3)
-        r = 0
+                 text="Device specific options".format(self.devices[self.device['id']]['Name'])
+                 ).grid(row=2, column=3, columnspan=3)
+        r = 1
         for n in self.devices[self.device['id']]['Options']:
             
             tk.Label(self.cframe, text=n['Description']
@@ -618,17 +766,7 @@ class LLAPCongfigMeClient:
                     self._devIDInputs.append(e)
                     
             r += 2
-        
-        # buttons
-        tk.Button(self.cframe, text='Advanced', command=self._displayAdvance
-                  ).grid(row=self._rows-2, column=2, columnspan=2,
-                         sticky=tk.E+tk.W)
-        tk.Button(self.cframe, text='Back', state=tk.ACTIVE,
-                  command=self._startOver,
-                  ).grid(row=self._rows-2, column=4, sticky=tk.E)
-        tk.Button(self.cframe, name='next', text='Done', command=self._sendConfigRequest
-                  ).grid(row=self._rows-2, column=5, sticky=tk.W)
-    
+
     def _entryCopy(self):
         for key, value in self.entry.items():
             value[1].set(value[0].get())
@@ -715,12 +853,10 @@ class LLAPCongfigMeClient:
         self._buildGrid(self.eframe)
         
         tk.Label(self.eframe, text=END).grid(row=1, column=0, columnspan=6,
-                                              rowspan=self._rows-4)
+                                              rowspan=2)
                                               
-        tk.Button(self.eframe, text='Back', state=tk.DISABLED
-                ).grid(row=self._rows-2, column=4, sticky=tk.E)
         tk.Button(self.eframe, text='Start Over', command=self._startOver
-                  ).grid(row=self._rows-2, column=5, sticky=tk.W)
+                  ).grid(row=4, column=2, columnspan=2, sticky=tk.E+tk.W)
 
     # validation rules
 
@@ -1133,7 +1269,10 @@ class LLAPCongfigMeClient:
                     else:
                         if command in self.entry:
                             # TODO: need to handle check box entry (Format: ONOFF
-                            self.entry[command][0].set(args['reply'])
+                            if self.entry[command][2] == 'Int':
+                                self.entry[command][0].set(args['reply'])
+                            else:
+                                self.entry[command][0].set(args['reply'])
 
                 # copy config so we can compare it later
                 self._entryCopy()
@@ -1141,7 +1280,7 @@ class LLAPCongfigMeClient:
                 self.logger.debug("Setting keepAwake, display config")
                 # TODO: set keepAwake via UDP LCR
                 self._keepAwake = 1
-                self._displayConfig()
+                self._displaySimpleConfig()
             elif self._configState == 3:
                 # this was a config request
                 # TODO: check replies were good and let user know device is now ready
@@ -1188,7 +1327,8 @@ class LLAPCongfigMeClient:
                  {'command': "RETRIES"},
                  {'command': "SNL"},
                  {'command': "SNH"},
-                 {'command': "ENC"}
+                 {'command': "ENC"},
+                 {'command': "RSSI"}
                  ]
         
         if self.devices[self.device['id']]['SleepMode'] == "Cyclic":
@@ -1256,7 +1396,7 @@ class LLAPCongfigMeClient:
         # TODO: wait on UDP reply (how long)
         if self.fWaitingForReply.is_set():
             if self.qLCRReply.empty():
-                if time()-self._starttime > self._lastLCR[-1]['data']['timeout']+10:
+                if time()-self._starttime > int(self._lastLCR[-1]['data']['timeout'])+10:
                     # if timeout passed, let user know no reply
                     # close wait diag
                     if self._currentFrame != "pressFrame":
@@ -1289,7 +1429,7 @@ class LLAPCongfigMeClient:
                     self._processReply(json)
                 self.qLCRReply.task_done()
     
-    def _buildGrid(self, frame, quit=True, halfSize=False):
+    def _buildGrid(self, frame, quit=False, halfSize=False):
         self.logger.debug("Building Grid for {}".format(frame.winfo_name()))
         canvas = tk.Canvas(frame, bd=0, width=self._widthMain-4,
                                height=self._rowHeight, highlightthickness=0)
@@ -1392,7 +1532,7 @@ class LLAPCongfigMeClient:
             self.logger.debug("Sending ConfigEnd LCR")
             self._starttime = time()
             self.qUDPSend.put(json.dumps(lcr))
-            while self.qLCRReply.empty() and time()-self._starttime < 10:
+            while self.qLCRReply.empty() and time()-self._starttime < 5:
                 sleep(0.1)
 
     def _checkArgs(self):
