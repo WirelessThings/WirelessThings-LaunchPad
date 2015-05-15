@@ -60,6 +60,48 @@
                "Description":"Hex string when sent to a radio, ACK in response"
                }
                ],
+    "Reading Periods":[
+                         {
+                         "Period":"010S",
+                         "Description":"10 Seconds"
+                         },
+                         {
+                         "Period":"001M",
+                         "Description":"1 Minute"
+                         },
+                         {
+                         "Period":"005M",
+                         "Description":"5 Minutes"
+                         },
+                         {
+                         "Period":"010M",
+                         "Description":"10 Minutes"
+                         },
+                         {
+                         "Period":"030M",
+                         "Description":"30 Minutes"
+                         },
+                         {
+                         "Period":"001H",
+                         "Description":"1 Hour"
+                         },
+                         {
+                         "Period":"002H",
+                         "Description":"2 Hours"
+                         },
+                         {
+                         "Period":"006H",
+                         "Description":"6 Hours"
+                         },
+                         {
+                         "Period":"012H",
+                         "Description":"12 Hours"
+                         },
+                         {
+                         "Period":"024H",
+                         "Description":"24 Hours"
+                         }
+                        ],
     "Valid Characters":{
                         "id":{
                                "string":"ABCDEFGHIJKLMNOPQRSTUVWXYZ-#@?\\*",
@@ -293,6 +335,7 @@
                "Name":"Thermistor",
                "Description":"LLAP Thermistor",
                "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
                "Actions":[
                           {
                           "Command":"TEMP",
@@ -338,7 +381,7 @@
                "Description":"LLAP Button",
                "SleepMode":"Interrupt",
                "Actions":[
-               
+
                           ],
                "Options":[
                           {
@@ -418,12 +461,13 @@
                "Name":"Thermistor",
                "Description":"LLAP+ Thermistor",
                "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
                "Actions":[
                           {
                           "Command":"TEMP",
                           "Description":"Request Temperature",
                           "Format":"Float",
-                          "Type":"Both"
+                          "Type":"Polled"
                           },
                           {
                           "Command":"TMPA",
@@ -462,6 +506,7 @@
                "Name":"Flood Sensor",
                "Description":"LLAP+ Flood Sensor",
                "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
                "Actions":[
                           {
                           "Command":"FLOOD",
@@ -500,6 +545,7 @@
                "Name":"Volatage (2-15V)",
                "Description":"LLAP+ Voltage (2-15V)",
                "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
                "Actions":[
                           {
                           "Command":"VOLTS",
@@ -523,6 +569,7 @@
                "Name":"Volatage (2-30V)",
                "Description":"LLAP+ Voltage (2-30V)",
                "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
                "Actions":[
                           {
                           "Command":"VOLTS",
@@ -546,6 +593,7 @@
                "Name":"Switch",
                "Description":"LLAP+ Switch Sensor",
                "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
                "Actions":[
                           {
                           "Command":"SWITCH",
@@ -613,6 +661,7 @@
                "Name":"Current Sensor",
                "Description":"LLAP+ Current Sensor",
                "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
                "Actions":[
                           {
                           "Command":"AMPS",
@@ -641,6 +690,7 @@
 			   "Name":"Moisture Sensor",
 			   "Description":"LLAP+ Moisture Sensor",
 			   "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
 			   "Actions":[
                           {
                           "Command":"MOSIT",
@@ -659,6 +709,7 @@
                "Name":"LIGHT",
                "Description":"LLAP+ LIGHT",
                "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
                "Actions":[
                           {
                           "Command":"LIGHT",
@@ -711,6 +762,7 @@
                "Name":"Thermistor XL",
                "Description":"LLAP+ Thermistor XL",
                "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
                "Actions":[
                           {
                           "Command":"TEMP",
@@ -755,6 +807,7 @@
                "Name":"Light XL",
                "Description":"LLAP+ LIGHT XL",
                "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
                "Actions":[
                           {
                           "Command":"LIGHT",
@@ -773,6 +826,7 @@
                "Name":"ADC",
                "Description":"LLAP+ ADC",
                "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
                "Actions":[
                           {
                           "Command":"ANA",
@@ -791,6 +845,7 @@
                "Name":"Pulse",
                "Description":"LLAP+ Pulse Counter",
                "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
                "Actions":[
                           {
                           "Command":"VAL",
