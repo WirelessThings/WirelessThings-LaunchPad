@@ -123,6 +123,7 @@ class LLAPCongfigMeClient:
     
     _validID = "ABCDEFGHIJKLMNOPQRSTUVWXYZ-#@?\\*"
     _validData = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !\"#$%&'()*+,-.:;<=>?@[\\\/]^_`{|}~"
+    _periodUnits = {"T":"Milli seconds", "S":"Seconds", "M":"Minutes", "H":"Hours", "D":"Days"}
 
     def __init__(self):
         """
@@ -391,7 +392,9 @@ class LLAPCongfigMeClient:
     def _initTkVariables(self):
         self.logger.debug("Init Tk Variables")
         # any tk variables we need to keep permanent
-        
+        self._readingScale = [tk.IntVar(), tk.StringVar(), tk.StringVar()]
+        self._readingScale[0].trace_variable('w', self._updateIntervalOnScaleChange)
+        self._readingScale[2].set("uisdaoihsdhaosd")
         # init the entry variables we will need to reset between each run
         self._initEntryVariables()
         
@@ -419,7 +422,7 @@ class LLAPCongfigMeClient:
                       "ENKEY" : [tk.StringVar(), tk.StringVar(), 'ENKey'],
                       "RSSI" : [tk.IntVar(), tk.IntVar(), 'Int']
                      }
-
+                      
     def _displayIntro(self):
         self.logger.debug("Display Intro Page")
         self.iframe = tk.Frame(self.master, name='introFrame', relief=tk.RAISED,
@@ -577,7 +580,71 @@ class LLAPCongfigMeClient:
                 self._devIDInputs.append(e)
                 r +=2
     
+        # if cyclic device show slider
+        if self.devices[self.device['id']]['SleepMode'] == "Cyclic":
+            self._updateScaleAndDescriptionFromPeriod(self.entry['INTVL'][0].get())
+            tk.Label(self.sframe, text="Reading Interval:"
+                     ).grid(row=r, column=1, sticky=tk.E)
+            tk.Scale(self.sframe, variable=self._readingScale[0],
+                     orient=tk.HORIZONTAL, showvalue=0,
+                     from_=0, to=len(self._readingPeriods), resolution=1
+                     ).grid(row=r, column=2, columnspan=2, sticky=tk.W+tk.E)
+            tk.Label(self.sframe, textvariable=self._readingScale[1],
+                     wraplength=self._widthMain/6
+                     ).grid(row=r, column=4, columnspan=1, sticky=tk.W+tk.E)
+            tk.Label(self.sframe, textvariable=self._readingScale[2],
+                     wraplength=self._widthMain/6*4
+                     ).grid(row=r+1, column=1, columnspan=4, rowspan=3, sticky=tk.W+tk.E)
+            r += 5
+                
+    def _updateIntervalOnScaleChange(self, *args):
+        if self._currentFrame == "simpleFrame" and self._readingScale[0].get() != len(self._readingPeriods):
+            self.entry['INTVL'][0].set(self._readingPeriods[self._readingScale[0].get()]['Period'])
+        try:
+            self._readingScale[1].set("{}".format(self._parseIntervalToString(self.entry['INTVL'][0].get())))
+            self._readingScale[2].set("{}.\r Expetced life will be {}".format(
+                                        self._readingPeriods[self._readingScale[0].get()]['Description'],
+                                        self._estimateLifeTimeForPeriod(self.entry['INTVL'][0].get(), self.device['id'])
+                                                                              )
+                                      )
+        except:
+            self._readingScale[1].set("Custom Period")
+            self._readingScale[2].set("To set a custom reporting period please use the \"Advanced Config\" option below".format(self._parseIntervalToString(self.entry['INTVL'][0].get())))
 
+    def _updateScaleAndDescriptionFromPeriod(self, intval):
+        for (index,period) in enumerate(self._readingPeriods):
+            if intval == "000S":
+                # period no set use defualt from json
+                self._readingScale[0].set(self.devices[self.device['id']]['ReadingPeriod'])
+                self._readingScale[1].set(self._readingPeriods[self._readingScale[0].get()]['Description'])
+                self._readingScale[2].set("{}.\r Expetced life will be {}".format(
+                                            self._readingPeriods[self._readingScale[0].get()]['Description'],
+                                            "?")
+                                          )
+                break
+            elif intval == period['Period']:
+                self._readingScale[0].set(index)
+                self._readingScale[1].set("{}".format(self._parseIntervalToString(self.entry['INTVL'][0].get())))
+                self._readingScale[2].set("{}.\r Expetced life will be {}".format(
+                                            self._readingPeriods[self._readingScale[0].get()]['Description'],
+                                            self._estimateLifeTimeForPeriod(self.entry['INTVL'][0].get(), self.device['id'])
+                                                                                  )
+                                          )
+                break
+            else:
+                self._readingScale[0].set(len(self._readingPeriods))
+                self._readingScale[1].set("Custom Period {}".format(self._parseIntervalToString(self.entry['INTVL'][0].get())))
+                self._readingScale[2].set("You have chosen a custom period of {}.\r Expetced life will be {}".format(
+                                            self._parseIntervalToString(self.entry['INTVL'][0].get()),
+                                            self._estimateLifeTimeForPeriod(self.entry['INTVL'][0].get(), self.device['id'])
+                                                                                                                     )
+                                         )
+
+    def _parseIntervalToString(self, period):
+        return "{} {}".format(int(period[:3]), self._periodUnits[period[3:]])
+    
+    def _estimateLifeTimeForPeriod(self, period, deviceID):
+        return "?"
 
     def _displayChangeDevID(self):
         self.logger.debug("Displaying change DevID screen")
@@ -627,7 +694,7 @@ class LLAPCongfigMeClient:
                  ).grid(row=6, column=1, columnspan=4)
     
         self._devIDListbox = tk.Listbox(self.dframe)
-        # fill list box entries
+        # TODO: fill list box entries
         
         self._devIDListbox.grid(row=7, column=1, columnspan=4,
                                 rowspan=9, sticky=tk.E+tk.W+tk.N+tk.S)
@@ -1010,7 +1077,7 @@ class LLAPCongfigMeClient:
         # TODO: add a line here to disable NEXT button on cfame and advance
         query = []
         for command, value in self.entry.items():
-            print("Checking {}: {} != {}".format(command, value[0].get(), value[1].get()))
+            self.logger.debug("Checking {}: {} != {}".format(command, value[0].get(), value[1].get()))
             if not value[0].get() == value[1].get():
                 query = self._entryAppend(query, command, value)
                 print query
@@ -1155,7 +1222,6 @@ class LLAPCongfigMeClient:
         self.logger.debug("id: {}, devType:{}, Replies:{}".format(reply['id'],
                                                                   reply.get('devType', ""),
                                                                   reply['replies']))
-
         # check if reply is valid
         if reply['state'] == "FAIL_TIMEOUT":
             # TODO: handle failed due to timeout
@@ -1170,8 +1236,7 @@ class LLAPCongfigMeClient:
                 self._sendRequest(self._lastLCR[-1])
             else:
                 if self._currentFrame == "pressFrame":
-                    self._startOver
-    
+                    self._startOver()
         elif reply['state'] == "FAIL_RETRY":
             # TODO: handle failed due to retry
             self.logger.debug("LCR retry error")
@@ -1185,7 +1250,7 @@ class LLAPCongfigMeClient:
                 self._sendRequest(self._lastLCR[-1])
             else:
                 if self._currentFrame == "pressFrame":
-                    self._startOver
+                    self._startOver()
         elif reply['state'] == "PASS":
             # process reply
             if self._configState == 1:
@@ -1237,7 +1302,6 @@ class LLAPCongfigMeClient:
 #                                    self._askCurrentConfig()
 #                            else:
                             self._askCurrentConfig()
-                            
                 else:
                     # apver mismatch, show error screen
                     pass
@@ -1266,9 +1330,12 @@ class LLAPCongfigMeClient:
                         else:
                             #should not get here
                             self.logger.debug("Error in reply to ENC")
+                    elif command == "INTVL":
+                        self.entry[command][0].set(args['reply'])
+                        self._updateScaleAndDescriptionFromPeriod(args['reply'])
                     else:
                         if command in self.entry:
-                            # TODO: need to handle check box entry (Format: ONOFF
+                            # TODO: need to handle check box entry (Format: ONOFF)
                             if self.entry[command][2] == 'Int':
                                 self.entry[command][0].set(args['reply'])
                             else:
@@ -1579,6 +1646,8 @@ class LLAPCongfigMeClient:
                 read_data = f.read()
             f.closed
             
+            # TODO: Check/catch json errors
+            self._readingPeriods = json.loads(read_data)['Reading Periods']
             self.devices = json.loads(read_data)['Devices']
     
         except IOError:
