@@ -463,7 +463,12 @@
                "Description":"LLAP+ Flood Sensor",
                "SleepMode":"Cyclic",
                "Actions":[
-               
+                          {
+                          "Command":"FLOOD",
+                          "Description":"Flood sensor state, note actual command name can be set via MSG option",
+                          "Format":"ONOFF",
+                          "Type":"Announce"
+                          }
                           ],
                "Options":[
                           {
@@ -542,8 +547,13 @@
                "Description":"LLAP+ Switch Sensor",
                "SleepMode":"Cyclic",
                "Actions":[
-               
-               ],
+                          {
+                          "Command":"SWITCH",
+                          "Description":"Switch state, note actual command name can be set via MSG option",
+                          "Format":"ONOFF",
+                          "Type":"Announce"
+                          }
+                         ],
                "Options":[
                           {
                           "Command":"MSG",
