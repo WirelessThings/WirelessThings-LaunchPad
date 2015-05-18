@@ -63,43 +63,43 @@
     "Reading Periods":[
                          {
                          "Period":"010S",
-                         "Description":"10 Seconds"
+                         "Description":"10 Second reporting period"
                          },
                          {
                          "Period":"001M",
-                         "Description":"1 Minute"
+                         "Description":"1 Minute reporting period"
                          },
                          {
                          "Period":"005M",
-                         "Description":"5 Minutes"
+                         "Description":"5 Minute reporting period"
                          },
                          {
                          "Period":"010M",
-                         "Description":"10 Minutes"
+                         "Description":"10 Minute reporting period"
                          },
                          {
                          "Period":"030M",
-                         "Description":"30 Minutes"
+                         "Description":"30 Minute reporting period"
                          },
                          {
                          "Period":"001H",
-                         "Description":"1 Hour"
+                         "Description":"1 Hour reporting period"
                          },
                          {
                          "Period":"002H",
-                         "Description":"2 Hours"
+                         "Description":"2 Hour reporting period"
                          },
                          {
                          "Period":"006H",
-                         "Description":"6 Hours"
+                         "Description":"6 Hour reporting period"
                          },
                          {
                          "Period":"012H",
-                         "Description":"12 Hours"
+                         "Description":"12 Hours reporting period"
                          },
                          {
                          "Period":"024H",
-                         "Description":"24 Hours"
+                         "Description":"24 Hours reporting period"
                          }
                         ],
     "Valid Characters":{
@@ -164,7 +164,7 @@
                         {
                         "Command":"SNL",
                         "Format":"ReadOnlyHex",
-                        "Description":"Request the manufacturer serial number LOW Bytes (LLAP 2.0"
+                        "Description":"Request the manufacturer serial number LOW Bytes (LLAP 2.0)"
                         },
                         {
                         "Command":"ENC",
@@ -327,6 +327,19 @@
                    "Description":""
                    }
                    ],
+    "Power Classes":{
+                    "SB":"Standard Battery",
+                    "LB":"Large Battery",
+                    "RB":"Rechargeable Battery",
+                    "MP":"Mains Power (240V)",
+                    "SP":"Solar Power",
+                    "DC":"DC Power"
+                    },
+    "Antenna Classes":{
+                      "CA":"Chip Antenna",
+                      "WA":"Wire Antenna",
+                      "XA":"External Antenna",
+                      },
     "Devices":[
                {
                "id":0,
@@ -458,10 +471,12 @@
                "id":3,
                "DEVTYPE":"",
                "DTY":"AAAB01",
-               "Name":"Thermistor",
-               "Description":"LLAP+ Thermistor",
+               "Name":"Temperature Sensor SB-CA",
+               "Description":"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut tempus turpis sit amet diam auctor, ac semper dui sollicitudin. Pellentesque at semper lorem. Vivamus scelerisque id elit in porttitor. Sed eget condimentum dolor. Nunc sollicitudin.",
                "SleepMode":"Cyclic",
                "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
                "Actions":[
                           {
                           "Command":"TEMP",
@@ -503,10 +518,12 @@
                "id":4,
                "DEVTYPE":"",
                "DTY":"AAAA01",
-               "Name":"Flood Sensor",
+               "Name":"Flood Sensor SB-WA",
                "Description":"LLAP+ Flood Sensor",
                "SleepMode":"Cyclic",
                "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"WA",
                "Actions":[
                           {
                           "Command":"FLOOD",
@@ -542,10 +559,12 @@
                "id":5,
                "DEVTYPE":"",
                "DTY":"AAAF01",
-               "Name":"Volatage (2-15V)",
+               "Name":"Voltage Sensor (2-15V) SB-CA",
                "Description":"LLAP+ Voltage (2-15V)",
                "SleepMode":"Cyclic",
                "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
                "Actions":[
                           {
                           "Command":"VOLTS",
@@ -566,10 +585,12 @@
                "id":6,
                "DEVTYPE":"",
                "DTY":"AAAG01",
-               "Name":"Volatage (2-30V)",
+               "Name":"Voltage Sensor(2-30V) SB-CA",
                "Description":"LLAP+ Voltage (2-30V)",
                "SleepMode":"Cyclic",
                "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
                "Actions":[
                           {
                           "Command":"VOLTS",
@@ -590,10 +611,12 @@
                "id":7,
                "DEVTYPE":"",
                "DTY":"AAAH01",
-               "Name":"Switch",
-               "Description":"LLAP+ Switch Sensor",
+               "Name":"Switch SB-CA",
+               "Description":"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut tempus turpis sit amet diam auctor, ac semper dui sollicitudin. Pellentesque at semper lorem. Vivamus scelerisque id elit in porttitor. Sed eget condimentum dolor. Nunc sollicitudin.",
                "SleepMode":"Cyclic",
                "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
                "Actions":[
                           {
                           "Command":"SWITCH",
@@ -629,9 +652,11 @@
                "id":8,
                "DEVTYPE":"",
                "DTY":"AAAI01",
-               "Name":"Dual Relay",
+               "Name":"Dual Relay MP-CA",
                "Description":"LLAP+ Dual Relay",
                "SleepMode":"Polled",
+               "PowerClass":"MP",
+               "AntennaClass":"CA",
                "Actions":[
 						  {
 						  "Command":"RELAYA",
@@ -649,7 +674,7 @@
                "Options":[
                           {
                           "Command":"DEB",
-                          "Description":"Bunnton debounce in mS (Default 30)",
+                          "Description":"Button debounce in mS (Default 30)",
                           "Format":"Int"
                           }
                           ]
@@ -658,10 +683,12 @@
                "id":9,
                "DEVTYPE":"",
                "DTY":"AAAJ02",
-               "Name":"Current Sensor",
+               "Name":"Current Sensor SB-CA",
                "Description":"LLAP+ Current Sensor",
                "SleepMode":"Cyclic",
                "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
                "Actions":[
                           {
                           "Command":"AMPS",
@@ -687,10 +714,12 @@
 			   "id":10,
 			   "DEVTYPE":"",
 			   "DTY":"AAAK01",
-			   "Name":"Moisture Sensor",
+			   "Name":"Moisture Sensor SB-CA",
 			   "Description":"LLAP+ Moisture Sensor",
 			   "SleepMode":"Cyclic",
                "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
 			   "Actions":[
                           {
                           "Command":"MOSIT",
@@ -706,10 +735,12 @@
                "id":11,
                "DEVTYPE":"",
                "DTY":"AAAD01",
-               "Name":"LIGHT",
+               "Name":"Light Sensor SB-CA",
                "Description":"LLAP+ LIGHT",
                "SleepMode":"Cyclic",
                "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
                "Actions":[
                           {
                           "Command":"LIGHT",
@@ -725,9 +756,12 @@
 			   "id":12,
 			   "DEVTYPE":"",
 			   "DTY":"AAAL01",
-			   "Name":"Pulse",
+			   "Name":"Pulse Counter SB-CA",
 			   "Description":"LLAP+ Pulse Counter",
-			   "SleepMode":"Cyclic",
+               "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
 			   "Actions":[
 						  {
 						  "Command":"VAL",
@@ -759,10 +793,12 @@
                "id":13,
                "DEVTYPE":"",
                "DTY":"AAAC01",
-               "Name":"Thermistor XL",
+               "Name":"Temperature Sensor LB-CA",
                "Description":"LLAP+ Thermistor XL",
                "SleepMode":"Cyclic",
                "ReadingPeriod":1,
+               "PowerClass":"LB",
+               "AntennaClass":"CA",
                "Actions":[
                           {
                           "Command":"TEMP",
@@ -804,10 +840,12 @@
                "id":14,
                "DEVTYPE":"",
                "DTY":"AAAE01",
-               "Name":"Light XL",
+               "Name":"Light Sensor LB-CA",
                "Description":"LLAP+ LIGHT XL",
                "SleepMode":"Cyclic",
                "ReadingPeriod":1,
+               "PowerClass":"LB",
+               "AntennaClass":"CA",
                "Actions":[
                           {
                           "Command":"LIGHT",
@@ -823,10 +861,12 @@
                "id":15,
                "DEVTYPE":"",
                "DTY":"AAAM01",
-               "Name":"ADC",
+               "Name":"Analog Sensor SB-CA",
                "Description":"LLAP+ ADC",
                "SleepMode":"Cyclic",
                "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
                "Actions":[
                           {
                           "Command":"ANA",
@@ -842,10 +882,12 @@
                "id":16,
                "DEVTYPE":"",
                "DTY":"AAAL02",
-               "Name":"Pulse",
+               "Name":"Pulse Counter SB-CA",
                "Description":"LLAP+ Pulse Counter",
                "SleepMode":"Cyclic",
                "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
                "Actions":[
                           {
                           "Command":"VAL",
