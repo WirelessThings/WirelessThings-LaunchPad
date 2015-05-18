@@ -1,5 +1,23 @@
 LLAPFiles from Ciseco
 
+0.09:
+    Server: filter all types of JSON by network not just LLAP
+    Server: expand Server type messages
+    UDPUI: First pass at Server list on fist screen
+    Server & UDPUI: Reduce default timeout for LCR
+    Launcher: Correct Server messages to include network field
+    UDPUI: add new press button screen
+    UDPUI: track config state in app, use random UUID's to track LCR messages
+    UDPUI: check LCR replay is valid sooner in the processing
+    UDPUI: Improve Back button handling
+    UDPUI: Adding new Simple config and device ID screens
+    JSON: Add missing RSSI command
+    JSON: Update actions for Switch and Flood
+    JSON: add Reporting Period field and definition
+    UDPUI: Implement Reporting Period Slider and link to INTVL
+    JSON: Adding Power and Antenna classifications. Reporting Period descriptions update and Device name changes
+    UDPUI: Adding More Info buttons and window
+
 0.08:
     Server: Don't need singalMap on windows
     Server: report Network in server status messages
