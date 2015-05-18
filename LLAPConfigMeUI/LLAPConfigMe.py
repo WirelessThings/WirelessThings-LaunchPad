@@ -88,6 +88,10 @@ END = """Your device has been configured"""
 PRESSTEXT = """Please press the Config button on your device"""
 PRESSTEXT1 = """Communicating with device"""
 
+INTERVALTEXT = """Use the slider to select a reporting period for the device. 
+A shorter period will result in reduce battery life for a battery powered device"""
+
+ENCRYPTIONTEXT = """Encryption long description"""
 
 class LLAPCongfigMeClient:
     """
@@ -96,11 +100,12 @@ class LLAPCongfigMeClient:
         pass requests onto LLAPConfigMeCore
     """
 
-    _version = 0.08
+    _version = 0.09
     
     _configFileDefault = "LLAPCM_defaults.cfg"
     _configFile = "LLAPCM.cfg"
     _myNodesFile = "MyNodes.json"
+    _infoIconFile = "noun_80697_cc.gif"
     
     _rows = 19
     _rowHeight = 28
@@ -394,7 +399,9 @@ class LLAPCongfigMeClient:
         # any tk variables we need to keep permanent
         self._readingScale = [tk.IntVar(), tk.StringVar(), tk.StringVar()]
         self._readingScale[0].trace_variable('w', self._updateIntervalOnScaleChange)
-        self._readingScale[2].set("uisdaoihsdhaosd")
+        
+        self._infoIcon = tk.PhotoImage(file=self._infoIconFile)
+        
         # init the entry variables we will need to reset between each run
         self._initEntryVariables()
         
@@ -521,19 +528,19 @@ class LLAPCongfigMeClient:
         self._currentFrame = 'simpleFrame'
 
         self._buildGrid(self.sframe)
-        
+        r = 0
         # device name and rssi (topbar)
         tk.Label(self.sframe,
                  text="{}".format(self.devices[self.device['id']]['Name'])
-                 ).grid(row=0, column=0, columnspan=6)
+                 ).grid(row=r, column=0, columnspan=6)
         tk.Label(self.sframe,
                  text="RSSI: -{}".format(self.entry['RSSI'][0].get()),
-                 ).grid(row=0, column=4)
+                 ).grid(row=r, column=4)
     
         # buttons
         tk.Button(self.sframe, text='Back', state=tk.ACTIVE,
                   command=self._startOver,
-                  ).grid(row=0, column=1, sticky=tk.W)
+                  ).grid(row=r, column=1, sticky=tk.W)
         tk.Button(self.sframe, name='next', text='Done',
                  command=self._sendConfigRequest
                  ).grid(row=self._rows-4, column=2, columnspan=2,
@@ -548,20 +555,35 @@ class LLAPCongfigMeClient:
                          sticky=tk.E+tk.W)
     
         # description
+        r += 1
         tk.Label(self.sframe,
                  text="{}".format(self.devices[self.device['id']]['Description']),
                  wraplength=self._widthMain/6*4,
-                 ).grid(row=1, column=1, columnspan=4, rowspan=3)
-    
+                 ).grid(row=r, column=1, columnspan=4, rowspan=3)
+        r += 1
+        tk.Button(self.sframe, text='More Info', state=tk.ACTIVE,
+                  command=lambda: self._displayMoreInfo("Description"),
+                  image=self._infoIcon
+                  ).grid(row=r, column=5, sticky=tk.W)
+
         # device ID
-        tk.Label(self.sframe, text="Device ID:").grid(row=4, column=1,
+        r += 2
+        tk.Label(self.sframe, text="Device ID:").grid(row=r, column=1,
                                                       sticky=tk.E)
         tk.Label(self.sframe, textvariable=self.entry['CHDEVID'][0]
-                 ).grid(row=4, column=3, sticky=tk.W+tk.E)
+                 ).grid(row=r, column=3, sticky=tk.W+tk.E)
         tk.Button(self.sframe, text="Change", command=self._displayChangeDevID
-                  ).grid(row=4, column=4)
-    
-        r = 6 # start row for next set of options
+                  ).grid(row=r, column=4)
+        tk.Button(self.sframe, text='More Info', state=tk.ACTIVE,
+                  command=lambda: self._displayMoreInfo("CHDEVID"),
+                  image=self._infoIcon,
+                  ).grid(row=r, column=5, sticky=tk.W)
+        if self.entry['CHDEVID'][0].get() == "??":
+            r += 1
+            tk.Label(self.sframe, text="This is a new deivce and a new ID has been automaticly assigned"
+                     ).grid(row=r, column=1, columnspan=4, sticky=tk.W+tk.E)
+
+        r += 2 # start row for next set of options
         
         # if supports message
         for option in self.devices[self.device['id']]['Options']:
@@ -578,6 +600,10 @@ class LLAPCongfigMeClient:
                          invalidcommand='bell',
                          validatecommand=self.vUpper)
                 self._devIDInputs.append(e)
+                tk.Button(self.sframe, text='More Info', state=tk.ACTIVE,
+                          command=lambda: self._displayMoreInfo("MSG"),
+                          image=self._infoIcon
+                          ).grid(row=r, column=5, sticky=tk.W)
                 r +=2
     
         # if cyclic device show slider
@@ -589,6 +615,10 @@ class LLAPCongfigMeClient:
                      orient=tk.HORIZONTAL, showvalue=0,
                      from_=0, to=len(self._readingPeriods), resolution=1
                      ).grid(row=r, column=2, columnspan=2, sticky=tk.W+tk.E)
+            tk.Button(self.sframe, text='More Info', state=tk.ACTIVE,
+                      command=lambda: self._displayMoreInfo("Interval"),
+                      image=self._infoIcon
+                      ).grid(row=r, column=5, sticky=tk.W)
             tk.Label(self.sframe, textvariable=self._readingScale[1],
                      wraplength=self._widthMain/6
                      ).grid(row=r, column=4, columnspan=1, sticky=tk.W+tk.E)
@@ -600,9 +630,10 @@ class LLAPCongfigMeClient:
     def _updateIntervalOnScaleChange(self, *args):
         if self._currentFrame == "simpleFrame" and self._readingScale[0].get() != len(self._readingPeriods):
             self.entry['INTVL'][0].set(self._readingPeriods[self._readingScale[0].get()]['Period'])
+            # TODO: Set cycle to on!
         try:
             self._readingScale[1].set("{}".format(self._parseIntervalToString(self.entry['INTVL'][0].get())))
-            self._readingScale[2].set("{}.\r Expetced life will be {}".format(
+            self._readingScale[2].set("{}.\r {}".format(
                                         self._readingPeriods[self._readingScale[0].get()]['Description'],
                                         self._estimateLifeTimeForPeriod(self.entry['INTVL'][0].get(), self.device['id'])
                                                                               )
@@ -617,7 +648,7 @@ class LLAPCongfigMeClient:
                 # period no set use defualt from json
                 self._readingScale[0].set(self.devices[self.device['id']]['ReadingPeriod'])
                 self._readingScale[1].set(self._readingPeriods[self._readingScale[0].get()]['Description'])
-                self._readingScale[2].set("{}.\r Expetced life will be {}".format(
+                self._readingScale[2].set("{}.\r {}".format(
                                             self._readingPeriods[self._readingScale[0].get()]['Description'],
                                             "?")
                                           )
@@ -625,7 +656,7 @@ class LLAPCongfigMeClient:
             elif intval == period['Period']:
                 self._readingScale[0].set(index)
                 self._readingScale[1].set("{}".format(self._parseIntervalToString(self.entry['INTVL'][0].get())))
-                self._readingScale[2].set("{}.\r Expetced life will be {}".format(
+                self._readingScale[2].set("{}.\r {}".format(
                                             self._readingPeriods[self._readingScale[0].get()]['Description'],
                                             self._estimateLifeTimeForPeriod(self.entry['INTVL'][0].get(), self.device['id'])
                                                                                   )
@@ -634,7 +665,7 @@ class LLAPCongfigMeClient:
             else:
                 self._readingScale[0].set(len(self._readingPeriods))
                 self._readingScale[1].set("Custom Period {}".format(self._parseIntervalToString(self.entry['INTVL'][0].get())))
-                self._readingScale[2].set("You have chosen a custom period of {}.\r Expetced life will be {}".format(
+                self._readingScale[2].set("You have chosen a custom period of {}.\r {}".format(
                                             self._parseIntervalToString(self.entry['INTVL'][0].get()),
                                             self._estimateLifeTimeForPeriod(self.entry['INTVL'][0].get(), self.device['id'])
                                                                                                                      )
@@ -642,10 +673,64 @@ class LLAPCongfigMeClient:
 
     def _parseIntervalToString(self, period):
         return "{} {}".format(int(period[:3]), self._periodUnits[period[3:]])
-    
-    def _estimateLifeTimeForPeriod(self, period, deviceID):
-        return "?"
 
+    def _estimateLifeTimeForPeriod(self, period, deviceID):
+        return "Expetced life will be {}".format("?")
+
+    def _displayMoreInfo(self, subject):
+        self.logger.debug("Displaying more info for {}".format(subject))
+        
+        infoText = None
+        infoFormat = None
+        
+        if subject == "Description":
+            infoText = self.devices[self.device['id']]['Description']
+        elif subject == "Interval":
+            infoText = INTERVALTEXT
+        elif subject == "Encryption":
+            infoText = ENCRYPTIONTEXT
+            infoFormat = "ENKey"
+        else:
+            # check LLAP Generic Commands, Cyclic Commands, device Actions and device Options all in one go
+            commandList = (self._llapGenericCommands +
+                           self._llapCyclicCommands +
+                           self.devices[self.device['id']]['Actions'] +
+                           self.devices[self.device['id']]['Options']
+                           )
+                           
+            for command in commandList:
+                if subject == command['Command']:
+                    infoText = command['Description']
+                    if command.has_key('Format'):
+                        infoFormat = command['Format']
+
+        position = self.master.geometry().split("+")
+        
+        self.moreInfoWindow = tk.Toplevel()
+        self.moreInfoWindow.geometry("+{}+{}".format(
+                                                    int(position[1])+self._widthMain/6,
+                                                    int(position[2])+self._heightMain/6
+                                                    )
+                                    )
+            
+        self.moreInfoWindow.title("Info")
+
+        self.miframe = tk.Frame(self.moreInfoWindow, name='moreInfoFrame', relief=tk.RAISED,
+                               borderwidth=2, width=self._widthMain/2,
+                               height=self._heightMain/4)
+        self.miframe.pack()
+
+        tk.Label(self.miframe, text=infoText,
+                 wraplength=self._widthMain/2
+                 ).pack()
+
+        if infoFormat:
+            tk.Label(self.miframe, text="Format: {}".format(infoFormat)).pack()
+
+        tk.Button(self.miframe, text="Dismiss",
+                  command=self.moreInfoWindow.destroy
+                  ).pack()
+    
     def _displayChangeDevID(self):
         self.logger.debug("Displaying change DevID screen")
         self.master.children[self._currentFrame].pack_forget()
@@ -749,6 +834,10 @@ class LLAPCongfigMeClient:
                                          )
                                 )
         self._devIDInputs[-1].grid(row=4, column=1, columnspan=2, sticky=tk.W)
+        tk.Button(self.cframe, text='More Info', state=tk.ACTIVE,
+                  command=lambda: self._displayMoreInfo("CHDEVID"),
+                  image=self._infoIcon,
+                  ).grid(row=4, column=2, sticky=tk.E)
                  
         tk.Label(self.cframe, text="Pan ID").grid(row=5, column=0, columnspan=3)
         tk.Label(self.cframe, text="PANID").grid(row=6, column=0, sticky=tk.E)
@@ -757,12 +846,20 @@ class LLAPCongfigMeClient:
                  invalidcommand='bell',
                  validatecommand=self.vUpper,
                  ).grid(row=6, column=1, columnspan=2, sticky=tk.W)
+        tk.Button(self.cframe, text='More Info', state=tk.ACTIVE,
+                  command=lambda: self._displayMoreInfo("PANID"),
+                  image=self._infoIcon,
+                  ).grid(row=6, column=2, sticky=tk.E)
          
         tk.Label(self.cframe, text="Retries for Announcements"
                  ).grid(row=7, column=0, columnspan=3)
         tk.Label(self.cframe, text="RETRIES").grid(row=8, column=0, sticky=tk.E)
         tk.Entry(self.cframe, textvariable=self.entry['RETRIES'][0], width=20
                  ).grid(row=8, column=1, columnspan=2, sticky=tk.W)
+        tk.Button(self.cframe, text='More Info', state=tk.ACTIVE,
+                  command=lambda: self._displayMoreInfo("RETRIES"),
+                  image=self._infoIcon,
+                  ).grid(row=8, column=2, sticky=tk.E)
         
         if self.devices[self.device['id']]['SleepMode'] == "Cyclic":
             # cyclic config options
@@ -776,18 +873,30 @@ class LLAPCongfigMeClient:
                      invalidcommand='bell',
                      validatecommand=self.vUpper,
                     ).grid(row=12, column=1, columnspan=2, sticky=tk.W)
-    
+            tk.Button(self.cframe, text='More Info', state=tk.ACTIVE,
+                      command=lambda: self._displayMoreInfo("INTVL"),
+                      image=self._infoIcon,
+                      ).grid(row=12, column=2, sticky=tk.E)
+            
             tk.Label(self.cframe, text="Battery Wake Count"
                      ).grid(row=13, column=0, columnspan=3)
             tk.Label(self.cframe, text="WAKEC").grid(row=14, column=0, sticky=tk.E)
             tk.Entry(self.cframe, textvariable=self.entry['WAKEC'][0], width=20,
                     ).grid(row=14, column=1, columnspan=2, sticky=tk.W)
+            tk.Button(self.cframe, text='More Info', state=tk.ACTIVE,
+                      command=lambda: self._displayMoreInfo("WAKEC"),
+                      image=self._infoIcon,
+                      ).grid(row=14, column=2, sticky=tk.E)
         
             tk.Label(self.cframe, text="Enable Cyclic Sleep"
                      ).grid(row=15, column=0, columnspan=3)
             tk.Label(self.cframe, text="CYCLE").grid(row=16, column=0, sticky=tk.E)
             tk.Checkbutton(self.cframe, variable=self.entry['SLEEPM'][0]
                           ).grid(row=16, column=1, columnspan=2, sticky=tk.W)
+            tk.Button(self.cframe, text='More Info', state=tk.ACTIVE,
+                      command=lambda: self._displayMoreInfo("CYCLE"),
+                      image=self._infoIcon,
+                      ).grid(row=16, column=2, sticky=tk.E)
         elif self.devices[self.device['id']]['SleepMode'] == "Interrupt":
             # Interrupt sleep devices
             tk.Label(self.cframe, text="Interrupt Sleep"
@@ -795,6 +904,10 @@ class LLAPCongfigMeClient:
             tk.Label(self.cframe, text="SLEEP").grid(row=11, column=0, sticky=tk.E)
             tk.Checkbutton(self.cframe, variable=self.entry['SLEEPM'][0]
                           ).grid(row=11, column=1, columnspan=2, sticky=tk.W)
+            tk.Button(self.cframe, text='More Info', state=tk.ACTIVE,
+                      command=lambda: self._displayMoreInfo("SLEEP"),
+                      image=self._infoIcon,
+                      ).grid(row=11, column=2, sticky=tk.E)
         
         # device config options
         tk.Label(self.cframe,
@@ -831,6 +944,10 @@ class LLAPCongfigMeClient:
                              invalidcommand='bell',
                              validatecommand=self.vDevID)
                     self._devIDInputs.append(e)
+            tk.Button(self.cframe, text='More Info', state=tk.ACTIVE,
+                      command=lambda: self._displayMoreInfo(n['Command']),
+                      image=self._infoIcon,
+                      ).grid(row=3+r, column=5, sticky=tk.E)
                     
             r += 2
 
@@ -873,21 +990,34 @@ class LLAPCongfigMeClient:
         tk.Entry(self.aframe, textvariable=self.entry['SNH'][0], width=20,
                  state=tk.DISABLED
                  ).grid(row=3, column=1, columnspan=2, sticky=tk.W)
+        tk.Button(self.aframe, text='More Info', state=tk.ACTIVE,
+                  command=lambda: self._displayMoreInfo("SNH"),
+                  image=self._infoIcon,
+                  ).grid(row=3, column=2, sticky=tk.E)
     
         tk.Label(self.aframe, text="Low Bytes").grid(row=4, column=0, columnspan=3)
         tk.Label(self.aframe, text="SNL").grid(row=5, column=0, sticky=tk.E)
         tk.Entry(self.aframe, textvariable=self.entry['SNL'][0], width=20,
                  state=tk.DISABLED
                  ).grid(row=5, column=1, columnspan=2, sticky=tk.W)
-                 
+        tk.Button(self.aframe, text='More Info', state=tk.ACTIVE,
+                  command=lambda: self._displayMoreInfo("SNL"),
+                  image=self._infoIcon,
+                  ).grid(row=5, column=2, sticky=tk.E)
+        
         tk.Label(self.aframe, text="Encryption Options"
                  ).grid(row=1, column=3, columnspan=3)
+        tk.Button(self.aframe, text='More Info', state=tk.ACTIVE,
+                  command=lambda: self._displayMoreInfo("Encryption"),
+                  image=self._infoIcon,
+                  ).grid(row=1, column=5)
     
         tk.Label(self.aframe, text="Enable Encryption"
                  ).grid(row=2, column=3, columnspan=3)
         tk.Label(self.aframe, text="ENC").grid(row=3, column=3, sticky=tk.E)
         tk.Checkbutton(self.aframe, variable=self.entry['ENC'][0]
                        ).grid(row=3, column=4, columnspan=2, sticky=tk.W)
+
     
         tk.Label(self.aframe, text="Encryption Key (set Only)"
                  ).grid(row=4, column=3, columnspan=3)
@@ -901,6 +1031,7 @@ class LLAPCongfigMeClient:
                                             name='enkey')
                                             
         self._encryptionKeyInput.grid(row=5, column=4, columnspan=2, sticky=tk.W)
+
 
 
         tk.Button(self.aframe, text="Done", command=self._checkAdvance
@@ -1647,6 +1778,8 @@ class LLAPCongfigMeClient:
             f.closed
             
             # TODO: Check/catch json errors
+            self._llapGenericCommands = json.loads(read_data)['Generic Commands']
+            self._llapCyclicCommands = json.loads(read_data)['Cyclic Commands']
             self._readingPeriods = json.loads(read_data)['Reading Periods']
             self.devices = json.loads(read_data)['Devices']
     

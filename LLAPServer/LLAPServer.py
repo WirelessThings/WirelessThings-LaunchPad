@@ -113,7 +113,7 @@ class LLAPServer():
     _serialTimeout = 1     # serial port time out setting
     _UDPListenTimeout = 5   # timeout for UDP listen
     
-    _version = 0.01
+    _version = 0.09
 
     _currentLCR = False
     devType = None
@@ -1057,13 +1057,16 @@ is running then run in the current terminal
                 self.logger.debug("tUDPListen: Received JSON: {} From: {}".format(data, address))
                 jsonin = json.loads(data)
                 
+                # TODO: error checking, dict should have keys for netork
                 if (jsonin['network'] == self.config.get('Serial', 'network') or
                     jsonin['network'] == "ALL"):
                     # yep its for our network or "ALL"
+                    # TODO: error checking, dict should have keys for type
                     if jsonin['type'] == "LLAP":
                         self.logger.debug("tUDPListen: JSON of type LLAP, send out messages")
                         # got a LLAP type json, need to generate the LLAP message and
                         # put them on the TX queue
+                        # TODO: error checking, dict should have keys for data
                         for command in jsonin['data']:
                             llapMsg = "a{}{}".format(jsonin['id'], command[0:9].upper())
                             while len(llapMsg) <12:
@@ -1078,6 +1081,7 @@ is running then run in the current terminal
 
                     elif jsonin['type'] == "LCR" and self.config.getboolean('LCR', 'lcr_enable'):
                         # we have a LLAPConfigRequest pass in onto the LCR thread
+                        # TODO: error checking, dict should have keys for data
                         self.logger.debug("tUDPListen: JSON of type LCR, passing to qLCRRequest")
                         try:
                             self.qLCRRequest.put_nowait(jsonin)

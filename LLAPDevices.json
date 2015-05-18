@@ -338,7 +338,7 @@
     "Antenna Classes":{
                       "CA":"Chip Antenna",
                       "WA":"Wire Antenna",
-                      "XA":"External Antenna",
+                      "XA":"External Antenna"
                       },
     "Devices":[
                {
