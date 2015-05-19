@@ -113,7 +113,7 @@ class LLAPServer():
     _serialTimeout = 1     # serial port time out setting
     _UDPListenTimeout = 5   # timeout for UDP listen
     
-    _version = 0.09
+    _version = 0.10
 
     _currentLCR = False
     devType = None
@@ -128,6 +128,8 @@ class LLAPServer():
     _state = ""
     RUNNING = "RUNNING"
     ERROR = "ERROR"
+    
+    _deviceStore = {}
 
     _ActionHelp = """
 start = Starts as a background daemon/service
@@ -1114,10 +1116,14 @@ is running then run in the current terminal
         jsonDict['data'] = [message[3:].strip("-")]
 
         jsonout = json.dumps(jsonDict)
+        self._updateDeviceStore(jsonDict)
         # extrem debugging
         # self.logger.debug("JSON: {}".format(jsonout))
 
         return jsonout
+    
+    def _updateDeviceStore(self, message):
+        self._deviceStore[message['id']] = {'data': message['data'][0], 'timestamp': message['timestamp']}
     
     # TODO: catch errors and add logging
     def _makePidlockfile(self, path, acquire_timeout):
