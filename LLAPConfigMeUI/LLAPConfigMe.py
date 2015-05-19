@@ -29,6 +29,7 @@ from time import sleep, asctime, time
 import logging
 import uuid
 from collections import OrderedDict
+import itertools
 
 """
     Big TODO list
@@ -93,6 +94,8 @@ INTERVALTEXT = """Use the slider to select a reporting period for the device.
 A shorter period will result in reduce battery life for a battery powered device"""
 
 ENCRYPTIONTEXT = """Encryption long description"""
+
+WARNINGTEXT = "Warning: This ID has been used before."
 
 class LLAPCongfigMeClient:
     """
@@ -403,7 +406,7 @@ class LLAPCongfigMeClient:
         self._readingScale[0].trace_variable('w', self._updateIntervalOnScaleChange)
         
         self._infoIcon = tk.PhotoImage(file=self._infoIconFile)
-        
+        self._devIDWarning = tk.StringVar()
         # init the entry variables we will need to reset between each run
         self._initEntryVariables()
         
@@ -431,6 +434,7 @@ class LLAPCongfigMeClient:
                       "ENKEY" : [tk.StringVar(), tk.StringVar(), 'ENKey'],
                       "RSSI" : [tk.IntVar(), tk.IntVar(), 'Int']
                      }
+        self.entry['CHDEVID'][0].trace_variable('w', self._checkDevIDList)
                       
     def _displayIntro(self):
         self.logger.debug("Display Intro Page")
@@ -681,9 +685,11 @@ class LLAPCongfigMeClient:
         return "Expetced life will be {}".format("?")
     
     def _getNextFreeID(self):
-        # TODO: get the next free ID using all sources of info avalibe to use, (hub.DeviceStore)
-        return "AA"
-
+        for id in itertools.product(string.ascii_uppercase, repeat=2):
+            if ''.join(id) not in sorted(self._servers[self._network]['data']['result']['DeviceStore'].keys()):
+                return ''.join(id)
+        return "??"
+                
     def _displayMoreInfo(self, subject):
         self.logger.debug("Displaying more info for {}".format(subject))
         
@@ -782,6 +788,9 @@ class LLAPCongfigMeClient:
                                          )
                                 )
         self._devIDInputs[-1].grid(row=4, column=3, columnspan=2, sticky=tk.W)
+        tk.Label(self.dframe, textvariable=self._devIDWarning,
+                 wraplength=self._widthMain/6*4
+                 ).grid(row=5, column=1, columnspan=4)
         tk.Label(self.dframe, text="Previous ID's seen by this hub and there last message\r If you wish to reuse an ID your can select it form below."
                  ).grid(row=6, column=1, rowspan=2, columnspan=4)
     
@@ -802,16 +811,25 @@ class LLAPCongfigMeClient:
                                                                               )
                                           )
                 index +=1
-            self._devIDListbox.bind('<<ListboxSelect>>', self.onDevIDselect)
-    
+            
+            self._devIDListbox.bind('<<ListboxSelect>>', self._onDevIDselect)
+
         self._devIDListbox.grid(row=8, column=1, columnspan=4,
                                 rowspan=9, sticky=tk.E+tk.W+tk.N+tk.S)
     
-    def onDevIDselect(self, evt):
+    def _onDevIDselect(self, evt):
         w = evt.widget
-        index = int(w.curselection()[0])
-        value = w.get(index)[4:6]
-        self.entry['CHDEVID'][0].set(value)
+        w.selection_clear(0, w.size())
+    
+    def _checkDevIDList(self, *args):
+        if self._currentFrame == "chdevidFrame":
+            try:
+                if self.entry['CHDEVID'][0].get() in self._servers[self._network]['data']['result']['DeviceStore'].keys():
+                    self._devIDWarning.set(WARNINGTEXT)
+                else:
+                    self._devIDWarning.set("")
+            except:
+                pass
 
     def _displayConfig(self):
         self.logger.debug("Displaying Device type based config screen")
@@ -1220,7 +1238,7 @@ class LLAPCongfigMeClient:
                 
     def _checkAdvance(self):
         self.logger.debug("Checking advance input")
-        if len(self.entry["ENKEY"][0].get()) == 32 or len(self.entry["ENKEY"][0].get()) == 0:
+        if len(self.entry['ENKEY'][0].get()) == 32 or len(self.entry['ENKEY'][0].get()) == 0:
             self.advanceWindow.destroy()
         else:
             # let user know KEY needs to be 0 or 32
@@ -1330,7 +1348,7 @@ class LLAPCongfigMeClient:
             #      ><    ><    ><    ><    ><>
             # 12345678901234567890123456789012
             # A1B2C3D4E5F6A2B3C4DE6F7A3B4C5D6E
-            #self.logger.debug("ENKEY Length: {}".format(len(self.entry["ENKEY"][0].get())))
+            #self.logger.debug("ENKEY Length: {}".format(len(self.entry['ENKEY'][0].get())))
             if len(value[0].get()) == 32:
                 # key is long enough
                 query.append({'command': "EN1", 'value': value[0].get()[0:6]})
