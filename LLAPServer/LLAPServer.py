@@ -360,7 +360,7 @@ is running then run in the current terminal
             while not self.tMainStop.is_set():
                 # check threads are running
                 if not self.tLCR.is_alive():
-                    self.logger.error("LCR thread stopped")
+                    self.logger.error("tMain: LCR thread stopped")
                     self._state = self.ERROR
                     self.tMainStop.wait(1)
                     self._startLCR()
@@ -369,7 +369,7 @@ is running then run in the current terminal
                         self._state = self.RUNNING
             
                 if not self.tUDPSend.is_alive():
-                    self.logger.error("UDPSend thread stopped")
+                    self.logger.error("tMain: UDPSend thread stopped")
                     self._state = self.ERROR
                     self.tMainStop.wait(1)
                     self._startUDPSend()
@@ -378,7 +378,7 @@ is running then run in the current terminal
                         self._state = self.RUNNING
                             
                 if not self.tSerial.is_alive():
-                    self.logger.error("Serial thread stopped, wait 1 before trying to re-establish ")
+                    self.logger.error("tMain: Serial thread stopped, wait 1 before trying to re-establish ")
                     self._state = self.ERROR
                     self.tMainStop.wait(1)
                     self._startSerail()
@@ -388,11 +388,11 @@ is running then run in the current terminal
                     else:
                         self._SerialFailCount += 1
                         if self._SerialFailCount > self._SerialFailCountLimit:
-                            self.logger.error("Serial thread failed to recover after {} retries, Exiting".format(self._SerialFailCountLimit))
+                            self.logger.error("tMain: Serial thread failed to recover after {} retries, Exiting".format(self._SerialFailCountLimit))
                             self.die()
 
                 if not self.tUDPListen.is_alive():
-                    self.logger.error("UDPListen thread stopped")
+                    self.logger.error("tMain: UDPListen thread stopped")
                     self._state = self.ERROR
                     self.tMainStop.wait(1)
                     self._startUDPListen()
@@ -402,18 +402,13 @@ is running then run in the current terminal
                 
                 # process any "Server" messages
                 if not self.qServer.empty():
-                    self.logger.debug("Processing Server JSON")
+                    self.logger.debug("tMain: Processing Server JSON message")
                     try:
-                        self.qServer.get_nowait()
+                        json = self.qServer.get_nowait()
                     except Queue.Empty():
                         pass
                     else:
-                        self.qUDPSend.put(json.dumps({"type": "Server",
-                                                     "network": self.config.get('Serial', 'network'),
-                                                     "state": self._state,
-                                                     "timestamp": strftime("%d %b %Y %H:%M:%S +0000", gmtime())
-                                                     })
-                                          )
+                        self._processServerMessage(json)
                             
                 # flash led's if GPIO debug
                 self.tMainStop.wait(0.5)
@@ -746,17 +741,17 @@ is running then run in the current terminal
                     self.logger.debug("tUDPSend: Put message out via UDP")
                 except socket.error, msg:
                     self.logger.warn("tUDPSend: Failed to send via UDP. Error code : {} Message: {}".format(msg[0], msg[1]))
-                
+
                 # tidy up
                 self.qUDPSend.task_done()
-
+                    
         self.logger.info("tUDPSend: Thread stopping")
         try:
             UDPSendSocket.close()
         except socket.error:
             self.logger.exception("tUDPSend: Failed to close socket")
         return
-    
+            
     def _SerialThread(self):
         """ Serial Thread
         """
@@ -1104,7 +1099,35 @@ is running then run in the current terminal
         except socket.error:
             self.logger.exception("tUDPListen: Failed to close socket")
         return
+
+    def _processServerMessage(self, message):
+        message['timestamp'] = strftime("%d %b %Y %H:%M:%S +0000", gmtime())
+        message['network'] = self.config.get('Serial', 'network')
+        message['state'] = self._state
+        if message.has_key('data'):
+            result = {}
+            if message['data'].has_key('request'):
+                for request in message['data']['request']:
+                    if request == "DeviceStore":
+                        result['DeviceStore'] = self._deviceStore
+                    # TODO: implement other server "requests"
+#                    elif request == "PANID":
+#                        result['PANID'] = ""
+            elif message['data'].has_key('set'):
+                for set in message['data']['set']:
+                    # TODO: implement "set" requests
+                    pass
+            message['data']['result'] = result
                 
+        try:
+            # just report state
+            self.qUDPSend.put(json.dumps(message))
+        except Queue.Full:
+            self.logger.debug("tMain: Failed to put {} on qUDPSend as it's full".format(message))
+        else:
+            self.logger.debug("tMain: Put {} on qUDPSend".format(message))
+
+    
     def encodeLLAPJson(self, message, network=None):
         """Encode a single LLAP message into an outgoing JSON message
             """
