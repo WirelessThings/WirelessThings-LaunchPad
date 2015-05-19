@@ -28,6 +28,7 @@ import re
 from time import sleep, asctime, time
 import logging
 import uuid
+from collections import OrderedDict
 
 """
     Big TODO list
@@ -384,6 +385,7 @@ class LLAPCongfigMeClient:
                     # TODO: we have a SERVER json do stuff with it
                     self.logger.debug("tUDPListen: JSON of type SERVER")
                     # update server entry in our list
+                    # TODO: this needs to be a intelignet merge not just overwrite
                     self._servers[jsonin['network']] = jsonin
                     self.fServerUpdate.set()
             
@@ -780,16 +782,36 @@ class LLAPCongfigMeClient:
                                          )
                                 )
         self._devIDInputs[-1].grid(row=4, column=3, columnspan=2, sticky=tk.W)
-        tk.Label(self.dframe, text="Previous ID's seen by this hub"
-                 ).grid(row=6, column=1, columnspan=4)
+        tk.Label(self.dframe, text="Previous ID's seen by this hub and there last message\r If you wish to reuse an ID your can select it form below."
+                 ).grid(row=6, column=1, rowspan=2, columnspan=4)
     
-        self._devIDListbox = tk.Listbox(self.dframe)
-        # TODO: fill list box entries
-        
-        self._devIDListbox.grid(row=7, column=1, columnspan=4,
+        self._devIDListbox = tk.Listbox(self.dframe, selectmode=tk.SINGLE)
+        try:
+            # try to split get a device store list from our know server
+            ds = self._servers[self._network]['data']['result']['DeviceStore']
+        except:
+            pass
+        else:
+            ods = OrderedDict(sorted(ds.items(), key=lambda t: t[0]))
+            index = 0
+            for id, data in ods.items():
+                self._devIDListbox.insert(index,
+                                          "id: {}, data: {}, time: {}".format(id,
+                                                                              data['data'],
+                                                                              data['timestamp']
+                                                                              )
+                                          )
+                index +=1
+            self._devIDListbox.bind('<<ListboxSelect>>', self.onDevIDselect)
+    
+        self._devIDListbox.grid(row=8, column=1, columnspan=4,
                                 rowspan=9, sticky=tk.E+tk.W+tk.N+tk.S)
     
-    
+    def onDevIDselect(self, evt):
+        w = evt.widget
+        index = int(w.curselection()[0])
+        value = w.get(index)[4:6]
+        self.entry['CHDEVID'][0].set(value)
 
     def _displayConfig(self):
         self.logger.debug("Displaying Device type based config screen")
@@ -1199,9 +1221,7 @@ class LLAPCongfigMeClient:
     def _checkAdvance(self):
         self.logger.debug("Checking advance input")
         if len(self.entry["ENKEY"][0].get()) == 32 or len(self.entry["ENKEY"][0].get()) == 0:
-            print self.entry["ENC"][0].get()
             self.advanceWindow.destroy()
-            print self.entry["ENC"][0].get()
         else:
             # let user know KEY needs to be 0 or 32
             tkMessageBox.showerror("Encryption Key Length",
@@ -1524,6 +1544,7 @@ class LLAPCongfigMeClient:
     def _askCurrentConfig(self):
         # assuming we know what it is ask for the current config
         self.logger.debug("Ask current config")
+        self._requestServerDeviceStore(self._network)
         self.pframe.children['pressText'].config(text=PRESSTEXT1)
         query = [
                  {'command': "PANID"},
@@ -1565,6 +1586,20 @@ class LLAPCongfigMeClient:
                 
         self._lastLCR.append(lcr)
         self._sendRequest(lcr)
+
+    def _requestServerDeviceStore(self, network):
+        self.logger.debug("Ask server {} for its DeviceStore".format(network))
+        serverQuery = {
+                       "type": "Server",
+                       "network": network,
+                       "data":{
+                           "id": str(uuid.uuid4()),
+                           "request": [
+                                       "DeviceStore"
+                                       ]
+                       }
+                      }
+        self._sendRequest(serverQuery)
 
     def _processNoReply(self):
         self.logger.debug("No Reply with in timeouts")
@@ -1711,11 +1746,17 @@ class LLAPCongfigMeClient:
         # TODO: close sockets
         # self._lcm.disconnect_transport()
         self._writeConfig()
-        self.tUDPSendStop.set()
-        self.tUDPSend.join()
-        self.tUDPListenStop.set()
-        self.tUDPListen.join()
-    
+        try:
+            self.tUDPSendStop.set()
+            self.tUDPSend.join()
+        except:
+            pass
+        try:
+            self.tUDPListenStop.set()
+            self.tUDPListen.join()
+        except:
+            pass
+
     def _stopKeepAwake(self):
         if self._keepAwake:
             self.logger.debug("Stopping keepAwake")
