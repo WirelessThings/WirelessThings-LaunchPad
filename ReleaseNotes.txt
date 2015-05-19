@@ -1,5 +1,11 @@
 LLAPFiles from Ciseco
 
+0.10:
+    Server: Implement in memory DeviceStore, records last message and time stamp for against and ID
+    UDPUI: getNextFreID placeholder
+    UDPUI: working Listbox of previous seen ID's from hub
+    UUDPUI: Generate next free ID from DeviceStore
+
 0.09:
     Server: filter all types of JSON by network not just LLAP
     Server: expand Server type messages
