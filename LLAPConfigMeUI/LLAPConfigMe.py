@@ -100,7 +100,7 @@ class LLAPCongfigMeClient:
         pass requests onto LLAPConfigMeCore
     """
 
-    _version = 0.09
+    _version = 0.10
     
     _configFileDefault = "LLAPCM_defaults.cfg"
     _configFile = "LLAPCM.cfg"
@@ -582,6 +582,7 @@ class LLAPCongfigMeClient:
             r += 1
             tk.Label(self.sframe, text="This is a new deivce and a new ID has been automaticly assigned"
                      ).grid(row=r, column=1, columnspan=4, sticky=tk.W+tk.E)
+            self.entry['CHDEVID'][0].set(self._getNextFreeID())
 
         r += 2 # start row for next set of options
         
@@ -676,6 +677,10 @@ class LLAPCongfigMeClient:
 
     def _estimateLifeTimeForPeriod(self, period, deviceID):
         return "Expetced life will be {}".format("?")
+    
+    def _getNextFreeID(self):
+        # TODO: get the next free ID using all sources of info avalibe to use, (hub.DeviceStore)
+        return "AA"
 
     def _displayMoreInfo(self, subject):
         self.logger.debug("Displaying more info for {}".format(subject))
