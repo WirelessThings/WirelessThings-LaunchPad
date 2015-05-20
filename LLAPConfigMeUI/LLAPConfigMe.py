@@ -528,7 +528,7 @@ class LLAPCongfigMeClient:
         if not reset:
             self.master.after(1, self._queryType)
     
-    def _displaySimpleConfig(self):
+    def _displaySimpleConfig(self, fromConfig=False):
         self.logger.debug("Displaying Device type based simple config screen")
         self.master.children[self._currentFrame].pack_forget()
                 
@@ -620,7 +620,7 @@ class LLAPCongfigMeClient:
     
         # if cyclic device show slider
         if self.devices[self.device['id']]['SleepMode'] == "Cyclic":
-            self._updateScaleAndDescriptionFromPeriod(self.entry['INTVL'][0].get())
+            self._updateScaleAndDescriptionFromPeriod(self.entry['INTVL'][0].get(), not fromConfig)
             tk.Label(self.sframe, text="Reading Interval:"
                      ).grid(row=r, column=1, sticky=tk.E)
             tk.Scale(self.sframe, variable=self._readingScale[0],
@@ -640,9 +640,11 @@ class LLAPCongfigMeClient:
             r += 5
                 
     def _updateIntervalOnScaleChange(self, *args):
-        if self._currentFrame == "simpleFrame" and self._readingScale[0].get() != len(self._readingPeriods):
-            self.entry['INTVL'][0].set(self._readingPeriods[self._readingScale[0].get()]['Period'])
-            # TODO: Set cycle to on!
+        if self._readingScale[0].get() != len(self._readingPeriods):
+            if self.entry['INTVL'][0].get() != self._readingPeriods[self._readingScale[0].get()]['Period']:
+                self.entry['INTVL'][0].set(self._readingPeriods[self._readingScale[0].get()]['Period'])
+                self.entry['SLEEPM'][0].set(1)
+                # TODO: Set cycle to on!
         try:
             self._readingScale[1].set("{}".format(self._parseIntervalToString(self.entry['INTVL'][0].get())))
             self._readingScale[2].set("{}.\r {}".format(
@@ -654,7 +656,7 @@ class LLAPCongfigMeClient:
             self._readingScale[1].set("Custom Period")
             self._readingScale[2].set("To set a custom reporting period please use the \"Advanced Config\" option below".format(self._parseIntervalToString(self.entry['INTVL'][0].get())))
 
-    def _updateScaleAndDescriptionFromPeriod(self, intval):
+    def _updateScaleAndDescriptionFromPeriod(self, intval, setCycle=True):
         for (index,period) in enumerate(self._readingPeriods):
             if intval == "000S":
                 # period no set use defualt from json
@@ -664,7 +666,9 @@ class LLAPCongfigMeClient:
                                             self._readingPeriods[self._readingScale[0].get()]['Description'],
                                             "?")
                                           )
-                break
+                if setCycle:
+                    self.entry['SLEEPM'][0].set(1)
+                return
             elif intval == period['Period']:
                 self._readingScale[0].set(index)
                 self._readingScale[1].set("{}".format(self._parseIntervalToString(self.entry['INTVL'][0].get())))
@@ -673,15 +677,17 @@ class LLAPCongfigMeClient:
                                             self._estimateLifeTimeForPeriod(self.entry['INTVL'][0].get(), self.device['id'])
                                                                                   )
                                           )
-                break
-            else:
-                self._readingScale[0].set(len(self._readingPeriods))
-                self._readingScale[1].set("Custom Period {}".format(self._parseIntervalToString(self.entry['INTVL'][0].get())))
-                self._readingScale[2].set("You have chosen a custom period of {}.\r {}".format(
-                                            self._parseIntervalToString(self.entry['INTVL'][0].get()),
-                                            self._estimateLifeTimeForPeriod(self.entry['INTVL'][0].get(), self.device['id'])
-                                                                                                                     )
-                                         )
+                if setCycle:
+                    self.entry['SLEEPM'][0].set(1)
+                return
+        
+        self._readingScale[0].set(len(self._readingPeriods))
+        self._readingScale[1].set("Custom Period {}".format(self._parseIntervalToString(self.entry['INTVL'][0].get())))
+        self._readingScale[2].set("You have chosen a custom period of {}.\r {}".format(
+                                    self._parseIntervalToString(self.entry['INTVL'][0].get()),
+                                    self._estimateLifeTimeForPeriod(self.entry['INTVL'][0].get(), self.device['id'])
+                                                                                                             )
+                                 )
 
     def _parseIntervalToString(self, period):
         return "{} {}".format(int(period[:3]), self._periodUnits[period[3:]])
@@ -690,10 +696,12 @@ class LLAPCongfigMeClient:
         return "Expetced life will be {}".format("?")
     
     def _getNextFreeID(self):
-        for id in itertools.product(string.ascii_uppercase, repeat=2):
-            if ''.join(id) not in sorted(self._servers[self._network]['data']['result']['DeviceStore'].keys()):
-                return ''.join(id)
-        return "??"
+        try:
+            for id in itertools.product(string.ascii_uppercase, repeat=2):
+                if ''.join(id) not in sorted(self._servers[self._network]['data']['result']['DeviceStore'].keys()):
+                    return ''.join(id)
+        except:
+            return "??"
                 
     def _displayMoreInfo(self, subject):
         self.logger.debug("Displaying more info for {}".format(subject))
@@ -771,7 +779,7 @@ class LLAPCongfigMeClient:
     
         # buttons
         tk.Button(self.dframe, text='Back', state=tk.ACTIVE,
-                  command=self._displaySimpleConfig,
+                  command=lambda: self._displaySimpleConfig(True),
                   ).grid(row=0, column=1, sticky=tk.W)
 
         # description and RSSI
@@ -858,7 +866,7 @@ class LLAPCongfigMeClient:
                  
         # buttons
         tk.Button(self.cframe, text='Back', state=tk.ACTIVE,
-                  command=self._displaySimpleConfig,
+                  command=lambda: self._displaySimpleConfig(True),
                   ).grid(row=0, column=1, sticky=tk.W)
         tk.Button(self.cframe, text='Encryption Settings',
                   command=self._displayAdvance
@@ -1502,7 +1510,6 @@ class LLAPCongfigMeClient:
                             self.logger.debug("Error in reply to ENC")
                     elif command == "INTVL":
                         self.entry[command][0].set(args['reply'])
-                        self._updateScaleAndDescriptionFromPeriod(args['reply'])
                     else:
                         if command in self.entry:
                             # TODO: need to handle check box entry (Format: ONOFF)
