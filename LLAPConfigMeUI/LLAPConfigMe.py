@@ -104,7 +104,7 @@ class LLAPCongfigMeClient:
         pass requests onto LLAPConfigMeCore
     """
 
-    _version = 0.10
+    _version = 0.11
     
     _configFileDefault = "LLAPCM_defaults.cfg"
     _configFile = "LLAPCM.cfg"
@@ -499,7 +499,7 @@ class LLAPCongfigMeClient:
               self._serverButtons[network].config(state=tk.ACTIVE if server['state'] == "RUNNING" else tk.DISABLED
                                                   )
 
-    def _displayPressButton(self, network):
+    def _displayPressButton(self, network, reset=False):
         self.logger.debug("Displaying PressButton")
         
         self._network = network
@@ -515,13 +515,18 @@ class LLAPCongfigMeClient:
         
         self._buildGrid(self.pframe)
         
-        tk.Label(self.pframe, name='pressText', text=PRESSTEXT
+        if not reset:
+            pt = PRESSTEXT
+        else:
+            pt = PRESSTEXT1
+        tk.Label(self.pframe, name='pressText', text=pt
                  ).grid(row=1, column=0, columnspan=6, rowspan=4)
 
         tk.Button(self.pframe, text='Back',
                   command = self._startOver,
                   ).grid(row=0, column=1, sticky=tk.W)
-        self.master.after(1, self._queryType)
+        if not reset:
+            self.master.after(1, self._queryType)
     
     def _displaySimpleConfig(self):
         self.logger.debug("Displaying Device type based simple config screen")
@@ -552,7 +557,7 @@ class LLAPCongfigMeClient:
                  ).grid(row=self._rows-4, column=2, columnspan=2,
                         sticky=tk.E+tk.W)
         tk.Button(self.sframe, name='reset', text='Reset to Defaults',
-                  #command=self._resetDefautls
+                  command=self._resetDefautls
                   ).grid(row=self._rows-3, column=2, columnspan=2,
                          sticky=tk.E+tk.W)
         tk.Button(self.sframe, text='Advanced Config',
@@ -1200,6 +1205,31 @@ class LLAPCongfigMeClient:
         # clear out entry variables
         self._initEntryVariables
     
+    def _resetDefautls(self):
+        self._displayPressButton(self.device['network'], reset=True)
+        query = [
+                 {'command': "LLAPRESET"},
+                 {'command': "CHDEVID"}
+                ]
+                
+        self.logger.debug("Setting keepAwake")
+        self._keepAwake = 1
+
+        self._configState = 5
+        lcr = {"type": "LCR",
+               "network":self.device['network'],
+               "data":{
+                       "id": str(uuid.uuid4()),
+                       "timeout": self.config.get('LCR', 'timeout'),
+                       "keepAwake":self._keepAwake,
+                       "devType": self.device['DTY'],
+                       "toQuery": query
+                       }
+              }
+                  
+        self._lastLCR.append(lcr)
+        self._sendRequest(lcr)
+
     def _displayProgress(self):
         self.logger.debug("Displaying progress pop up")
         
@@ -1441,40 +1471,6 @@ class LLAPCongfigMeClient:
                                            'devID': reply['replies']['CHDEVID']['reply'],
                                            'network': json['network']
                                           }
-                            
-#                            # ask user about reseting device if devID is not ??
-#                            # for testing lets just reset if devID is MB
-#                            if self.device['devID'] != "??":
-#                                if tkMessageBox.askyesno("Device Previously configured",
-#                                                         ("This device has been previously configured, \n"
-#                                                          "Do you wish to reset the device to defaults (Yes),\n"
-#                                                          "Or to alter the current configuration (No)")
-#                                                         ):
-#                                    query = [
-#                                             {'command': "LLAPRESET"},
-#                                             {'command': "CHDEVID"}
-#                                            ]
-#                                            
-#                                    self.logger.debug("Setting keepAwake")
-#                                    self._keepAwake = 1
-#
-#                                    self._configState = 5
-#                                    lcr = {"type": "LCR",
-#                                           "network":self.device['network'],
-#                                           "data":{
-#                                                   "id": str(uuid.uuid4()),
-#                                                   "timeout": self.config.get('LCR', 'timeout'),
-#                                                   "keepAwake":self._keepAwake,
-#                                                   "devType": self.device['DTY'],
-#                                                   "toQuery": query
-#                                                  }
-#                                          }
-#                                            
-#                                    self._lastLCR.append(lcr)
-#                                    self._sendRequest(lcr)
-#                                else:
-#                                    self._askCurrentConfig()
-#                            else:
                             self._askCurrentConfig()
                 else:
                     # apver mismatch, show error screen
