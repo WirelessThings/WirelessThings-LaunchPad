@@ -1,5 +1,14 @@
 LLAPFiles from Ciseco
 
+0.11:
+    UDPUI: Reset defaults button is working again
+    UDPUI: Correctly set SLEEPM when using the slider
+    Server: Don't modify the toQuery in an LCR
+    JSON: new device AAAB02 and update ENKey descriptions
+    Server & UDPUI: Automatic setting of PANID and Encryption for new devices
+    UDPUI: Handle network settings for reconfiguring devices
+    PY2EXE: update to include icon
+
 0.10:
     Server: Implement in memory DeviceStore, records last message and time stamp for against and ID
     UDPUI: getNextFreID placeholder
