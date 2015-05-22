@@ -181,20 +181,20 @@
     "data":{           // optional, config server commands or expaneded run time info from server
             "id":3,                 // optional, can be use by GUI to help track request and replies
             "request":[
-                       "DeviceStore",
+                       "deviceStore",
                        "PANID",
-                       "Encryption"
+                       "encryptionSet"
                        ],
             "set":{
                    "PANID":"5AA5",
-                   "EncryptionState":"On",
-                   "EncrptionKey":"0123456789ABCDEF01234567890ABCDEF"
+                   "encryptionSet":false,
+                   "encrptionKey":"0123456789ABCDEF01234567890ABCDEF"
                    },
             "result":{
                       "PANID":"5AA5"
-                      "EncryptionState":"On",
-                      "EncrptionKey":"Fail",
-                      "DeciceStore":{
+                      "encryptionSet":true,
+                      "encrptionKey":"Fail",
+                      "deciceStore":{
                                      "AA":{
                                            "data":"TEMP19.50",
                                            "timestamp":"12 Mar 2014 14:19:21 +0000"

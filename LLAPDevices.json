@@ -174,32 +174,32 @@
                         {
                         "Command":"EN1",
                         "Format":"ENKey",
-                        "Description":"Set 1st set of six bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
+                        "Description":"Set 1st set of three bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"EN2",
                         "Format":"ENKey",
-                        "Description":"Set 2nd set of six bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
+                        "Description":"Set 2nd set of three bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"EN3",
                         "Format":"ENKey",
-                        "Description":"Set 3rd set of six bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
+                        "Description":"Set 3rd set of three bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"EN4",
                         "Format":"ENKey",
-                        "Description":"Set 4th set of six bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
+                        "Description":"Set 4th set of three bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"EN5",
                         "Format":"ENKey",
-                        "Description":"Set 5th set of six bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
+                        "Description":"Set 5th set of three bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"EN6",
                         "Format":"ENKey",
-                        "Description":"Set last two bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
+                        "Description":"Set last byte of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"$ER",
@@ -906,6 +906,47 @@
                           {
                           "Command":"TRG",
                           "Description":"Count trigger level",
+                          "Format":"Int"
+                          }
+                          ]
+               },
+               {
+               "id":17,
+               "DEVTYPE":"",
+               "DTY":"AAAB02",
+               "Name":"Temperature Sensor SB-CA",
+               "Description":"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut tempus turpis sit amet diam auctor, ac semper dui sollicitudin. Pellentesque at semper lorem. Vivamus scelerisque id elit in porttitor. Sed eget condimentum dolor. Nunc sollicitudin.",
+               "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
+               "Actions":[
+                          {
+                          "Command":"TEMP",
+                          "Description":"Request Temperature",
+                          "Format":"Float",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+                          {
+                          "Command":"BVAL",
+                          "Description":"Beta Value of Thermistor",
+                          "Format":"Int"
+                          },
+                          {
+                          "Command":"RNOM",
+                          "Description":"Resistance at 20C",
+                          "Format":"Int"
+                          },
+                          {
+                          "Command":"IR",
+                          "Description":"Internal Resistance",
+                          "Format":"Int"
+                          },
+                          {
+                          "Command":"SRES",
+                          "Description":"Series Resistance",
                           "Format":"Int"
                           }
                           ]
