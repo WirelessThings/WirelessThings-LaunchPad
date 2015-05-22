@@ -612,6 +612,14 @@ is running then run in the current terminal
                             self._currentLCR['data']['replies'] = {}
                             # use a copy in case we are adding ENC stuff
                             toQuery = list(self._currentLCR['data']['toQuery'])
+                            if self._currentLCR['data'].has_key('setENC'):
+                                # TODO: need to perpend encryption key setup to the toQuery
+                                if self.config.getboolean('Serial','encryption'):
+                                    self.logger.debug("tLCR: auto setting encryption")
+                                    toQuery.insert(0, {"command":"ENC", "value":"ON"})
+                                    for (index, hex) in enumerate(list(self._chunkstring(self.config.get('Serial', 'encryption_key'), 6))):
+                                        toQuery.insert(0, {"command":"EN{}".format(index+1), "value":hex})
+
                             # pass queries on to the serial thread to send out
                             try:
                                 self.qSerialToQuery.put_nowait(toQuery)
@@ -827,13 +835,14 @@ is running then run in the current terminal
         self._serial.flushInput()
     
         at = AT.AT(self._serial, self.logger, self.tSerialStop)
-    
+        # TODO: make this way more reliable
         if at.enterATMode():
             if at.sendATWaitForOK("ATLH1"):
                 if at.sendATWaitForOK("ATAC"):
                     if 0:
                         at.sendATWaitForOK("ATWR")
-        
+            # TODO: check/set out PANID and encryption settings as per config
+            
             at.leaveATMode()
     
     def _SerialReadIncomingLLap(self):
@@ -903,14 +912,15 @@ is running then run in the current terminal
         
                 # check reply was to the last question
                 if llapMsg.startswith(self._SerialToQuery[self._SerialToQueryState-1]['command']) or (self._encryptionCommandMatch.match(self._SerialToQuery[self._SerialToQueryState-1]['command']) and llapMsg == "ENACK"):
-                    # reduce the state count and reset retry count
-                    self._SerialToQueryState -= 1
-                    self._SerialRetryCount = 0
                     
                     # special case for encryption
                     if self._encryptionCommandMatch.match(self._SerialToQuery[self._SerialToQueryState-1]['command']):
                         llapMsg = self._SerialToQuery[self._SerialToQueryState-1]['command'] + llapMsg
                     
+                    # reduce the state count and reset retry count
+                    self._SerialToQueryState -= 1
+                    self._SerialRetryCount = 0
+
                     # store the reply
                     try:
                         self.qLCRSerial.put_nowait(llapMsg)
@@ -1110,11 +1120,13 @@ is running then run in the current terminal
             result = {}
             if message['data'].has_key('request'):
                 for request in message['data']['request']:
-                    if request == "DeviceStore":
-                        result['DeviceStore'] = self._deviceStore
+                    if request == "deviceStore":
+                        result['deviceStore'] = self._deviceStore
                     # TODO: implement other server "requests"
-#                    elif request == "PANID":
-#                        result['PANID'] = ""
+                    elif request == "PANID":
+                        result['PANID'] = self.config.get('Serial', 'panid')
+                    elif request == "encryptionSet":
+                        result['encryptionSet'] = self.config.getboolean('Serial', 'encryption')
             elif message['data'].has_key('set'):
                 for set in message['data']['set']:
                     # TODO: implement "set" requests
@@ -1149,6 +1161,9 @@ is running then run in the current terminal
     
     def _updateDeviceStore(self, message):
         self._deviceStore[message['id']] = {'data': message['data'][0], 'timestamp': message['timestamp']}
+    
+    def _chunkstring(self, string, length):
+        return (string[0+i:length+i] for i in range(0, len(string), length))
     
     # TODO: catch errors and add logging
     def _makePidlockfile(self, path, acquire_timeout):

@@ -97,6 +97,9 @@ ENCRYPTIONTEXT = """Encryption long description"""
 
 WARNINGTEXT = "Warning: This ID has been used before."
 
+NEWDEVICETEXT = """This is a new device. Network setting will be automaticly set to match your hub"""
+NEWDEVICEIDTEXT = "A new ID has been automaticly assigned, to override please click change"
+
 class LLAPCongfigMeClient:
     """
         LLAP ConfigMe Client Class
@@ -129,6 +132,7 @@ class LLAPCongfigMeClient:
     _serverButtons = {}
     _serverQueryJSON = json.dumps({"type": "Server", "network": "ALL"})
     _configState = 0
+    _setENC = False
     
     _validID = "ABCDEFGHIJKLMNOPQRSTUVWXYZ-#@?\\*"
     _validData = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !\"#$%&'()*+,-.:;<=>?@[\\\/]^_`{|}~"
@@ -387,10 +391,7 @@ class LLAPCongfigMeClient:
                 elif jsonin['type'] == "Server":
                     # TODO: we have a SERVER json do stuff with it
                     self.logger.debug("tUDPListen: JSON of type SERVER")
-                    # update server entry in our list
-                    # TODO: this needs to be a intelignet merge not just overwrite
-                    self._servers[jsonin['network']] = jsonin
-                    self.fServerUpdate.set()
+                    self._updateServerDetailsFromJSON(jsonin)
             
         self.logger.info("tUDPListen: Thread stopping")
         try:
@@ -576,6 +577,14 @@ class LLAPCongfigMeClient:
                   command=lambda: self._displayMoreInfo("Description"),
                   image=self._infoIcon
                   ).grid(row=r, column=5, sticky=tk.W)
+                  
+        # new deivce Label
+        if self._newDevice:
+            r += 2
+            tk.Label(self.sframe, text=NEWDEVICETEXT,
+                     wraplength=self._widthMain/6*4
+                     ).grid(row=r, column=1, columnspan=4, rowspan=2)
+        
 
         # device ID
         r += 2
@@ -589,11 +598,10 @@ class LLAPCongfigMeClient:
                   command=lambda: self._displayMoreInfo("CHDEVID"),
                   image=self._infoIcon,
                   ).grid(row=r, column=5, sticky=tk.W)
-        if self.entry['CHDEVID'][0].get() == "??":
+        if self._newDevice:
             r += 1
-            tk.Label(self.sframe, text="This is a new deivce and a new ID has been automaticly assigned"
+            tk.Label(self.sframe, text=NEWDEVICEIDTEXT
                      ).grid(row=r, column=1, columnspan=4, sticky=tk.W+tk.E)
-            self.entry['CHDEVID'][0].set(self._getNextFreeID())
 
         r += 2 # start row for next set of options
         
@@ -638,13 +646,12 @@ class LLAPCongfigMeClient:
                      wraplength=self._widthMain/6*4
                      ).grid(row=r+1, column=1, columnspan=4, rowspan=3, sticky=tk.W+tk.E)
             r += 5
-                
+
     def _updateIntervalOnScaleChange(self, *args):
         if self._readingScale[0].get() != len(self._readingPeriods):
             if self.entry['INTVL'][0].get() != self._readingPeriods[self._readingScale[0].get()]['Period']:
                 self.entry['INTVL'][0].set(self._readingPeriods[self._readingScale[0].get()]['Period'])
                 self.entry['SLEEPM'][0].set(1)
-                # TODO: Set cycle to on!
         try:
             self._readingScale[1].set("{}".format(self._parseIntervalToString(self.entry['INTVL'][0].get())))
             self._readingScale[2].set("{}.\r {}".format(
@@ -698,7 +705,7 @@ class LLAPCongfigMeClient:
     def _getNextFreeID(self):
         try:
             for id in itertools.product(string.ascii_uppercase, repeat=2):
-                if ''.join(id) not in sorted(self._servers[self._network]['data']['result']['DeviceStore'].keys()):
+                if ''.join(id) not in sorted(self._servers[self._network]['data']['result']['deviceStore'].keys()):
                     return ''.join(id)
         except:
             return "??"
@@ -810,7 +817,7 @@ class LLAPCongfigMeClient:
         self._devIDListbox = tk.Listbox(self.dframe, selectmode=tk.SINGLE)
         try:
             # try to split get a device store list from our know server
-            ds = self._servers[self._network]['data']['result']['DeviceStore']
+            ds = self._servers[self._network]['data']['result']['deviceStore']
         except:
             pass
         else:
@@ -837,7 +844,7 @@ class LLAPCongfigMeClient:
     def _checkDevIDList(self, *args):
         if self._currentFrame == "chdevidFrame":
             try:
-                if self.entry['CHDEVID'][0].get() in self._servers[self._network]['data']['result']['DeviceStore'].keys():
+                if self.entry['CHDEVID'][0].get() in self._servers[self._network]['data']['result']['deviceStore'].keys():
                     self._devIDWarning.set(WARNINGTEXT)
                 else:
                     self._devIDWarning.set("")
@@ -1209,6 +1216,8 @@ class LLAPCongfigMeClient:
         self.iframe.pack()
         self._currentFrame = 'introFrame'
         self._configState = 0
+        self._newDevice = False
+        self._setENC = False
         self.fWaitingForReply.clear()
         # clear out entry variables
         self._initEntryVariables
@@ -1292,7 +1301,6 @@ class LLAPCongfigMeClient:
             self.logger.debug("Checking {}: {} != {}".format(command, value[0].get(), value[1].get()))
             if not value[0].get() == value[1].get():
                 query = self._entryAppend(query, command, value)
-                print query
         
         query.append({'command': "REBOOT"}) # we always send at least a reboot
 
@@ -1308,6 +1316,9 @@ class LLAPCongfigMeClient:
                     "toQuery": query
                     }
                     }
+        if self._setENC:
+            print("adding setENC to lcr")
+            lcr['data']['setENC'] = 1
         self._lastLCR.append(lcr)
         self._sendRequest(lcr)
 
@@ -1486,11 +1497,14 @@ class LLAPCongfigMeClient:
             elif self._configState == 2:
                 # this was an information request
                 # populate fields
+                self._newDevice = False
                 if self.device['devID'] == '':
                     self.entry['CHDEVID'][0].set("--")
                 else:
                     self.entry['CHDEVID'][0].set(self.device['devID'])
-                    
+                    if self.device['devID'] == '??':
+                        # this is a new or reset device, set a flag so we know later
+                        self._newDevice = True
                 for command, args in reply['replies'].items():
                     if command == "CHREMID" and args['reply'] == '':
                         self.entry[command][0].set("--")
@@ -1520,6 +1534,9 @@ class LLAPCongfigMeClient:
 
                 # copy config so we can compare it later
                 self._entryCopy()
+                # new device setup
+                if self._newDevice:
+                    self._newDeviceAutoSetup()
                 # show config screen
                 self.logger.debug("Setting keepAwake, display config")
                 # TODO: set keepAwake via UDP LCR
@@ -1565,7 +1582,7 @@ class LLAPCongfigMeClient:
     def _askCurrentConfig(self):
         # assuming we know what it is ask for the current config
         self.logger.debug("Ask current config")
-        self._requestServerDeviceStore(self._network)
+        self._requestServerDetails(self._network)
         self.pframe.children['pressText'].config(text=PRESSTEXT1)
         query = [
                  {'command': "PANID"},
@@ -1608,19 +1625,69 @@ class LLAPCongfigMeClient:
         self._lastLCR.append(lcr)
         self._sendRequest(lcr)
 
-    def _requestServerDeviceStore(self, network):
-        self.logger.debug("Ask server {} for its DeviceStore".format(network))
+    def _newDeviceAutoSetup(self):
+        # double check
+        if self._newDevice:
+            # give it a new deviceID
+            self.entry['CHDEVID'][0].set(self._getNextFreeID())
+            try:
+                if self.entry['PANID'][0].get() != self._servers[self._network]['data']['result']['PANID']:
+                    self.entry['PANID'][0].set(self._servers[self._network]['data']['result']['PANID'])
+                if self.entry['ENC'][0].get() != self._servers[self._network]['data']['result']['encryptionSet']:
+                    if self._servers[self._network]['data']['result']['encryptionSet']:
+                        self._setENC = True
+                    else:
+                        self._setENC = False
+            except:
+                pass
+
+
+
+
+    def _requestServerDetails(self, network):
+        self.logger.debug("Ask server {} for its deviceStore".format(network))
         serverQuery = {
                        "type": "Server",
                        "network": network,
                        "data":{
                            "id": str(uuid.uuid4()),
                            "request": [
-                                       "DeviceStore"
+                                       "deviceStore",
+                                       "PANID",
+                                       "encryptionSet"
                                        ]
                        }
                       }
         self._sendRequest(serverQuery)
+
+    def _updateServerDetailsFromJSON(self, jsonin):
+        # update server entry in our list
+        # TODO: this needs to be a intelignet merge not just overwrite
+        if jsonin['network'] in self._servers.keys():
+            network = jsonin['network']
+            self._servers[network]['state'] = jsonin['state']
+            self._servers[network]['timestamp'] = jsonin['timestamp']
+            if jsonin.has_key('data'):
+                if not self._servers[network].has_key('data'):
+                    self._servers[network]['data'] = jsonin['data']
+                else:
+                    self._servers[network]['data']['id'] = jsonin['data']['id']
+                    if jsonin.has_key('result'):
+                        results = jsonin['data']['result']
+                        if not self._servers[network]['data'].has_key('result'):
+                            self._servers[network]['data']['result'] = results
+                        else:
+                            if results.has_key('PAINID'):
+                                self._servers[network]['data']['result']['PANID'] = results['PANID']
+                            if results.has_key('encryptionState'):
+                                self._servers[network]['data']['result']['encryptionSet'] = results['encryptionSet']
+                            if results.has_key('deviceStore'):
+                                self._servers[network]['data']['result']['deviceStore'] = results['deviceStore']
+        else:
+            # new entry store the whole packet
+            self._servers[jsonin['network']] = jsonin
+        self.fServerUpdate.set()
+
 
     def _processNoReply(self):
         self.logger.debug("No Reply with in timeouts")
