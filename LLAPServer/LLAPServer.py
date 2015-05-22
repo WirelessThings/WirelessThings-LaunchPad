@@ -113,7 +113,7 @@ class LLAPServer():
     _serialTimeout = 1     # serial port time out setting
     _UDPListenTimeout = 5   # timeout for UDP listen
     
-    _version = 0.10
+    _version = 0.11
 
     _currentLCR = False
     devType = None
@@ -610,9 +610,11 @@ is running then run in the current terminal
                         if self._currentLCR['data'].get('toQuery', False):
                             # make place for replies later
                             self._currentLCR['data']['replies'] = {}
+                            # use a copy in case we are adding ENC stuff
+                            toQuery = list(self._currentLCR['data']['toQuery'])
                             # pass queries on to the serial thread to send out
                             try:
-                                self.qSerialToQuery.put_nowait(self._currentLCR['data']['toQuery'])
+                                self.qSerialToQuery.put_nowait(toQuery)
                             except Queue.Full:
                                 self.logger.debug("tLCR: Failed to put item onto toQuery as it's full")
                             else:
