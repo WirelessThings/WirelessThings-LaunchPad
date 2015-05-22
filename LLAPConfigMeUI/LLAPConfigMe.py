@@ -100,6 +100,9 @@ WARNINGTEXT = "Warning: This ID has been used before."
 NEWDEVICETEXT = """This is a new device. Network setting will be automaticly set to match your hub"""
 NEWDEVICEIDTEXT = "A new ID has been automaticly assigned, to override please click change"
 
+SETTINGMISSMATCHTEXT = """The network settings on your device do not match this hub, do you wish to update them?"""
+MISSMATCHINFOTEXT = """The network settings on your device do not match this hub. This could be either the PANID or Encrytpion, to have the automaticly updated to match this hubs setting just check the box"""
+
 class LLAPCongfigMeClient:
     """
         LLAP ConfigMe Client Class
@@ -132,7 +135,6 @@ class LLAPCongfigMeClient:
     _serverButtons = {}
     _serverQueryJSON = json.dumps({"type": "Server", "network": "ALL"})
     _configState = 0
-    _setENC = False
     
     _validID = "ABCDEFGHIJKLMNOPQRSTUVWXYZ-#@?\\*"
     _validData = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !\"#$%&'()*+,-.:;<=>?@[\\\/]^_`{|}~"
@@ -147,7 +149,7 @@ class LLAPCongfigMeClient:
         logging.getLogger().setLevel(logging.NOTSET)
         self.logger = logging.getLogger('LLAPServer')
         self._ch = logging.StreamHandler()
-        self._ch.setLevel(logging.DEBUG)    # this should be WARN by default
+        self._ch.setLevel(logging.WARN)    # this should be WARN by default
         self._formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         self._ch.setFormatter(self._formatter)
         self.logger.addHandler(self._ch)
@@ -408,6 +410,8 @@ class LLAPCongfigMeClient:
         
         self._infoIcon = tk.PhotoImage(file=self._infoIconFile)
         self._devIDWarning = tk.StringVar()
+        self._settingMissMatchVar = tk.IntVar()
+        self._settingMissMatchVar.trace_variable('w', self._updateMissMatchSettings)
         # init the entry variables we will need to reset between each run
         self._initEntryVariables()
         
@@ -436,6 +440,7 @@ class LLAPCongfigMeClient:
                       "RSSI" : [tk.IntVar(), tk.IntVar(), 'Int']
                      }
         self.entry['CHDEVID'][0].trace_variable('w', self._checkDevIDList)
+        self._settingMissMatchVar.set(0)
                       
     def _displayIntro(self):
         self.logger.debug("Display Intro Page")
@@ -579,7 +584,7 @@ class LLAPCongfigMeClient:
                   ).grid(row=r, column=5, sticky=tk.W)
                   
         # new deivce Label
-        if self._newDevice:
+        if self.device['newDevice']:
             r += 2
             tk.Label(self.sframe, text=NEWDEVICETEXT,
                      wraplength=self._widthMain/6*4
@@ -598,7 +603,7 @@ class LLAPCongfigMeClient:
                   command=lambda: self._displayMoreInfo("CHDEVID"),
                   image=self._infoIcon,
                   ).grid(row=r, column=5, sticky=tk.W)
-        if self._newDevice:
+        if self.device['newDevice']:
             r += 1
             tk.Label(self.sframe, text=NEWDEVICEIDTEXT
                      ).grid(row=r, column=1, columnspan=4, sticky=tk.W+tk.E)
@@ -610,7 +615,7 @@ class LLAPCongfigMeClient:
             if option['Command'] == "MSG":
                 # display message filed
                 tk.Label(self.sframe, text="Message text:"
-                         ).grid(row=r, column=1,sticky=tk.E)
+                         ).grid(row=r, column=1, sticky=tk.E)
                 e = tk.Entry(self.sframe,
                              textvariable=self.entry[option['Command']][0],
                              name=option['Command'].lower()
@@ -647,6 +652,22 @@ class LLAPCongfigMeClient:
                      ).grid(row=r+1, column=1, columnspan=4, rowspan=3, sticky=tk.W+tk.E)
             r += 5
 
+        # if not a new device does the network settings match?
+        if not self.device['newDevice'] and self.device['settingsMissMatch']:
+            tk.Label(self.sframe, text="Update network settings:"
+                     ).grid(row=r, column=1, columnspan=2, sticky=tk.E)
+            tk.Checkbutton(self.sframe, variable=self._settingMissMatchVar
+                           ).grid(row=r, column=3, columnspan=2)
+            tk.Button(self.sframe, text='More Info', state=tk.ACTIVE,
+                      command=lambda: self._displayMoreInfo("MissMatch"),
+                      image=self._infoIcon,
+                      ).grid(row=r, column=5, sticky=tk.W)
+            tk.Label(self.sframe, text=SETTINGMISSMATCHTEXT,
+                     wraplength=self._widthMain/6*4
+                     ).grid(row=r+1, column=1, columnspan=4, rowspan=2)
+            r += 3
+            
+            
     def _updateIntervalOnScaleChange(self, *args):
         if self._readingScale[0].get() != len(self._readingPeriods):
             if self.entry['INTVL'][0].get() != self._readingPeriods[self._readingScale[0].get()]['Period']:
@@ -709,7 +730,22 @@ class LLAPCongfigMeClient:
                     return ''.join(id)
         except:
             return "??"
-                
+
+    def _updateMissMatchSettings(self, *args):
+        try:
+            if not self.device['newDevice']:
+                    if self._settingMissMatchVar.get() == 1:
+                        self.entry['PANID'][0].set(self._servers[self._network]['data']['result']['PANID'])
+                        if self._servers[self._network]['data']['result']['encryptionSet']:
+                            self.device['setENC'] = True
+                        else:
+                            self.device['setENC'] = False
+                    else:
+                        self.entry['PANID'][0].set(self.entry['PANID'][1].get())
+                        self.device['setENC'] = False
+        except:
+            pass
+    
     def _displayMoreInfo(self, subject):
         self.logger.debug("Displaying more info for {}".format(subject))
         
@@ -720,6 +756,8 @@ class LLAPCongfigMeClient:
             infoText = self.devices[self.device['id']]['Description']
         elif subject == "Interval":
             infoText = INTERVALTEXT
+        elif subject == "MissMatch":
+            infoText = MISSMATCHINFOTEXT
         elif subject == "Encryption":
             infoText = ENCRYPTIONTEXT
             infoFormat = "ENKey"
@@ -1216,11 +1254,11 @@ class LLAPCongfigMeClient:
         self.iframe.pack()
         self._currentFrame = 'introFrame'
         self._configState = 0
-        self._newDevice = False
-        self._setENC = False
+        self.device['newDevice'] = False
+        self.device['setENC'] = False
         self.fWaitingForReply.clear()
         # clear out entry variables
-        self._initEntryVariables
+        self._initEntryVariables()
     
     def _resetDefautls(self):
         self._displayPressButton(self.device['network'], reset=True)
@@ -1316,7 +1354,7 @@ class LLAPCongfigMeClient:
                     "toQuery": query
                     }
                     }
-        if self._setENC:
+        if self.device['setENC']:
             print("adding setENC to lcr")
             lcr['data']['setENC'] = 1
         self._lastLCR.append(lcr)
@@ -1488,6 +1526,9 @@ class LLAPCongfigMeClient:
                             self.device = {'id': n,
                                            'DTY': self.devices[n]['DTY'],   # copy form JSON not reply
                                            'devID': reply['replies']['CHDEVID']['reply'],
+                                           'newDevice': False,
+                                           'setENC': False,
+                                           'settingsMissMatch': False,
                                            'network': json['network']
                                           }
                             self._askCurrentConfig()
@@ -1497,14 +1538,14 @@ class LLAPCongfigMeClient:
             elif self._configState == 2:
                 # this was an information request
                 # populate fields
-                self._newDevice = False
+                self.device['newDevice'] = False
                 if self.device['devID'] == '':
                     self.entry['CHDEVID'][0].set("--")
                 else:
                     self.entry['CHDEVID'][0].set(self.device['devID'])
                     if self.device['devID'] == '??':
                         # this is a new or reset device, set a flag so we know later
-                        self._newDevice = True
+                        self.device['newDevice'] = True
                 for command, args in reply['replies'].items():
                     if command == "CHREMID" and args['reply'] == '':
                         self.entry[command][0].set("--")
@@ -1535,8 +1576,14 @@ class LLAPCongfigMeClient:
                 # copy config so we can compare it later
                 self._entryCopy()
                 # new device setup
-                if self._newDevice:
+                if self.device['newDevice']:
                     self._newDeviceAutoSetup()
+                else:
+                    if self.entry['PANID'][0].get() != self._servers[self._network]['data']['result']['PANID']:
+                        self.device['settingsMissMatch'] = True
+                    if self.entry['ENC'][0].get() != self._servers[self._network]['data']['result']['encryptionSet']:
+                        self.device['settingsMissMatch'] = True
+                    
                 # show config screen
                 self.logger.debug("Setting keepAwake, display config")
                 # TODO: set keepAwake via UDP LCR
@@ -1620,14 +1667,13 @@ class LLAPCongfigMeClient:
                     "toQuery": query
                     }
                 }
-        
-                
+    
         self._lastLCR.append(lcr)
         self._sendRequest(lcr)
 
     def _newDeviceAutoSetup(self):
         # double check
-        if self._newDevice:
+        if self.device['newDevice']:
             # give it a new deviceID
             self.entry['CHDEVID'][0].set(self._getNextFreeID())
             try:
@@ -1635,9 +1681,9 @@ class LLAPCongfigMeClient:
                     self.entry['PANID'][0].set(self._servers[self._network]['data']['result']['PANID'])
                 if self.entry['ENC'][0].get() != self._servers[self._network]['data']['result']['encryptionSet']:
                     if self._servers[self._network]['data']['result']['encryptionSet']:
-                        self._setENC = True
+                        self.device['setENC'] = True
                     else:
-                        self._setENC = False
+                        self.device['setENC'] = False
             except:
                 pass
 
