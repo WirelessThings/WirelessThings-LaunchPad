@@ -97,11 +97,11 @@ ENCRYPTIONTEXT = """Encryption long description"""
 
 WARNINGTEXT = "Warning: This ID has been used before."
 
-NEWDEVICETEXT = """This is a new device. Network setting will be automaticly set to match your hub"""
-NEWDEVICEIDTEXT = "A new ID has been automaticly assigned, to override please click change"
+NEWDEVICETEXT = """This is a new device. Network setting will be automatically set to match your hub"""
+NEWDEVICEIDTEXT = "A new ID has been automatically assigned, to override please click change"
 
 SETTINGMISSMATCHTEXT = """The network settings on your device do not match this hub, do you wish to update them?"""
-MISSMATCHINFOTEXT = """The network settings on your device do not match this hub. This could be either the PANID or Encrytpion, to have the automaticly updated to match this hubs setting just check the box"""
+MISSMATCHINFOTEXT = """The network settings on your device do not match this hub. This could be either the PANID or Encryption, to have the automatically updated to match this hubs setting just check the box"""
 
 class LLAPCongfigMeClient:
     """
@@ -373,7 +373,7 @@ class LLAPCongfigMeClient:
             if ready[0]:
                 (data, address) = UDPListenSocket.recvfrom(2048)
                 self.logger.debug("tUDPListen: Received JSON: {} From: {}".format(data, address))
-                # TODO: Test its actuall json/catch errors
+                # TODO: Test its actually json/catch errors
                 jsonin = json.loads(data)
                 self.qJSONDebug.put([data, "RX"])
                 # TODO: Check for keys before trying to use them
@@ -583,7 +583,7 @@ class LLAPCongfigMeClient:
                   image=self._infoIcon
                   ).grid(row=r, column=5, sticky=tk.W)
                   
-        # new deivce Label
+        # new device Label
         if self.device['newDevice']:
             r += 2
             tk.Label(self.sframe, text=NEWDEVICETEXT,
@@ -687,7 +687,7 @@ class LLAPCongfigMeClient:
     def _updateScaleAndDescriptionFromPeriod(self, intval, setCycle=True):
         for (index,period) in enumerate(self._readingPeriods):
             if intval == "000S":
-                # period no set use defualt from json
+                # period no set use default from json
                 self._readingScale[0].set(self.devices[self.device['id']]['ReadingPeriod'])
                 self._readingScale[1].set(self._readingPeriods[self._readingScale[0].get()]['Description'])
                 self._readingScale[2].set("{}.\r {}".format(
@@ -721,7 +721,7 @@ class LLAPCongfigMeClient:
         return "{} {}".format(int(period[:3]), self._periodUnits[period[3:]])
 
     def _estimateLifeTimeForPeriod(self, period, deviceID):
-        return "Expetced life will be {}".format("?")
+        return "Expected life will be {}".format("?")
     
     def _getNextFreeID(self):
         try:
@@ -1617,12 +1617,12 @@ class LLAPCongfigMeClient:
                 pass
             elif self._configState == 5:
                 # have done a reset so should get back factory settings
-                # check devi id is now ?? and update local
+                # check dev id is now ?? and update local
                 self.device['devID'] = reply['replies']['CHDEVID']['reply']
                 if self.device['devID'] == "??":
                     self._askCurrentConfig()
                 else:
-                    # TODO: LLAPRESET didnt work ERROR
+                    # TODO: LLAPRESET didn't work ERROR
                     pass
         # TODO: clean up
         
@@ -1708,7 +1708,7 @@ class LLAPCongfigMeClient:
 
     def _updateServerDetailsFromJSON(self, jsonin):
         # update server entry in our list
-        # TODO: this needs to be a intelignet merge not just overwrite
+        # TODO: this needs to be a intelligent merge not just overwrite
         if jsonin['network'] in self._servers.keys():
             network = jsonin['network']
             self._servers[network]['state'] = jsonin.get('state', "Unknown")
