@@ -1717,7 +1717,8 @@ class LLAPCongfigMeClient:
                 if not self._servers[network].has_key('data'):
                     self._servers[network]['data'] = jsonin['data']
                 else:
-                    self._servers[network]['data']['id'] = jsonin['data']['id']
+                    if jsonin.has_key('id'):
+                        self._servers[network]['data']['id'] = jsonin['data']['id']
                     if jsonin.has_key('result'):
                         results = jsonin['data']['result']
                         if not self._servers[network]['data'].has_key('result'):
