@@ -110,7 +110,7 @@ class LLAPCongfigMeClient:
         pass requests onto LLAPConfigMeCore
     """
 
-    _version = 0.11
+    _version = 0.12
     
     _configFileDefault = "LLAPCM_defaults.cfg"
     _configFile = "LLAPCM.cfg"
@@ -495,14 +495,14 @@ class LLAPCongfigMeClient:
                                                          name="n{}".format(network),
                                                          text=network,
                                                          command=lambda n=network:self._displayPressButton(n),
-                                                         state=tk.ACTIVE if server['state'] == "RUNNING" else tk.DISABLED
+                                                         state=tk.ACTIVE if server['state'] == "Running" else tk.DISABLED
                                                          )
                 self._serverButtons[network].grid(row=5+len(self._serverButtons),
                                                   column=1,
                                                   columnspan=4, sticky=tk.E+tk.W)
             else:
               # need to update button state
-              self._serverButtons[network].config(state=tk.ACTIVE if server['state'] == "RUNNING" else tk.DISABLED
+              self._serverButtons[network].config(state=tk.ACTIVE if server['state'] == "Running" else tk.DISABLED
                                                   )
 
     def _displayPressButton(self, network, reset=False):
@@ -1711,7 +1711,7 @@ class LLAPCongfigMeClient:
         # TODO: this needs to be a intelignet merge not just overwrite
         if jsonin['network'] in self._servers.keys():
             network = jsonin['network']
-            self._servers[network]['state'] = jsonin['state']
+            self._servers[network]['state'] = jsonin.get('state', "Unknown")
             self._servers[network]['timestamp'] = jsonin['timestamp']
             if jsonin.has_key('data'):
                 if not self._servers[network].has_key('data'):

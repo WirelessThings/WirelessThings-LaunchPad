@@ -113,7 +113,7 @@ class LLAPServer():
     _serialTimeout = 1     # serial port time out setting
     _UDPListenTimeout = 5   # timeout for UDP listen
     
-    _version = 0.11
+    _version = 0.12
 
     _currentLCR = False
     devType = None
@@ -126,8 +126,8 @@ class LLAPServer():
     _encryptionCommandMatch = re.compile('^EN[1-6]')
     
     _state = ""
-    RUNNING = "RUNNING"
-    ERROR = "ERROR"
+    Running = "Running"
+    Error = "Error"
     
     _deviceStore = {}
 
@@ -354,37 +354,37 @@ is running then run in the current terminal
             self.tMainStop.wait(1)
             self._initUDPListenThread() # start the UDP listener
             
-            self._state = self.RUNNING
+            self._state = self.Running
             
             # main thread looks after the server status for us
             while not self.tMainStop.is_set():
                 # check threads are running
                 if not self.tLCR.is_alive():
                     self.logger.error("tMain: LCR thread stopped")
-                    self._state = self.ERROR
+                    self._state = self.Error
                     self.tMainStop.wait(1)
                     self._startLCR()
                     self.tMainStop.wait(1)
                     if self.tLCR.is_alive():
-                        self._state = self.RUNNING
+                        self._state = self.Running
             
                 if not self.tUDPSend.is_alive():
                     self.logger.error("tMain: UDPSend thread stopped")
-                    self._state = self.ERROR
+                    self._state = self.Error
                     self.tMainStop.wait(1)
                     self._startUDPSend()
                     self.tMainStop.wait(1)
                     if self.tUDPSend.is_alive():
-                        self._state = self.RUNNING
+                        self._state = self.Running
                             
                 if not self.tSerial.is_alive():
                     self.logger.error("tMain: Serial thread stopped, wait 1 before trying to re-establish ")
-                    self._state = self.ERROR
+                    self._state = self.Error
                     self.tMainStop.wait(1)
                     self._startSerail()
                     self.tMainStop.wait(1)
                     if self.tSerial.is_alive():
-                        self._state = self.RUNNING
+                        self._state = self.Running
                     else:
                         self._SerialFailCount += 1
                         if self._SerialFailCount > self._SerialFailCountLimit:
@@ -393,12 +393,12 @@ is running then run in the current terminal
 
                 if not self.tUDPListen.is_alive():
                     self.logger.error("tMain: UDPListen thread stopped")
-                    self._state = self.ERROR
+                    self._state = self.Error
                     self.tMainStop.wait(1)
                     self._startUDPListen()
                     self.tMainStop.wait(1)
                     if self.tUDPSend.is_alive():
-                        self._state = self.RUNNING
+                        self._state = self.Running
                 
                 # process any "Server" messages
                 if not self.qServer.empty():
