@@ -212,6 +212,9 @@ is running then run in the current terminal
         parser.add_argument('-l', '--log',
                             help='Override the console debug logging level, DEBUG, INFO, WARNING, ERROR, CRITICAL'
                             )
+        parser.add_argument('-p', '--port',
+                            help='Override the serial port given in LLAPServer.cfg'
+                            )
                             
         self.args = parser.parse_args()
     
@@ -540,7 +543,10 @@ is running then run in the current terminal
 
         # serial port base on config file, thread handles opening and closing
         self._serial = serial.Serial()
-        self._serial.port = self.config.get('Serial', 'port')
+        if (self.args.port):
+            self._serial.port = self.args.port
+        else:
+            self._serial.port = self.config.get('Serial', 'port')
         self._serial.baud = self.config.get('Serial', 'baudrate')
         self._serial.timeout = self._serialTimeout
         
