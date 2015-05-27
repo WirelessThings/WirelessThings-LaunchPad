@@ -950,6 +950,64 @@
                           "Format":"Int"
                           }
                           ]
+               },
+               {
+               "id":18,
+               "DEVTYPE":"",
+               "DTY":"AAAP01",
+               "Name":"RGB Light DC-CA",
+               "Description":"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut tempus turpis sit amet diam auctor, ac semper dui sollicitudin. Pellentesque at semper lorem. Vivamus scelerisque id elit in porttitor. Sed eget condimentum dolor. Nunc sollicitudin.",
+               "SleepMode":"Polled",
+               "PowerClass":"DC",
+               "AntennaClass":"CA",
+               "Actions":[
+                          {
+                          "Command":"LIGHT",
+                          "Description":"Switch the Light on/off or toggle the state",
+                          "Format":"ONOFFTOG",
+                          "Type":"Polled"
+                          },
+                          {
+                          "Command":"CYCLEOFF",
+                          "Description":"Stop cycling",
+                          "Type":"Polled"
+                          },
+                          {
+                          "Command":"YCLEHUE",
+                          "Description":"Cycle through the hues",
+                          "Type":"Polled"
+                          },
+                          {
+                          "Command":"CYCLESAT",
+                          "Description":"Cycle through saturation",
+                          "Type":"Polled"
+                          },
+                          {
+                          "Command":"CYCLELEV",
+                          "Description":"Cycle through the brightness",
+                          "Type":"Polled"
+                          },
+                          {
+                          "Command":"HUE",
+                          "Description":"set the hue",
+                          "Format":"Int",
+                          "Type":"Polled"
+                          },
+                          {
+                          "Command":"SAT",
+                          "Description":"Seet the Saturation",
+                          "Format":"Int",
+                          "Type":"Polled"
+                          },
+                          {
+                          "Command":"LEV",
+                          "Description":"Set the Brightness",
+                          "Format":"Int",
+                          "Type":"Polled"
+                          }
+                          ],
+               "Options":[
+                          ]
                }
                ]
 }
