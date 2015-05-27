@@ -495,14 +495,14 @@ class LLAPCongfigMeClient:
                                                          name="n{}".format(network),
                                                          text=network,
                                                          command=lambda n=network:self._displayPressButton(n),
-                                                         state=tk.ACTIVE if server['state'] == "Running" else tk.DISABLED
+                                                         state=tk.ACTIVE if server['state'] == "Running" or server['state'] == "RUNNING" else tk.DISABLED
                                                          )
                 self._serverButtons[network].grid(row=5+len(self._serverButtons),
                                                   column=1,
                                                   columnspan=4, sticky=tk.E+tk.W)
             else:
               # need to update button state
-              self._serverButtons[network].config(state=tk.ACTIVE if server['state'] == "Running" else tk.DISABLED
+              self._serverButtons[network].config(state=tk.ACTIVE if server['state'] == "Running" or server['state'] == "RUNNING" else tk.DISABLED
                                                   )
 
     def _displayPressButton(self, network, reset=False):

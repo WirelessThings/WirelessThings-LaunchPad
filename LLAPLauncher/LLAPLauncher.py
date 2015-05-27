@@ -750,7 +750,7 @@ class LLAPLauncher:
                 elif jsonin['type'] == "Server":
                     # we have a SERVER json do stuff with it
                     self.debugPrint("tUDPListen: JSON of type SERVER")
-                    if jsonin['state'] == "Running":
+                    if jsonin['state'] == "Running" or jsonin['state'] == "RUNNING":
                         self.fServerGood.set()
                             
         self.debugPrint("tUDPListen: Thread stopping")
