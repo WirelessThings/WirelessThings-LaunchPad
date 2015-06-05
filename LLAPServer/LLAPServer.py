@@ -1130,6 +1130,8 @@ is running then run in the current terminal
                         result['PANID'] = self.config.get('Serial', 'panid')
                     elif request == "encryptionSet":
                         result['encryptionSet'] = self.config.getboolean('Serial', 'encryption')
+                    elif request == "version":
+                        result['version'] = self._version
             elif message['data'].has_key('set'):
                 for set in message['data']['set']:
                     # TODO: implement "set" requests
