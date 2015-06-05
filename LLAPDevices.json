@@ -1008,6 +1008,33 @@
                           ],
                "Options":[
                           ]
+               },
+               {
+               "id":19,
+               "DEVTYPE":"",
+               "DTY":"AAAN01",
+               "Name":"Humidty and Temperature SB-CA",
+               "Description":"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut tempus turpis sit amet diam auctor, ac semper dui sollicitudin. Pellentesque at semper lorem. Vivamus scelerisque id elit in porttitor. Sed eget condimentum dolor. Nunc sollicitudin.",
+               "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
+               "Actions":[
+                          {
+                          "Command":"RHUM",
+                          "Description":"",
+                          "Format":"Float",
+                          "Type":"Polled"
+                          },
+                          {
+                          "Command":"TEMP",
+                          "Description":"",
+                          "Format":"Float",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+               ]
                }
                ]
 }
