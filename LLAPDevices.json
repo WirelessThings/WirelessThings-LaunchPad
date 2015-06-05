@@ -658,11 +658,11 @@
                "PowerClass":"MP",
                "AntennaClass":"CA",
                "Actions":[
-						  {
-						  "Command":"RELAYA",
-						  "Description":"Change or report state of relay A",
-						  "Format":"ONOFFTOG",
-						  "Type":"Both"
+                          {
+                          "Command":"RELAYA",
+                          "Description":"Change or report state of relay A",
+                          "Format":"ONOFFTOG",
+                          "Type":"Both"
                           },
                           {
                           "Command":"RELAYB",
@@ -670,7 +670,7 @@
                           "Format":"ONOFFTOG",
                           "Type":"Both"
                           }
-						  ],
+                          ],
                "Options":[
                           {
                           "Command":"DEB",
@@ -711,25 +711,25 @@
                           ]
                },
                {
-			   "id":10,
-			   "DEVTYPE":"",
-			   "DTY":"AAAK01",
-			   "Name":"Moisture Sensor SB-CA",
-			   "Description":"LLAP+ Moisture Sensor",
-			   "SleepMode":"Cyclic",
+               "id":10,
+               "DEVTYPE":"",
+               "DTY":"AAAK01",
+               "Name":"Moisture Sensor SB-CA",
+               "Description":"LLAP+ Moisture Sensor",
+               "SleepMode":"Cyclic",
                "ReadingPeriod":1,
                "PowerClass":"SB",
                "AntennaClass":"CA",
-			   "Actions":[
+               "Actions":[
                           {
                           "Command":"MOSIT",
                           "Description":"Request current moisture (%)",
                           "Format":"FLOAT",
                           "Type":"Both"
                           }
-			              ],
-			   "Options":[
-			   ]
+                          ],
+               "Options":[
+               ]
                },
                {
                "id":11,
@@ -752,41 +752,41 @@
                "Options":[
                          ]
                },
-			   {
-			   "id":12,
-			   "DEVTYPE":"",
-			   "DTY":"AAAL01",
-			   "Name":"Pulse Counter SB-CA",
-			   "Description":"LLAP+ Pulse Counter",
+               {
+               "id":12,
+               "DEVTYPE":"",
+               "DTY":"AAAL01",
+               "Name":"Pulse Counter SB-CA",
+               "Description":"LLAP+ Pulse Counter",
                "SleepMode":"Cyclic",
                "ReadingPeriod":1,
                "PowerClass":"SB",
                "AntennaClass":"CA",
-			   "Actions":[
-						  {
-						  "Command":"VAL",
-						  "Description":"Return the count value",
-						  "Format":"Int",
-						  "Type":"Both"
-						  },
-						  {
-						  "Command":"RESET",
-						  "Description":"Resets the count to 0",
-						  "Format":"Int",
-						  "Type":"Polled"
-						  }
+               "Actions":[
+                          {
+                          "Command":"VAL",
+                          "Description":"Return the count value",
+                          "Format":"Int",
+                          "Type":"Both"
+                          },
+                          {
+                          "Command":"RESET",
+                          "Description":"Resets the count to 0",
+                          "Format":"Int",
+                          "Type":"Polled"
+                          }
                           ],
-			   "Options":[
-						  {
-						  "Command":"DEB",
-						  "Description":"Bunnton debounce in mS (Default 30)",
-						  "Format":"Int"
-						  },
-						  {
-						  "Command":"TRG",
-						  "Description":"Count trigger level",
-						  "Format":"Int"
-						  }
+               "Options":[
+                          {
+                          "Command":"DEB",
+                          "Description":"Bunnton debounce in mS (Default 30)",
+                          "Format":"Int"
+                          },
+                          {
+                          "Command":"TRG",
+                          "Description":"Count trigger level",
+                          "Format":"Int"
+                          }
                           ]
                },
                {
@@ -995,7 +995,7 @@
                           },
                           {
                           "Command":"SAT",
-                          "Description":"Seet the Saturation",
+                          "Description":"Set the Saturation",
                           "Format":"Int",
                           "Type":"Polled"
                           },
