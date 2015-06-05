@@ -335,9 +335,9 @@ is running then run in the current terminal
         
         pid = self._pidFile.read_pid()
         if pid is not None:
-            print("LLAPServer.py is running (PID {})".format(pid))
+            print("{} is running (PID {})".format(os.path.basename(__file__),pid))
         else:
-            print("LLAPServer.py is not running")
+            print("{} is not running".format(os.path.basename(__file__)))
 
         return pid
 
@@ -511,7 +511,6 @@ is running then run in the current terminal
     def _startLCR(self):
         self.tLCR = threading.Thread(name='tLCR', target=self._LCRThread)
         self.tLCR.daemon = False
-
         try:
             self.tLCR.start()
         except:
@@ -526,11 +525,11 @@ is running then run in the current terminal
         
         self.tUDPSendStop = threading.Event()
     
-        self.tUDPSend = threading.Thread(name='tUDPSendThread', target=self._UDPSendTread)
-        self.tUDPSend.daemon = False
         self._startUDPSend()
         
     def _startUDPSend(self):
+        self.tUDPSend = threading.Thread(name='tUDPSendThread', target=self._UDPSendTread)
+        self.tUDPSend.daemon = False
         try:
             self.tUDPSend.start()
         except:
@@ -562,7 +561,6 @@ is running then run in the current terminal
     def _startSerail(self):
         self.tSerial = threading.Thread(name='tSerial', target=self._SerialThread)
         self.tSerial.daemon = False
-    
         try:
             self.tSerial.start()
         except:
@@ -575,17 +573,16 @@ is running then run in the current terminal
 
         self.tUDPListenStop = threading.Event()
 
-        self.tUDPListen = threading.Thread(name='tUDPListen', target=self._UDPListenThread)
-        self.tUDPListen.deamon = False
-        
         self._startUDPListen()
         
     def _startUDPListen(self):
+        self.tUDPListen = threading.Thread(name='tUDPListen', target=self._UDPListenThread)
+        self.tUDPListen.deamon = False
         try:
             self.tUDPListen.start()
         except:
             self.logger.exception("Failed to Start the UDP listen thread")
-
+    
     def _LCRThread(self):
         """ LLAP Config Request thread
             Main logic for dealing with LCR's
