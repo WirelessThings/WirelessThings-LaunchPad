@@ -1,5 +1,18 @@
 LLAPFiles from Ciseco
 
+0.12:
+    UDPUI, Server, JSON: Change case on Server.state
+    UDPUI: incoming Server JSON error check
+    Server: Add command line port override
+    UDPUI: allow old and new Running states to be recognised
+    JSON: Adding RGB device
+    JSON: Cleanup
+    Server: Correct Thread restart code
+    JSON: add humidity device
+    Server: Request version number over JSON
+    AT: typo
+    JSON: new devices and correct FVER format
+
 0.11:
     UDPUI: Reset defaults button is working again
     UDPUI: Correctly set SLEEPM when using the slider
