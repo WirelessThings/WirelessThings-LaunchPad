@@ -207,7 +207,7 @@
                         },
                         {
                         "Command":"FVER",
-                        "Format":"Float",
+                        "Format":"String",
                         "Description":"Request the manufacturer firmware version \n Response is aXXFVER9.99- e.g. aXXFVER0.32-"
                         },
                         {
@@ -714,7 +714,7 @@
                "id":10,
                "DEVTYPE":"",
                "DTY":"AAAK01",
-               "Name":"Moisture Sensor SB-CA",
+               "Name":"Moisture Sensor resistive SB-CA",
                "Description":"LLAP+ Moisture Sensor",
                "SleepMode":"Cyclic",
                "ReadingPeriod":1,
@@ -1004,6 +1004,12 @@
                           "Description":"Set the Brightness",
                           "Format":"Int",
                           "Type":"Polled"
+                          },
+                          {
+                          "Command":"RGB",
+                          "Description":"Set the RGB colour value",
+                          "Format":"HEX",
+                          "Type":"Polled"
                           }
                           ],
                "Options":[
@@ -1035,6 +1041,133 @@
                           ],
                "Options":[
                ]
+               },
+               {
+               "id":20,
+               "DEVTYPE":"",
+               "DTY":"AAAO01",
+               "Name":"Moisture Sensor SB-CA",
+               "Description":"LLAP+ Moisture Sensor, Capacitive",
+               "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
+               "Actions":[
+                          {
+                          "Command":"MOSIT",
+                          "Description":"Request current moisture (%)",
+                          "Format":"FLOAT",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+               ]
+               },
+               {
+               "id":21,
+               "DEVTYPE":"",
+               "DTY":"AAAS01",
+               "Name":"Quad Relay MP-CA",
+               "Description":"LLAP+ Quad Relay",
+               "SleepMode":"Polled",
+               "PowerClass":"MP",
+               "AntennaClass":"CA",
+               "Actions":[
+                          {
+                          "Command":"RELAYA",
+                          "Description":"Change or report state of relay A",
+                          "Format":"ONOFFTOG",
+                          "Type":"Both"
+                          },
+                          {
+                          "Command":"RELAYB",
+                          "Description":"Change or report state of relay B",
+                          "Format":"ONOFFTOG",
+                          "Type":"Both"
+                          },
+                          {
+                          "Command":"RELAYC",
+                          "Description":"Change or report state of relay C",
+                          "Format":"ONOFFTOG",
+                          "Type":"Both"
+                          },
+                          {
+                          "Command":"RELAYD",
+                          "Description":"Change or report state of relay D",
+                          "Format":"ONOFFTOG",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+                          {
+                          "Command":"DEB",
+                          "Description":"Button debounce in mS (Default 30)",
+                          "Format":"Int"
+                          }
+                          ]
+               },
+               {
+               "id":22,
+               "DEVTYPE":"",
+               "DTY":"AAAB03",
+               "Name":"Temperature Sensor SB-CA",
+               "Description":"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut tempus turpis sit amet diam auctor, ac semper dui sollicitudin. Pellentesque at semper lorem. Vivamus scelerisque id elit in porttitor. Sed eget condimentum dolor. Nunc sollicitudin.",
+               "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
+               "Actions":[
+                          {
+                          "Command":"TEMP",
+                          "Description":"Request Temperature",
+                          "Format":"Float",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+                          ]
+               },
+               {
+               "id":23,
+               "DEVTYPE":"",
+               "DTY":"AAAC03",
+               "Name":"Temperature Sensor LB-CA",
+               "Description":"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut tempus turpis sit amet diam auctor, ac semper dui sollicitudin. Pellentesque at semper lorem. Vivamus scelerisque id elit in porttitor. Sed eget condimentum dolor. Nunc sollicitudin.",
+               "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
+               "Actions":[
+                          {
+                          "Command":"TEMP",
+                          "Description":"Request Temperature",
+                          "Format":"Float",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+               ]
+               },
+               {
+               "id":24,
+               "DEVTYPE":"",
+               "DTY":"AAAR01",
+               "Name":"Temperature Sensor AA SB-CA",
+               "Description":"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut tempus turpis sit amet diam auctor, ac semper dui sollicitudin. Pellentesque at semper lorem. Vivamus scelerisque id elit in porttitor. Sed eget condimentum dolor. Nunc sollicitudin.",
+               "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
+               "Actions":[
+                          {
+                          "Command":"TEMP",
+                          "Description":"Request Temperature",
+                          "Format":"Float",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+                          ]
                }
                ]
 }
