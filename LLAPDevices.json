@@ -1168,6 +1168,114 @@
                           ],
                "Options":[
                           ]
+               },
+               {
+               "id":25,
+               "DEVTYPE":"",
+               "DTY":"AAAT01",
+               "Name":"Heating Controler MP-CA",
+               "Description":"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut tempus turpis sit amet diam auctor, ac semper dui sollicitudin. Pellentesque at semper lorem. Vivamus scelerisque id elit in porttitor. Sed eget condimentum dolor. Nunc sollicitudin.",
+               "SleepMode":"Polled",
+               "PowerClass":"MP",
+               "AntennaClass":"CA",
+               "Actions":[
+                          {
+                          "Command":"TEMP",
+                          "Description":"Request Temperature",
+                          "Format":"Float",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+               ]
+               },
+               {
+               "id":26,
+               "DEVTYPE":"",
+               "DTY":"AAAU01",
+               "Name":"Boiler Monitor MP-CA",
+               "Description":"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut tempus turpis sit amet diam auctor, ac semper dui sollicitudin. Pellentesque at semper lorem. Vivamus scelerisque id elit in porttitor. Sed eget condimentum dolor. Nunc sollicitudin.",
+               "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"MP",
+               "AntennaClass":"CA",
+               "Actions":[
+                          {
+                          "Command":"TEMPA",
+                          "Description":"Request Temperature, internal thermistor, uses b equation with b of 3977",
+                          "Format":"Float",
+                          "Type":"Both"
+                          },
+                          {
+                          "Command":"TEMPB",
+                          "Description":"Request Temperature, Pipe clip 1, uses b equation with b=3969",
+                          "Format":"Float",
+                          "Type":"Both"
+                          },
+                          {
+                          "Command":"TEMPC",
+                          "Description":"Request Temperature, pipe clip 2, uses b equation with b=3969",
+                          "Format":"Float",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+                          {
+                          "Command":"MSG",
+                          "Description":"Set message for the tilt switch (Default TILT)",
+                          "Format":"String"
+                          },
+                          {
+                          "Command":"DEB",
+                          "Description":"Tilt swtich debounce in mS (Default 50)",
+                          "Format":"Int"
+                          }
+                          ]
+               },
+               {
+               "id":27,
+               "DEVTYPE":"",
+               "DTY":"AAAV01",
+               "Name":"KeyFob SB-CA",
+               "Description":"Note pressing and holding any button for 5 seconds will enter config mode (this is in addition to the normal config button).",
+               "SleepMode":"Interrupt",
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
+               "Actions":[
+                          {
+                          "Command":"BUTTON",
+                          "Description":"Indicates which button has been pressed [A-E], note actual command name can be set via MSG option",
+                          "Format":"String",
+                          "Type":"Announce"
+                          }
+                          ],
+               "Options":[
+                          {
+                          "Command":"MSG",
+                          "Description":"Set message for the button press (Default BUTTON)",
+                          "Format":"String"
+                          },
+                          {
+                          "Command":"DEB",
+                          "Description":"Button debounce in mS (Default 50)",
+                          "Format":"Int"
+                          }
+                          ]
+               },
+               {
+               "id":28,
+               "DEVTYPE":"",
+               "DTY":"AAAX01",
+               "Name":"LUX SB-CA",
+               "Description":"",
+               "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
+               "Actions":[
+                          ],
+               "Options":[
+                          ]
                }
                ]
 }
