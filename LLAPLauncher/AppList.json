@@ -13,7 +13,7 @@
         },
          {
              "id" : 1,
-             "Name" : "Configuration GUI",
+             "Name" : "Configuration wizard",
              "FileName" : "LLAPConfigMe.py",
              "CWD" : "../LLAPConfigMeUI/",
              "Service": 0,

@@ -5,9 +5,9 @@
     Send LLAP Json via UDP broadcasts on port 50141
     
     Uasge
-    $ python commandUDPSend.py a--HELLO----
+    $ python commandUDPSend.py -- HELLO
     or
-    $ ./commnadUDPSend.py a--HELLO----
+    $ ./commnadUDPSend.py MA TEMP
     
 """
 import sys
@@ -25,16 +25,22 @@ sock = socket.socket(socket.AF_INET, # Internet
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
-if len(sys.argv) == 1:
-    print("You need to speficy a llap messgae to send")
+if len(sys.argv) == 2:
+    print("You need to speficy a llap ID and messgae to send")
     sys.exit()
 
 jsonDict = {'type':"LLAP"}
-jsonDict['network'] = "Serial"      # could be 'Serial' or 'ALL'
-jsonDict['id'] = sys.argv[1][1:3]
-jsonDict['data'] = [sys.argv[1][3:]]
+if len(sys.argv) == 4:
+    jsonDict['network'] = sys.argv[3]
+else:
+    jsonDict['network'] = "Serial"      # could be 'Serial' or 'ALL'
+
+jsonDict['id'] = sys.argv[1].upper()
+jsonDict['data'] = [sys.argv[2].upper()]
 
 jsonout = json.dumps(jsonDict)
+
+print("Sent: {}".format(jsonout))
 
 sock.sendto(jsonout, ('<broadcast>', LLAP_TO_PORT))
 

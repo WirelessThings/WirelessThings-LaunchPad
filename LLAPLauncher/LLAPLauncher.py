@@ -78,6 +78,8 @@ class LLAPLauncher:
     _networkUDPTimeout = 5
     _networkUDPTimer = 0
     _checking = False
+    _serverQueryJSON = json.dumps({"type": "Server", "network": "ALL"})
+
 
 
     def __init__(self):
@@ -702,7 +704,7 @@ class LLAPLauncher:
 
         elif time() - self._networkRecheckTimer > self._networkRecheckTimeout:
             # time to check again
-            self.qUDPSend.put(json.dumps({"type": "Server"}))
+            self.qUDPSend.put(self._serverQueryJSON)
             self._serviceStatus.set(self._serviceStatusText['checking'])
             self._checking = True
             self._networkRecheckTimer = time()
@@ -748,7 +750,7 @@ class LLAPLauncher:
                 elif jsonin['type'] == "Server":
                     # we have a SERVER json do stuff with it
                     self.debugPrint("tUDPListen: JSON of type SERVER")
-                    if jsonin['state'] == "RUNNING":
+                    if jsonin['state'] == "Running" or jsonin['state'] == "RUNNING":
                         self.fServerGood.set()
                             
         self.debugPrint("tUDPListen: Thread stopping")

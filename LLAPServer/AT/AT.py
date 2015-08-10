@@ -43,7 +43,7 @@ class AT():
             self._serial.open()
         except serial.SerialException:
             self.logger.exception("AT: Failed to open port {}".format(self._serial.port))
-            return Fasle
+            return False
         else:
             self.logger.info("AT: Opened the serial port")
             self._sleep(0.1)

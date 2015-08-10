@@ -21,7 +21,7 @@ sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
 jsonDict = {'type':"LCR"}
-jsonDict['network'] = "ALL"      # could be 'Serial' or 'ALL'
+jsonDict['network'] = "Dashboard"      # could be 'Serial' or 'ALL'
 
 jsonDict['data'] = {
                     "id":0,
@@ -31,10 +31,10 @@ jsonDict['data'] = {
                         "command":"APVER"
                         },
                         {
-                        "command":"DTY"
+                        "command":"LLAPRESET"
                         },
                         {
-                        "command":"CHDEVID"
+                        "command":"REBOOT"
                         }]
                     }
 

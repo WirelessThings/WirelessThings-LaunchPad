@@ -60,6 +60,48 @@
                "Description":"Hex string when sent to a radio, ACK in response"
                }
                ],
+    "Reading Periods":[
+                         {
+                         "Period":"010S",
+                         "Description":"10 Second reporting period"
+                         },
+                         {
+                         "Period":"001M",
+                         "Description":"1 Minute reporting period"
+                         },
+                         {
+                         "Period":"005M",
+                         "Description":"5 Minute reporting period"
+                         },
+                         {
+                         "Period":"010M",
+                         "Description":"10 Minute reporting period"
+                         },
+                         {
+                         "Period":"030M",
+                         "Description":"30 Minute reporting period"
+                         },
+                         {
+                         "Period":"001H",
+                         "Description":"1 Hour reporting period"
+                         },
+                         {
+                         "Period":"002H",
+                         "Description":"2 Hour reporting period"
+                         },
+                         {
+                         "Period":"006H",
+                         "Description":"6 Hour reporting period"
+                         },
+                         {
+                         "Period":"012H",
+                         "Description":"12 Hours reporting period"
+                         },
+                         {
+                         "Period":"024H",
+                         "Description":"24 Hours reporting period"
+                         }
+                        ],
     "Valid Characters":{
                         "id":{
                                "string":"ABCDEFGHIJKLMNOPQRSTUVWXYZ-#@?\\*",
@@ -122,7 +164,7 @@
                         {
                         "Command":"SNL",
                         "Format":"ReadOnlyHex",
-                        "Description":"Request the manufacturer serial number LOW Bytes (LLAP 2.0"
+                        "Description":"Request the manufacturer serial number LOW Bytes (LLAP 2.0)"
                         },
                         {
                         "Command":"ENC",
@@ -132,32 +174,32 @@
                         {
                         "Command":"EN1",
                         "Format":"ENKey",
-                        "Description":"Set 1st set of six bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
+                        "Description":"Set 1st set of three bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"EN2",
                         "Format":"ENKey",
-                        "Description":"Set 2nd set of six bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
+                        "Description":"Set 2nd set of three bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"EN3",
                         "Format":"ENKey",
-                        "Description":"Set 3rd set of six bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
+                        "Description":"Set 3rd set of three bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"EN4",
                         "Format":"ENKey",
-                        "Description":"Set 4th set of six bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
+                        "Description":"Set 4th set of three bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"EN5",
                         "Format":"ENKey",
-                        "Description":"Set 5th set of six bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
+                        "Description":"Set 5th set of three bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"EN6",
                         "Format":"ENKey",
-                        "Description":"Set last two bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
+                        "Description":"Set last byte of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"$ER",
@@ -165,7 +207,7 @@
                         },
                         {
                         "Command":"FVER",
-                        "Format":"Float",
+                        "Format":"String",
                         "Description":"Request the manufacturer firmware version \n Response is aXXFVER9.99- e.g. aXXFVER0.32-"
                         },
                         {
@@ -217,6 +259,11 @@
                         "Command":"SLEEPM",
                         "Format":"SleepMode",
                         "Description":"Set and return the sleep mode. (LLAP 2.0). AP_SLEEP_INTERRUPT = 8 \n AP_SLEEP_CYCLIC = 16 \n AP_SLEEP_ONESHOT = 32 "
+                        },
+                        {
+                        "Command":"RSSI",
+                        "Format":"Int",
+                        "Description":"Request an RSSI reading from the device, Returns a negative dBm RSSI of the RSSI enquiry message when received"
                         }
                         ],
     "Cyclic Commands":[
@@ -280,6 +327,19 @@
                    "Description":""
                    }
                    ],
+    "Power Classes":{
+                    "SB":"Standard Battery",
+                    "LB":"Large Battery",
+                    "RB":"Rechargeable Battery",
+                    "MP":"Mains Power (240V)",
+                    "SP":"Solar Power",
+                    "DC":"DC Power"
+                    },
+    "Antenna Classes":{
+                      "CA":"Chip Antenna",
+                      "WA":"Wire Antenna",
+                      "XA":"External Antenna"
+                      },
     "Devices":[
                {
                "id":0,
@@ -288,6 +348,7 @@
                "Name":"Thermistor",
                "Description":"LLAP Thermistor",
                "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
                "Actions":[
                           {
                           "Command":"TEMP",
@@ -333,7 +394,7 @@
                "Description":"LLAP Button",
                "SleepMode":"Interrupt",
                "Actions":[
-               
+
                           ],
                "Options":[
                           {
@@ -410,15 +471,18 @@
                "id":3,
                "DEVTYPE":"",
                "DTY":"AAAB01",
-               "Name":"Thermistor",
-               "Description":"LLAP+ Thermistor",
+               "Name":"Temperature Sensor SB-CA",
+               "Description":"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut tempus turpis sit amet diam auctor, ac semper dui sollicitudin. Pellentesque at semper lorem. Vivamus scelerisque id elit in porttitor. Sed eget condimentum dolor. Nunc sollicitudin.",
                "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
                "Actions":[
                           {
                           "Command":"TEMP",
                           "Description":"Request Temperature",
                           "Format":"Float",
-                          "Type":"Both"
+                          "Type":"Polled"
                           },
                           {
                           "Command":"TMPA",
@@ -454,11 +518,19 @@
                "id":4,
                "DEVTYPE":"",
                "DTY":"AAAA01",
-               "Name":"Flood Sensor",
+               "Name":"Flood Sensor SB-WA",
                "Description":"LLAP+ Flood Sensor",
                "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"WA",
                "Actions":[
-               
+                          {
+                          "Command":"FLOOD",
+                          "Description":"Flood sensor state, note actual command name can be set via MSG option",
+                          "Format":"ONOFF",
+                          "Type":"Announce"
+                          }
                           ],
                "Options":[
                           {
@@ -487,9 +559,12 @@
                "id":5,
                "DEVTYPE":"",
                "DTY":"AAAF01",
-               "Name":"Volatage (2-15V)",
+               "Name":"Voltage Sensor (2-15V) SB-CA",
                "Description":"LLAP+ Voltage (2-15V)",
                "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
                "Actions":[
                           {
                           "Command":"VOLTS",
@@ -510,9 +585,12 @@
                "id":6,
                "DEVTYPE":"",
                "DTY":"AAAG01",
-               "Name":"Volatage (2-30V)",
+               "Name":"Voltage Sensor(2-30V) SB-CA",
                "Description":"LLAP+ Voltage (2-30V)",
                "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
                "Actions":[
                           {
                           "Command":"VOLTS",
@@ -533,12 +611,20 @@
                "id":7,
                "DEVTYPE":"",
                "DTY":"AAAH01",
-               "Name":"Switch",
-               "Description":"LLAP+ Switch Sensor",
+               "Name":"Switch SB-CA",
+               "Description":"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut tempus turpis sit amet diam auctor, ac semper dui sollicitudin. Pellentesque at semper lorem. Vivamus scelerisque id elit in porttitor. Sed eget condimentum dolor. Nunc sollicitudin.",
                "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
                "Actions":[
-               
-               ],
+                          {
+                          "Command":"SWITCH",
+                          "Description":"Switch state, note actual command name can be set via MSG option",
+                          "Format":"ONOFF",
+                          "Type":"Announce"
+                          }
+                         ],
                "Options":[
                           {
                           "Command":"MSG",
@@ -566,15 +652,17 @@
                "id":8,
                "DEVTYPE":"",
                "DTY":"AAAI01",
-               "Name":"Dual Relay",
+               "Name":"Dual Relay MP-CA",
                "Description":"LLAP+ Dual Relay",
                "SleepMode":"Polled",
+               "PowerClass":"MP",
+               "AntennaClass":"CA",
                "Actions":[
-						  {
-						  "Command":"RELAYA",
-						  "Description":"Change or report state of relay A",
-						  "Format":"ONOFFTOG",
-						  "Type":"Both"
+                          {
+                          "Command":"RELAYA",
+                          "Description":"Change or report state of relay A",
+                          "Format":"ONOFFTOG",
+                          "Type":"Both"
                           },
                           {
                           "Command":"RELAYB",
@@ -582,11 +670,11 @@
                           "Format":"ONOFFTOG",
                           "Type":"Both"
                           }
-						  ],
+                          ],
                "Options":[
                           {
                           "Command":"DEB",
-                          "Description":"Bunnton debounce in mS (Default 30)",
+                          "Description":"Button debounce in mS (Default 30)",
                           "Format":"Int"
                           }
                           ]
@@ -595,9 +683,12 @@
                "id":9,
                "DEVTYPE":"",
                "DTY":"AAAJ02",
-               "Name":"Current Sensor",
+               "Name":"Current Sensor SB-CA",
                "Description":"LLAP+ Current Sensor",
                "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
                "Actions":[
                           {
                           "Command":"AMPS",
@@ -620,30 +711,36 @@
                           ]
                },
                {
-			   "id":10,
-			   "DEVTYPE":"",
-			   "DTY":"AAAK01",
-			   "Name":"Moisture Sensor",
-			   "Description":"LLAP+ Moisture Sensor",
-			   "SleepMode":"Cyclic",
-			   "Actions":[
+               "id":10,
+               "DEVTYPE":"",
+               "DTY":"AAAK01",
+               "Name":"Moisture Sensor resistive SB-CA",
+               "Description":"LLAP+ Moisture Sensor",
+               "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
+               "Actions":[
                           {
                           "Command":"MOSIT",
                           "Description":"Request current moisture (%)",
                           "Format":"FLOAT",
                           "Type":"Both"
                           }
-			              ],
-			   "Options":[
-			   ]
+                          ],
+               "Options":[
+               ]
                },
                {
                "id":11,
                "DEVTYPE":"",
                "DTY":"AAAD01",
-               "Name":"LIGHT",
+               "Name":"Light Sensor SB-CA",
                "Description":"LLAP+ LIGHT",
                "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
                "Actions":[
                           {
                           "Command":"LIGHT",
@@ -655,47 +752,53 @@
                "Options":[
                          ]
                },
-			   {
-			   "id":12,
-			   "DEVTYPE":"",
-			   "DTY":"AAAL01",
-			   "Name":"Count",
-			   "Description":"LLAP+ Pulse Counter",
-			   "SleepMode":"Cyclic",
-			   "Actions":[
-						  {
-						  "Command":"VAL",
-						  "Description":"Return the count value",
-						  "Format":"Int",
-						  "Type":"Both"
-						  },
-						  {
-						  "Command":"RESET",
-						  "Description":"Resets the count to 0",
-						  "Format":"Int",
-						  "Type":"Polled"
-						  }
+               {
+               "id":12,
+               "DEVTYPE":"",
+               "DTY":"AAAL01",
+               "Name":"Pulse Counter SB-CA",
+               "Description":"LLAP+ Pulse Counter",
+               "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
+               "Actions":[
+                          {
+                          "Command":"VAL",
+                          "Description":"Return the count value",
+                          "Format":"Int",
+                          "Type":"Both"
+                          },
+                          {
+                          "Command":"RESET",
+                          "Description":"Resets the count to 0",
+                          "Format":"Int",
+                          "Type":"Polled"
+                          }
                           ],
-			   "Options":[
-						  {
-						  "Command":"DEB",
-						  "Description":"Bunnton debounce in mS (Default 30)",
-						  "Format":"Int"
-						  },
-						  {
-						  "Command":"TRG",
-						  "Description":"Count trigger level",
-						  "Format":"Int"
-						  }
+               "Options":[
+                          {
+                          "Command":"DEB",
+                          "Description":"Bunnton debounce in mS (Default 30)",
+                          "Format":"Int"
+                          },
+                          {
+                          "Command":"TRG",
+                          "Description":"Count trigger level",
+                          "Format":"Int"
+                          }
                           ]
                },
                {
                "id":13,
                "DEVTYPE":"",
                "DTY":"AAAC01",
-               "Name":"Thermistor XL",
+               "Name":"Temperature Sensor LB-CA",
                "Description":"LLAP+ Thermistor XL",
                "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"LB",
+               "AntennaClass":"CA",
                "Actions":[
                           {
                           "Command":"TEMP",
@@ -737,9 +840,12 @@
                "id":14,
                "DEVTYPE":"",
                "DTY":"AAAE01",
-               "Name":"Light XL",
+               "Name":"Light Sensor LB-CA",
                "Description":"LLAP+ LIGHT XL",
                "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"LB",
+               "AntennaClass":"CA",
                "Actions":[
                           {
                           "Command":"LIGHT",
@@ -755,9 +861,12 @@
                "id":15,
                "DEVTYPE":"",
                "DTY":"AAAM01",
-               "Name":"ADC",
+               "Name":"Analog Sensor SB-CA",
                "Description":"LLAP+ ADC",
                "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
                "Actions":[
                           {
                           "Command":"ANA",
@@ -768,6 +877,405 @@
                           ],
                "Options":[
                ]
+               },
+               {
+               "id":16,
+               "DEVTYPE":"",
+               "DTY":"AAAL02",
+               "Name":"Pulse Counter SB-CA",
+               "Description":"LLAP+ Pulse Counter",
+               "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
+               "Actions":[
+                          {
+                          "Command":"VAL",
+                          "Description":"Return the count value",
+                          "Format":"Int",
+                          "Type":"Both"
+                          },
+                          {
+                          "Command":"RESET",
+                          "Description":"Resets the count to 0",
+                          "Format":"Int",
+                          "Type":"Polled"
+                          }
+                          ],
+               "Options":[
+                          {
+                          "Command":"TRG",
+                          "Description":"Count trigger level",
+                          "Format":"Int"
+                          }
+                          ]
+               },
+               {
+               "id":17,
+               "DEVTYPE":"",
+               "DTY":"AAAB02",
+               "Name":"Temperature Sensor SB-CA",
+               "Description":"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut tempus turpis sit amet diam auctor, ac semper dui sollicitudin. Pellentesque at semper lorem. Vivamus scelerisque id elit in porttitor. Sed eget condimentum dolor. Nunc sollicitudin.",
+               "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
+               "Actions":[
+                          {
+                          "Command":"TEMP",
+                          "Description":"Request Temperature",
+                          "Format":"Float",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+                          {
+                          "Command":"BVAL",
+                          "Description":"Beta Value of Thermistor",
+                          "Format":"Int"
+                          },
+                          {
+                          "Command":"RNOM",
+                          "Description":"Resistance at 20C",
+                          "Format":"Int"
+                          },
+                          {
+                          "Command":"IR",
+                          "Description":"Internal Resistance",
+                          "Format":"Int"
+                          },
+                          {
+                          "Command":"SRES",
+                          "Description":"Series Resistance",
+                          "Format":"Int"
+                          }
+                          ]
+               },
+               {
+               "id":18,
+               "DEVTYPE":"",
+               "DTY":"AAAP01",
+               "Name":"RGB Light DC-CA",
+               "Description":"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut tempus turpis sit amet diam auctor, ac semper dui sollicitudin. Pellentesque at semper lorem. Vivamus scelerisque id elit in porttitor. Sed eget condimentum dolor. Nunc sollicitudin.",
+               "SleepMode":"Polled",
+               "PowerClass":"DC",
+               "AntennaClass":"CA",
+               "Actions":[
+                          {
+                          "Command":"LIGHT",
+                          "Description":"Switch the Light on/off or toggle the state",
+                          "Format":"ONOFFTOG",
+                          "Type":"Polled"
+                          },
+                          {
+                          "Command":"CYCLEOFF",
+                          "Description":"Stop cycling",
+                          "Type":"Polled"
+                          },
+                          {
+                          "Command":"YCLEHUE",
+                          "Description":"Cycle through the hues",
+                          "Type":"Polled"
+                          },
+                          {
+                          "Command":"CYCLESAT",
+                          "Description":"Cycle through saturation",
+                          "Type":"Polled"
+                          },
+                          {
+                          "Command":"CYCLELEV",
+                          "Description":"Cycle through the brightness",
+                          "Type":"Polled"
+                          },
+                          {
+                          "Command":"HUE",
+                          "Description":"set the hue",
+                          "Format":"Int",
+                          "Type":"Polled"
+                          },
+                          {
+                          "Command":"SAT",
+                          "Description":"Set the Saturation",
+                          "Format":"Int",
+                          "Type":"Polled"
+                          },
+                          {
+                          "Command":"LEV",
+                          "Description":"Set the Brightness",
+                          "Format":"Int",
+                          "Type":"Polled"
+                          },
+                          {
+                          "Command":"RGB",
+                          "Description":"Set the RGB colour value",
+                          "Format":"HEX",
+                          "Type":"Polled"
+                          }
+                          ],
+               "Options":[
+                          ]
+               },
+               {
+               "id":19,
+               "DEVTYPE":"",
+               "DTY":"AAAN01",
+               "Name":"Humidty and Temperature SB-CA",
+               "Description":"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut tempus turpis sit amet diam auctor, ac semper dui sollicitudin. Pellentesque at semper lorem. Vivamus scelerisque id elit in porttitor. Sed eget condimentum dolor. Nunc sollicitudin.",
+               "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
+               "Actions":[
+                          {
+                          "Command":"RHUM",
+                          "Description":"",
+                          "Format":"Float",
+                          "Type":"Polled"
+                          },
+                          {
+                          "Command":"TEMP",
+                          "Description":"",
+                          "Format":"Float",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+               ]
+               },
+               {
+               "id":20,
+               "DEVTYPE":"",
+               "DTY":"AAAO01",
+               "Name":"Moisture Sensor SB-CA",
+               "Description":"LLAP+ Moisture Sensor, Capacitive",
+               "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
+               "Actions":[
+                          {
+                          "Command":"MOSIT",
+                          "Description":"Request current moisture (%)",
+                          "Format":"FLOAT",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+               ]
+               },
+               {
+               "id":21,
+               "DEVTYPE":"",
+               "DTY":"AAAS01",
+               "Name":"Quad Relay MP-CA",
+               "Description":"LLAP+ Quad Relay",
+               "SleepMode":"Polled",
+               "PowerClass":"MP",
+               "AntennaClass":"CA",
+               "Actions":[
+                          {
+                          "Command":"RELAYA",
+                          "Description":"Change or report state of relay A",
+                          "Format":"ONOFFTOG",
+                          "Type":"Both"
+                          },
+                          {
+                          "Command":"RELAYB",
+                          "Description":"Change or report state of relay B",
+                          "Format":"ONOFFTOG",
+                          "Type":"Both"
+                          },
+                          {
+                          "Command":"RELAYC",
+                          "Description":"Change or report state of relay C",
+                          "Format":"ONOFFTOG",
+                          "Type":"Both"
+                          },
+                          {
+                          "Command":"RELAYD",
+                          "Description":"Change or report state of relay D",
+                          "Format":"ONOFFTOG",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+                          {
+                          "Command":"DEB",
+                          "Description":"Button debounce in mS (Default 30)",
+                          "Format":"Int"
+                          }
+                          ]
+               },
+               {
+               "id":22,
+               "DEVTYPE":"",
+               "DTY":"AAAB03",
+               "Name":"Temperature Sensor SB-CA",
+               "Description":"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut tempus turpis sit amet diam auctor, ac semper dui sollicitudin. Pellentesque at semper lorem. Vivamus scelerisque id elit in porttitor. Sed eget condimentum dolor. Nunc sollicitudin.",
+               "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
+               "Actions":[
+                          {
+                          "Command":"TEMP",
+                          "Description":"Request Temperature",
+                          "Format":"Float",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+                          ]
+               },
+               {
+               "id":23,
+               "DEVTYPE":"",
+               "DTY":"AAAC03",
+               "Name":"Temperature Sensor LB-CA",
+               "Description":"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut tempus turpis sit amet diam auctor, ac semper dui sollicitudin. Pellentesque at semper lorem. Vivamus scelerisque id elit in porttitor. Sed eget condimentum dolor. Nunc sollicitudin.",
+               "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
+               "Actions":[
+                          {
+                          "Command":"TEMP",
+                          "Description":"Request Temperature",
+                          "Format":"Float",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+               ]
+               },
+               {
+               "id":24,
+               "DEVTYPE":"",
+               "DTY":"AAAR01",
+               "Name":"Temperature Sensor AA SB-CA",
+               "Description":"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut tempus turpis sit amet diam auctor, ac semper dui sollicitudin. Pellentesque at semper lorem. Vivamus scelerisque id elit in porttitor. Sed eget condimentum dolor. Nunc sollicitudin.",
+               "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
+               "Actions":[
+                          {
+                          "Command":"TEMP",
+                          "Description":"Request Temperature",
+                          "Format":"Float",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+                          ]
+               },
+               {
+               "id":25,
+               "DEVTYPE":"",
+               "DTY":"AAAT01",
+               "Name":"Heating Controler MP-CA",
+               "Description":"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut tempus turpis sit amet diam auctor, ac semper dui sollicitudin. Pellentesque at semper lorem. Vivamus scelerisque id elit in porttitor. Sed eget condimentum dolor. Nunc sollicitudin.",
+               "SleepMode":"Polled",
+               "PowerClass":"MP",
+               "AntennaClass":"CA",
+               "Actions":[
+                          {
+                          "Command":"TEMP",
+                          "Description":"Request Temperature",
+                          "Format":"Float",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+               ]
+               },
+               {
+               "id":26,
+               "DEVTYPE":"",
+               "DTY":"AAAU01",
+               "Name":"Boiler Monitor MP-CA",
+               "Description":"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut tempus turpis sit amet diam auctor, ac semper dui sollicitudin. Pellentesque at semper lorem. Vivamus scelerisque id elit in porttitor. Sed eget condimentum dolor. Nunc sollicitudin.",
+               "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"MP",
+               "AntennaClass":"CA",
+               "Actions":[
+                          {
+                          "Command":"TEMPA",
+                          "Description":"Request Temperature, internal thermistor, uses b equation with b of 3977",
+                          "Format":"Float",
+                          "Type":"Both"
+                          },
+                          {
+                          "Command":"TEMPB",
+                          "Description":"Request Temperature, Pipe clip 1, uses b equation with b=3969",
+                          "Format":"Float",
+                          "Type":"Both"
+                          },
+                          {
+                          "Command":"TEMPC",
+                          "Description":"Request Temperature, pipe clip 2, uses b equation with b=3969",
+                          "Format":"Float",
+                          "Type":"Both"
+                          }
+                          ],
+               "Options":[
+                          {
+                          "Command":"MSG",
+                          "Description":"Set message for the tilt switch (Default TILT)",
+                          "Format":"String"
+                          },
+                          {
+                          "Command":"DEB",
+                          "Description":"Tilt swtich debounce in mS (Default 50)",
+                          "Format":"Int"
+                          }
+                          ]
+               },
+               {
+               "id":27,
+               "DEVTYPE":"",
+               "DTY":"AAAV01",
+               "Name":"KeyFob SB-CA",
+               "Description":"Note pressing and holding any button for 5 seconds will enter config mode (this is in addition to the normal config button).",
+               "SleepMode":"Interrupt",
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
+               "Actions":[
+                          {
+                          "Command":"BUTTON",
+                          "Description":"Indicates which button has been pressed [A-E], note actual command name can be set via MSG option",
+                          "Format":"String",
+                          "Type":"Announce"
+                          }
+                          ],
+               "Options":[
+                          {
+                          "Command":"MSG",
+                          "Description":"Set message for the button press (Default BUTTON)",
+                          "Format":"String"
+                          },
+                          {
+                          "Command":"DEB",
+                          "Description":"Button debounce in mS (Default 50)",
+                          "Format":"Int"
+                          }
+                          ]
+               },
+               {
+               "id":28,
+               "DEVTYPE":"",
+               "DTY":"AAAX01",
+               "Name":"LUX SB-CA",
+               "Description":"",
+               "SleepMode":"Cyclic",
+               "ReadingPeriod":1,
+               "PowerClass":"SB",
+               "AntennaClass":"CA",
+               "Actions":[
+                          ],
+               "Options":[
+                          ]
                }
                ]
 }
