@@ -63,12 +63,14 @@ import itertools
     
     offer suggested settings based on json
     
-    UUID in LCR JSON's so only listen for my own replies
-        either another field or don't hard code stages via id
+    DONE: UUID in LCR JSON's so only listen for my own replies
+             either another field or don't hard code stages via id
     
-    if more that one server on the network offer LCR target dropdown
+    DONE: if more that one server on the network offer LCR target dropdown
     
     fix self.die()
+    
+    Check DEVID box is not empty before going back from change DEVID box
     
 """
 
@@ -87,7 +89,7 @@ CONFIG = """Select your device config options"""
 
 END = """Your device has been configured"""
 
-PRESSTEXT = """Please press the Config button on your device"""
+PRESSTEXT = """Please press the Configure button on your device for 1 second"""
 PRESSTEXT1 = """Communicating with device"""
 
 INTERVALTEXT = """Use the slider to select a reporting period for the device. 
@@ -307,7 +309,7 @@ class LLAPCongfigMeClient:
                 self.logger.debug("tUDPSend: Got json to send: {}".format(message))
                 try:
                     UDPSendSocket.sendto(message, ('<broadcast>', sendPort))
-                    self.logger.debug("tUDPSend: Put message out via UDP")
+#                    self.logger.debug("tUDPSend: Put message out via UDP")
                 except socket.error, msg:
                     self.logger.warn("tUDPSend: Failed to send via UDP. Error code : {} Message: {}".format(msg[0], msg[1]))
                 else:
@@ -371,20 +373,22 @@ class LLAPCongfigMeClient:
         while not self.tUDPListenStop.is_set():
             ready = select.select([UDPListenSocket], [], [], 3)  # 3 second time out using select
             if ready[0]:
-                (data, address) = UDPListenSocket.recvfrom(2048)
-                self.logger.debug("tUDPListen: Received JSON: {} From: {}".format(data, address))
+                (data, address) = UDPListenSocket.recvfrom(8192)
+#                self.logger.debug("tUDPListen: Received JSON: {} From: {}".format(data, address))
+
                 # TODO: Test its actually json/catch errors
                 jsonin = json.loads(data)
+                
                 self.qJSONDebug.put([data, "RX"])
                 # TODO: Check for keys before trying to use them
                 if jsonin['type'] == "LLAP":
-                    self.logger.debug("tUDPListen: JSON of type LLAP")
+#                    self.logger.debug("tUDPListen: JSON of type LLAP")
                     # got a LLAP type json, need to generate the LLAP message and
                     # TODO: we should pass on LLAP type to the JSON window if enabled
                     pass
                 elif jsonin['type'] == "LCR":
                     # we have a LLAPConfigRequest reply pass it back to the GUI to deal with
-                    self.logger.debug("tUDPListen: JSON of type LCR, passing to qLCRReply")
+#                    self.logger.debug("tUDPListen: JSON of type LCR, passing to qLCRReply")
                     try:
                         self.qLCRReply.put_nowait(jsonin)
                     except Queue.Full:
@@ -392,7 +396,7 @@ class LLAPCongfigMeClient:
 
                 elif jsonin['type'] == "Server":
                     # TODO: we have a SERVER json do stuff with it
-                    self.logger.debug("tUDPListen: JSON of type SERVER")
+#                    self.logger.debug("tUDPListen: JSON of type SERVER")
                     self._updateServerDetailsFromJSON(jsonin)
             
         self.logger.info("tUDPListen: Thread stopping")
@@ -558,15 +562,15 @@ class LLAPCongfigMeClient:
         tk.Button(self.sframe, text='Back', state=tk.ACTIVE,
                   command=self._startOver,
                   ).grid(row=r, column=1, sticky=tk.W)
-        tk.Button(self.sframe, name='next', text='Done',
+        tk.Button(self.sframe, name='next', text='Apply settings to decive',
                  command=self._sendConfigRequest
                  ).grid(row=self._rows-4, column=2, columnspan=2,
                         sticky=tk.E+tk.W)
-        tk.Button(self.sframe, name='reset', text='Reset to Defaults',
+        tk.Button(self.sframe, name='reset', text='Reset to defaults',
                   command=self._resetDefautls
                   ).grid(row=self._rows-3, column=2, columnspan=2,
                          sticky=tk.E+tk.W)
-        tk.Button(self.sframe, text='Advanced Config',
+        tk.Button(self.sframe, text='Advanced config',
                   command=self._displayConfig
                   ).grid(row=self._rows-2, column=2, columnspan=2,
                          sticky=tk.E+tk.W)
