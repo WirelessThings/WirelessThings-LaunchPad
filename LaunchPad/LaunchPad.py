@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-""" Wireless Things Launchpad
+""" Wireless Things LaunchPad
     Copyright (c) 2014 Ciseco Ltd.
     
     Author: Matt Lloyd
@@ -47,8 +47,8 @@ from Tabs import *
    
 """
 
-class Launchpad:
-    _name = "Wireless Things Launchpad"
+class LaunchPad:
+    _name = "Wireless Things LaunchPad"
     _autoStartText = {
                       'enable': "Enable Autostart",
                       'disable': "Disable Autostart"
@@ -76,8 +76,8 @@ class Launchpad:
             self._path = os.path.dirname(os.path.realpath(__file__))
         self.debug = False # until we read config
         self.debugArg = False # or get command line
-        self.configFileDefault = "Launchpad_defaults.cfg"
-        self.configFile = "Launchpad.cfg"
+        self.configFileDefault = "LaunchPad_defaults.cfg"
+        self.configFile = "LaunchPad.cfg"
         self.appFile = "AppList.json"
 
         self.widthMain = 550
@@ -119,8 +119,8 @@ class Launchpad:
     def endLauncher(self):
         self.debugPrint("End Launcher")
         position = self.master.geometry().split("+")
-        self.config.set('Launchpad', 'window_width_offset', position[1])
-        self.config.set('Launchpad', 'window_height_offset', position[2])
+        self.config.set('LaunchPad', 'window_width_offset', position[1])
+        self.config.set('LaunchPad', 'window_height_offset', position[2])
         self.master.destroy()
         # stop UDP Threads
         self.tUDPSendStop.set()
@@ -459,14 +459,14 @@ class Launchpad:
         self.master.geometry(
              "{}x{}+{}+{}".format(self.widthMain,
                                   self.heightMain+self.heightStatusBar,
-                                  self.config.get('Launchpad',
+                                  self.config.get('LaunchPad',
                                                   'window_width_offset'),
-                                  self.config.get('Launchpad',
+                                  self.config.get('LaunchPad',
                                                   'window_height_offset')
                                   )
                              )
                              
-        self.master.title("Wireless Things Launchpad v{}".format(self.currentVersion))
+        self.master.title("Wireless Things LaunchPad v{}".format(self.currentVersion))
         #self.master.resizable(0,0)
         
         self.tabFrame = tk.Frame(self.master, name='tabFrame')
@@ -1141,6 +1141,6 @@ class PasswordDialog(tk.Toplevel):
         self.destroy()
 
 if __name__ == "__main__":
-    app = Launchpad()
+    app = LaunchPad()
     app.on_excute()
 
