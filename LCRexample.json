@@ -9,7 +9,7 @@
 // Language of Things message reply from a device
 {
     "type":"WirelessMessage",          // required, defines the type of message data include in the json packet
-    "timestamp":"12 Mar 2014 14:19:21 +0000",          // optional, always provided by the Message Brdige
+    "timestamp":"12 Mar 2014 14:19:21 +0000",          // optional, always provided by the Message Bridge
     "network":"Serial",     // require, network source/destination, "ALL" can be use to send messages out via all Message Bridges listening on the network , "Serial" is the default network name for a Message Bridge
     "id":"MA",              // only required for type "WirelessMessage", devID of device data came from or sent to
     "data":["TEMP19.20"]      // required, for "WirelessMessage" type json this is the message payload
@@ -36,7 +36,7 @@
 
 
 
-// Device Configuration Request, information request sent to Message Brdige
+// Device Configuration Request, information request sent to Message Bridge
 {
     "type":"DeviceConfigurationRequest",
     "network":"ALL",
@@ -56,7 +56,7 @@
     }
 }
 
-// Device Configuration Request reply from Message Brdige for the above request
+// Device Configuration Request reply from Message Bridge for the above request
 {
     "type":"DeviceConfigurationRequest",
     "network":"Serial",
@@ -125,7 +125,7 @@
     "data":{
         "id":3,                 // optional, can be use by Device Configuration Wizard to help track request and replies
         "devType":"AAAB01",     // optional, if set the device type will be checked before sending any command
-        "timeout":120,          // optional, time out for request, default of 120seconds used if not set via json (120 set via Message Brdige config [DCR] 'timeout'
+        "timeout":120,          // optional, time out for request, default of 120seconds used if not set via json (120 set via Message Bridge config [DCR] 'timeout'
         "keepAwake":1,          // optional, use to request or show the state of the keepAwake, 0 off, 1 on
         "state":"PASS",         // optional, use by Message Bridge to show state PASS FAIL_TIMEOUT FAIL_RETRY
                                 // PASS, Message Bridge belives all replies are good
@@ -147,12 +147,12 @@
                    "value":"16"
                    }
                    ],
-        "replies":{             // optional, responses passed back by the Message Brdige
+        "replies":{             // optional, responses passed back by the Message Bridge
             "CHDEVID":{         // this is the command that was sent
                 "value":"MA",   // the value that was send with the command
                 "reply":"MA"    // the replay from that command
             },
-            "INTVL":{           // the Message Brdige will retry commands until it has a response for all of them or Fail and indicate reason using "State"
+            "INTVL":{           // the Message Bridge will retry commands until it has a response for all of them or Fail and indicate reason using "State"
                 "value":"005M",
                 "reply":"005M"
             },
@@ -167,24 +167,24 @@
 
 // Genral call to find state of any Message Bridges on the local network
 {
-    "type":"MessageBrdige",    // type MessageBrdige for status request
-    "network":"ALL",     // require, network destination, "ALL" will query all MessageBrdige, anything else will target a spefic MessageBrdige
-    "data":{}           // optional, config MessageBrdige commands
+    "type":"MessageBridge",    // type MessageBridge for status request
+    "network":"ALL",     // require, network destination, "ALL" will query all MessageBridge, anything else will target a spefic MessageBridge
+    "data":{}           // optional, config MessageBridge commands
 }
 
-// Status response from a MessageBrdige
+// Status response from a MessageBridge
 {
-    "type":"MessageBrdige",    // type MessageBrdige 
-    "network":"Serial",     //  require, network destination, "ALL" will query all MessageBrdige, anything else will target a spefic MessageBrdige
+    "type":"MessageBridge",    // type MessageBridge 
+    "network":"Serial",     //  require, network destination, "ALL" will query all MessageBridge, anything else will target a spefic MessageBridge
     "state":"Running",  // optional (include in response from Message Bridge, state could be "Running", "Error", "Unknown"
-    "timestamp":"12 Mar 2014 14:19:21 +0000",          // optional, always provided by the Message Brdige
-    "data":{           // optional, config MessageBrdige commands or expaneded run time info from Message Bridge
+    "timestamp":"12 Mar 2014 14:19:21 +0000",          // optional, always provided by the Message Bridge
+    "data":{           // optional, config MessageBridge commands or expaneded run time info from Message Bridge
             "id":3,                 // optional, can be use by requester to help track request and replies
-            "request":[             // optional, used to ask the Message Brdige for information
+            "request":[             // optional, used to ask the Message Bridge for information
                        "deviceStore",   // request the current device store
                        "PANID",         // request the networks PANID (used for seting up new devices ror the network)
                        "encryptionSet",  // request if encryption is enabled on the network
-                       "version"        // request the Message Brdige code version
+                       "version"        // request the Message Bridge code version
                        ],
             "set":{                 // optional, used to set settings on the Message Bridge (not yet implemented)
                    "PANID":"5AA5",
