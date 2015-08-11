@@ -40,23 +40,10 @@ from Tabs import *
    Move advance list from json into py
    
    switch to debug prints to logging
-   
-   DONE: apps list to be llap service
-   
-   DONE: Service buttons
-        start(restart?)
-       stop
-       auto start buttons
-   
-   DONE: service status indicators
-        needs better UX
-        
-   DONE: check if service is already running
-   
-   DONE: restart services on update
-   
+     
    TODO: catch permisions error on exec and set permission if needed
    
+   TODO: updater should remove files and process renames as needed, (execute a script?)
    
 """
 
@@ -67,9 +54,9 @@ class Launchpad:
                       'disable': "Disable Autostart"
                      }
     _serviceStatusText = {
-                          'checking': "Checking network for a running Transfer Service",
-                          'found': "Transfer service running on network",
-                          'timeout': "Transfer service not found on network"
+                          'checking': "Checking network for a running Message Bridge",
+                          'found': "Message Bridge running on network",
+                          'timeout': "Message Bridge not found on network"
                          }
     password = None
     _UDPListenTimeout = 1   # timeout for UDP listen
@@ -78,7 +65,7 @@ class Launchpad:
     _networkUDPTimeout = 5
     _networkUDPTimer = 0
     _checking = False
-    _serverQueryJSON = json.dumps({"type": "Server", "network": "ALL"})
+    _messageBridgeQueryJSON = json.dumps({"type": "MessageBridge", "network": "ALL"})
 
 
 
@@ -674,13 +661,13 @@ class Launchpad:
             self.debugPrint("Failed to Start the UDP listen thread")
 
         self._initUDPSendThread()
-        self.fServerGood = threading.Event()
+        self.fMessageBridgeGood = threading.Event()
 
         self.master.after(100, self.checkNetwork)
 
     def checkNetwork(self):
         """
-            Check for a server running on the network
+            Check for a Message Bridge running on the network
             
             Do we have a replay in the Que
                 update messge
@@ -693,9 +680,9 @@ class Launchpad:
             checkagain in 1s
             
         """
-        if self.fServerGood.is_set():
+        if self.fMessageBridgeGood.is_set():
             self._serviceStatus.set(self._serviceStatusText['found'])
-            self.fServerGood.clear()
+            self.fMessageBridgeGood.clear()
             self._checking = False
             self._networkRecheckTimer = time()
         elif self._checking and time() - self._networkUDPTimer > self._networkUDPTimeout:
@@ -704,7 +691,7 @@ class Launchpad:
 
         elif time() - self._networkRecheckTimer > self._networkRecheckTimeout:
             # time to check again
-            self.qUDPSend.put(self._serverQueryJSON)
+            self.qUDPSend.put(self._messageBridgeQueryJSON)
             self._serviceStatus.set(self._serviceStatusText['checking'])
             self._checking = True
             self._networkRecheckTimer = time()
@@ -743,15 +730,15 @@ class Launchpad:
                 self.debugPrint("tUDPListen: Received JSON: {} From: {}".format(data, address))
                 jsonin = json.loads(data)
                 
-                if jsonin['type'] == "LLAP":
+                if jsonin['type'] == "WirelessMessage":
                     pass
-                elif jsonin['type'] == "LCR":
+                elif jsonin['type'] == "DeviceConfigurationRequest":
                     pass
-                elif jsonin['type'] == "Server":
-                    # we have a SERVER json do stuff with it
-                    self.debugPrint("tUDPListen: JSON of type SERVER")
+                elif jsonin['type'] == "MessageBridge":
+                    # we have a MessageBridge json do stuff with it
+                    self.debugPrint("tUDPListen: JSON of type MessageBridge")
                     if jsonin['state'] == "Running" or jsonin['state'] == "RUNNING":
-                        self.fServerGood.set()
+                        self.fMessageBridgeGood.set()
                             
         self.debugPrint("tUDPListen: Thread stopping")
         try:
