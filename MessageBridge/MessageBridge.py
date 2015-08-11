@@ -37,7 +37,7 @@ else:
 """
    Big TODO list
    
-   LCR logic
+   DCR logic
     DONE: first pass at processing a request in and out
     DONE: check DTY
     DONE: timeouts from config or JSON
@@ -56,7 +56,7 @@ else:
        restart dead socket ? how to check
        need to find a way to test broken threads are getting restarted
    
-   "SERVER" messages
+   "MessageBridge" messages
         DONE: status
         reboot
         stop
@@ -75,9 +75,9 @@ else:
    windows service dehaviour
    
    self update via web
-        started via a Server message
+        started via a MessageBridge message
         
-   Auto configure Encryption if set on server and flag confirmed from GUI
+   Auto configure Encryption if set on MessageBridge and flag confirmed from GUI
    Auto configure PANID
    
    Wake message logic
@@ -91,7 +91,7 @@ class MessageBridge():
         
     MessageBridge looks after the following threads
     Serial
-    LCR
+    DCR
     UDP Send
     UDP Listen
     
@@ -115,11 +115,11 @@ class MessageBridge():
     
     _version = 0.12
 
-    _currentLCR = False
+    _currentDCR = False
     devType = None
     _SerialDTYSync = False
-    _LCRStartTime = 0
-    _LCRCurrentTimeout = 0
+    _DCRStartTime = 0
+    _DCRCurrentTimeout = 0
     
     _validID = "ABCDEFGHIJKLMNOPQRSTUVWXYZ-#@?\\*"
     _validData = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !\"#$%&'()*+,-.:;<=>?@[\\\/]^_`{|}~"
@@ -158,7 +158,7 @@ is running then run in the current terminal
                               }
         
         self.tMainStop = threading.Event()
-        self.qServer = Queue.Queue()
+        self.qMessageBridge = Queue.Queue()
         
         # setup initial Logging
         logging.getLogger().setLevel(logging.NOTSET)
@@ -350,7 +350,7 @@ is running then run in the current terminal
         try:
             self._readConfig()          # read in the config file
             self._initLogging()         # setup the logging options
-            self._initLCRThread()       # start the LLAPConfigRequest thread
+            self._initDCRThread()       # start the DeviceConfigurationRequest thread
             self._initUDPSendThread()   # start the UDP sender
             self.tMainStop.wait(1)
             self._initSerialThread()    # start the serial port thread
@@ -359,16 +359,16 @@ is running then run in the current terminal
             
             self._state = self.Running
             
-            # main thread looks after the server status for us
+            # main thread looks after the Message Bridge status for us
             while not self.tMainStop.is_set():
                 # check threads are running
-                if not self.tLCR.is_alive():
-                    self.logger.error("tMain: LCR thread stopped")
+                if not self.tDCR.is_alive():
+                    self.logger.error("tMain: DCR thread stopped")
                     self._state = self.Error
                     self.tMainStop.wait(1)
-                    self._startLCR()
+                    self._startDCR()
                     self.tMainStop.wait(1)
-                    if self.tLCR.is_alive():
+                    if self.tDCR.is_alive():
                         self._state = self.Running
             
                 if not self.tUDPSend.is_alive():
@@ -403,15 +403,15 @@ is running then run in the current terminal
                     if self.tUDPSend.is_alive():
                         self._state = self.Running
                 
-                # process any "Server" messages
-                if not self.qServer.empty():
-                    self.logger.debug("tMain: Processing Server JSON message")
+                # process any "MessageBridge" messages
+                if not self.qMessageBridge.empty():
+                    self.logger.debug("tMain: Processing MessageBridge JSON message")
                     try:
-                        json = self.qServer.get_nowait()
+                        json = self.qMessageBridge.get_nowait()
                     except Queue.Empty():
                         pass
                     else:
-                        self._processServerMessage(json)
+                        self._processMessageBridgeMessage(json)
                             
                 # flash led's if GPIO debug
                 self.tMainStop.wait(0.5)
@@ -423,7 +423,7 @@ is running then run in the current terminal
         self.logger.debug("Exiting")
 
     def _readConfig(self):
-        """Read the server config file from disk
+        """Read the Message Bridge config file from disk
         """
         self.logger.info("Reading config files")
         self.config = ConfigParser.SafeConfigParser()
@@ -488,15 +488,15 @@ is running then run in the current terminal
             self.logger.addHandler(self._fh)
             self.logger.info("File Logging started")
 
-    def _initLCRThread(self):
-        """ Setup the Thread and Queues for handling LLAPConfigRequests
+    def _initDCRThread(self):
+        """ Setup the Thread and Queues for handling DeviceConfigurationRequest
         """
-        self.logger.info("LCR Thread init")
+        self.logger.info("DCR Thread init")
 
-        self.qLCRRequest = Queue.Queue()
-        self.qLCRSerial = Queue.Queue()
+        self.qDCRRequest = Queue.Queue()
+        self.qDCRSerial = Queue.Queue()
         
-        self.tLCRStop = threading.Event()
+        self.tDCRStop = threading.Event()
         self.fAnsweredAll = threading.Event()
         self.fRetryFail = threading.Event()
         self.fTimeoutFail = threading.Event()
@@ -506,15 +506,15 @@ is running then run in the current terminal
         self.fRetryFail.clear()
         self.fAnsweredAll.clear()
 
-        self._startLCR()
+        self._startDCR()
     
-    def _startLCR(self):
-        self.tLCR = threading.Thread(name='tLCR', target=self._LCRThread)
-        self.tLCR.daemon = False
+    def _startDCR(self):
+        self.tDCR = threading.Thread(name='tDCR', target=self._DCRThread)
+        self.tDCR.daemon = False
         try:
-            self.tLCR.start()
+            self.tDCR.start()
         except:
-            self.logger.exception("Failed to Start the LCR thread")
+            self.logger.exception("Failed to Start the DCR thread")
             
     def _initUDPSendThread(self):
         """ Start the UDP output thread
@@ -583,42 +583,42 @@ is running then run in the current terminal
         except:
             self.logger.exception("Failed to Start the UDP listen thread")
     
-    def _LCRThread(self):
-        """ LLAP Config Request thread
-            Main logic for dealing with LCR's
-            We check the incoming qLCRRequest and qLCRSerial
+    def _DCRThread(self):
+        """ Device Configuration Request thread
+            Main logic for dealing with DCR's
+            We check the incoming qDCRRequest and qDCRSerial
         """
-        self.logger.info("tLCR: LCR thread started")
+        self.logger.info("tDCR: DCR thread started")
         
-        while (not self.tLCRStop.is_set()):
+        while (not self.tDCRStop.is_set()):
             # do we have a request
-            if not self.qLCRRequest.empty():
-                self.logger.debug("tLCR: Got a request to process")
-                # if we are not in the middle of an LCR
-                if not self._currentLCR:
+            if not self.qDCRRequest.empty():
+                self.logger.debug("tDCR: Got a request to process")
+                # if we are not in the middle of an DCR
+                if not self._currentDCR:
                     # lets get it out the queue and start processing it
                     try:
-                        self._currentLCR = self.qLCRRequest.get_nowait()
+                        self._currentDCR = self.qDCRRequest.get_nowait()
                     except Queue.Empty:
-                        self.logger.debug("tLCR: Failed to get item from qLCRRequest")
+                        self.logger.debug("tDCR: Failed to get item from qDCRRequest")
                     else:
                         # check the keepAwake
-                        if self._currentLCR['data'].get('keepAwake', None) == 1:
-                            self.logger.debug("tLCR: keepAwake turned on")
+                        if self._currentDCR['data'].get('keepAwake', None) == 1:
+                            self.logger.debug("tDCR: keepAwake turned on")
                             self.fKeepAwake.set()
-                        elif self._currentLCR['data'].get('keepAwake', None) == 0:
-                            self.logger.debug("tLCR: keepAwake turned off")
+                        elif self._currentDCR['data'].get('keepAwake', None) == 0:
+                            self.logger.debug("tDCR: keepAwake turned off")
                             self.fKeepAwake.clear()
                         
-                        if self._currentLCR['data'].get('toQuery', False):
+                        if self._currentDCR['data'].get('toQuery', False):
                             # make place for replies later
-                            self._currentLCR['data']['replies'] = {}
+                            self._currentDCR['data']['replies'] = {}
                             # use a copy in case we are adding ENC stuff
-                            toQuery = list(self._currentLCR['data']['toQuery'])
-                            if self._currentLCR['data'].has_key('setENC'):
+                            toQuery = list(self._currentDCR['data']['toQuery'])
+                            if self._currentDCR['data'].has_key('setENC'):
                                 # TODO: need to perpend encryption key setup to the toQuery
                                 if self.config.getboolean('Serial','encryption'):
-                                    self.logger.debug("tLCR: auto setting encryption")
+                                    self.logger.debug("tDCR: auto setting encryption")
                                     toQuery.insert(0, {"command":"ENC", "value":"ON"})
                                     for (index, hex) in enumerate(list(self._chunkstring(self.config.get('Serial', 'encryption_key'), 6))):
                                         toQuery.insert(0, {"command":"EN{}".format(index+1), "value":hex})
@@ -627,101 +627,101 @@ is running then run in the current terminal
                             try:
                                 self.qSerialToQuery.put_nowait(toQuery)
                             except Queue.Full:
-                                self.logger.debug("tLCR: Failed to put item onto toQuery as it's full")
+                                self.logger.debug("tDCR: Failed to put item onto toQuery as it's full")
                             else:
-                                self.devType = self._currentLCR['data'].get('devType', None)
+                                self.devType = self._currentDCR['data'].get('devType', None)
                                 # reset flags
                                 self.fAnsweredAll.clear()
                                 self.fRetryFail.clear()
                                 self.fTimeoutFail.clear()
                                 # start timer
-                                self._LCRCurrentTimeout = int(self._currentLCR['data'].get('timeout', self.config.get('LCR', 'timeout')))
-                                self._LCRStartTime = time()
-                                self.logger.debug("tLCR: started LCR timeout with period: {}".format(self._LCRCurrentTimeout))
+                                self._DCRCurrentTimeout = int(self._currentDCR['data'].get('timeout', self.config.get('DCR', 'timeout')))
+                                self._DCRStartTime = time()
+                                self.logger.debug("tDCR: started DCR timeout with period: {}".format(self._DCRCurrentTimeout))
                         else:
                             # no toQuery section, so reply with all done
-                            self._LCRReturnLCR("PASS")
-                        self.qLCRRequest.task_done()
+                            self._DCRReturnDCR("PASS")
+                        self.qDCRRequest.task_done()
 
             # do we have a reply from serial
-            while not self.qLCRSerial.empty():
-                self.logger.debug("tLCR: Something in qLCRSerial")
+            while not self.qDCRSerial.empty():
+                self.logger.debug("tDCR: Something in qDCRSerial")
                 try:
-                    llapReply = self.qLCRSerial.get_nowait()
+                    llapReply = self.qDCRSerial.get_nowait()
                 except Queue.Empty:
-                    self.logger.debug("tLCR: Failed to get item from qLCRSerial")
+                    self.logger.debug("tDCR: Failed to get item from qDCRSerial")
                 else:
-                    self.logger.debug("tLCR: Got {} to process".format(llapReply))
-                    if self._currentLCR:
+                    self.logger.debug("tDCR: Got {} to process".format(llapReply))
+                    if self._currentDCR:
                         # we are working on a request check and store the reply
-                        for q in self._currentLCR['data']['toQuery']:
+                        for q in self._currentDCR['data']['toQuery']:
                             if llapReply.strip('-').startswith(q['command']):
-                                self._currentLCR['data']['replies'][q['command']] = {'value': q.get('value', ""),
+                                self._currentDCR['data']['replies'][q['command']] = {'value': q.get('value', ""),
                                                                                 'reply': llapReply[len(q['command']):].strip('-')
                                                                                 }
-                                self.logger.debug("tLCR: Stored reply '{}':{}".format(q['command'], self._currentLCR['data']['replies'][q['command']]))
+                                self.logger.debug("tDCR: Stored reply '{}':{}".format(q['command'], self._currentDCR['data']['replies'][q['command']]))
                         # and reset the timeout
-                        self.logger.debug("tLCR: Reset timeout to 0")
-                        self._LCRStartTime = time()
+                        self.logger.debug("tDCR: Reset timeout to 0")
+                        self._DCRStartTime = time()
                     else:
                         # drop it
                         pass
-                    self.qLCRSerial.task_done()
+                    self.qDCRSerial.task_done()
             
             # check the timeout
-            if self._currentLCR and ((time() - self._LCRStartTime) > self._LCRCurrentTimeout):
+            if self._currentDCR and ((time() - self._DCRStartTime) > self._DCRCurrentTimeout):
                 # if expired cancel the toQuery in tSerial
-                self.logger.debug("tLCR: LCR timeout expired")
+                self.logger.debug("tDCR: DCR timeout expired")
                 self.fTimeoutFail.set()
 
             # no point checking flags if we are not in the middle of a request
-            if self._currentLCR:
+            if self._currentDCR:
                 # has the serial thread finished getting all the query answers
                 if self.fAnsweredAll.is_set():
                     # finished toQuery ok
-                    self.logger.debug("tLCR: Serial answered so send out json")
-                    self._LCRReturnLCR("PASS")
+                    self.logger.debug("tDCR: Serial answered so send out json")
+                    self._DCRReturnDCR("PASS")
                 elif self.fRetryFail.is_set():
                     # failed due to a message retry issue
-                    self.logger.warn("tLCR: Failed current LCR due to retry count")
-                    self._LCRReturnLCR("FAIL_RETRY")
+                    self.logger.warn("tDCR: Failed current DCR due to retry count")
+                    self._DCRReturnDCR("FAIL_RETRY")
                 elif self.fTimeoutFail.is_set():
                     # failed due to expired timeout
-                    self.logger.warn("tLCR: Failed current LCR due to timeout")
+                    self.logger.warn("tDCR: Failed current DCR due to timeout")
                     while not self.qSerialToQuery.empty():
                         try:
                             self.qSerialToQuery.get()
-                            self.logger.debug("tLCR: removed stale query from qSerialToQuery")
+                            self.logger.debug("tDCR: removed stale query from qSerialToQuery")
                         except Queue.Empty:
                             pass
                     
-                    self._LCRReturnLCR("FAIL_TIMEOUT")
+                    self._DCRReturnDCR("FAIL_TIMEOUT")
             
             # wait a little
-            self.tLCRStop.wait(0.5)
+            self.tDCRStop.wait(0.5)
             
-        self.logger.info("tLCR: Thread stopping")
+        self.logger.info("tDCR: Thread stopping")
         return
 
-    def _LCRReturnLCR(self, state):
+    def _DCRReturnDCR(self, state):
         # prep the reply
-        self._currentLCR['timestamp'] = strftime("%d %b %Y %H:%M:%S +0000", gmtime())
-        self._currentLCR['network'] = self.config.get('Serial', 'network')
-        self._currentLCR['keepAwake'] = 1 if self.fKeepAwake.is_set() else 0
-        self._currentLCR['data']['state'] = state
+        self._currentDCR['timestamp'] = strftime("%d %b %Y %H:%M:%S +0000", gmtime())
+        self._currentDCR['network'] = self.config.get('Serial', 'network')
+        self._currentDCR['keepAwake'] = 1 if self.fKeepAwake.is_set() else 0
+        self._currentDCR['data']['state'] = state
 
         # encode json
-        jsonout = json.dumps(self._currentLCR)
+        jsonout = json.dumps(self._currentDCR)
 
         # send to UDP thread
         try:
             self.qUDPSend.put_nowait(jsonout)
         except Queue.Full:
-            self.logger.warn("tLCR: Failed to put {} on qUDPSend as it's full".format(llapMsg))
+            self.logger.warn("tDCR: Failed to put {} on qUDPSend as it's full".format(llapMsg))
         else:
-            self.logger.debug("tLCR: Sent LCR reply to qUDPSend")
-            # and clear LCR and SentAll flag
-            self._currentLCR = False
+            self.logger.debug("tDCR: Sent DCR reply to qUDPSend")
+            # and clear DCR and SentAll flag
+            self._currentDCR = False
 
     def _UDPSendTread(self):
         """ UDP Send thread
@@ -796,7 +796,7 @@ is running then run in the current terminal
                     # extrem debug message
                     # self.logger.debug("tSerial: check serial port")
                     if self._serial.inWaiting():
-                        self._SerialReadIncomingLLap()
+                        self._SerialReadIncomingLanguageOfThings()
                     
                     # do we have anything to send
                     if not self.qSerialOut.empty():
@@ -848,12 +848,12 @@ is running then run in the current terminal
             
             at.leaveATMode()
     
-    def _SerialReadIncomingLLap(self):
+    def _SerialReadIncomingLanguageOfThings(self):
         char = self._serial.read()  # should not time out but we should check anyway
         self.logger.debug("tSerial: RX:{}".format(char))
     
         if char == 'a':
-            # this should be the start of a llap message
+            # this should be the start of a Language of Things message
             # read 11 more or time out
             llapMsg = "a"
             count = 0
@@ -886,14 +886,14 @@ is running then run in the current terminal
                 if llapMsg[1:3] == "??":
                     self._SerialProcessQQ(llapMsg[3:].strip("-"))
                 else:
-                    # not a configme llap so send out via UDP LLAP
+                    # not a configme Language of Things message so send out via UDP WirelessMessage
                     try:
-                        self.qUDPSend.put_nowait(self.encodeLLAPJson(llapMsg, self.config.get('Serial', 'network')))
+                        self.qUDPSend.put_nowait(self.encodeWirelessMessageJson(llapMsg, self.config.get('Serial', 'network')))
                     except Queue.Full:
                         self.logger.warn("tSerial: Failed to put {} on qUDPSend as it's full".format(llapMsg))
 
     def _SerialProcessQQ(self, llapMsg):
-        """ process an incoming ?? llap message
+        """ process an incoming ?? Language of Things message
         """
         # has the timeout expired
         if not self.fTimeoutFail.is_set():
@@ -905,7 +905,7 @@ is running then run in the current terminal
                         if llapMsg[3:] == self.devType:
                             self._SerialDTYSync = True
                             self.logger.debug("tSerial: Confirmed DTY, Send next toQuery, State: {}".format(self._SerialToQueryState))
-                            if not self._SerialSendLCRQuery():
+                            if not self._SerialSendDCRQuery():
                                 # failed to send question (serial or retry error)
                                 if self.fRetryFail.is_set():
                                     # was a retry fail
@@ -926,9 +926,9 @@ is running then run in the current terminal
 
                     # store the reply
                     try:
-                        self.qLCRSerial.put_nowait(llapMsg)
+                        self.qDCRSerial.put_nowait(llapMsg)
                     except Queue.Full:
-                        self.logger.warn("tSerial: Failed to put {} on qLCRSerial as it's full".format(llapMsg))
+                        self.logger.warn("tSerial: Failed to put {} on qDCRSerial as it's full".format(llapMsg))
                     
                     # if we have replies for all state == 0:
                     if self._SerialToQueryState == 0:
@@ -939,7 +939,7 @@ is running then run in the current terminal
                     else:
                         # send next
                         self.logger.debug("tSerial: Send next toQuery, State: {}".format(self._SerialToQueryState))
-                        if not self._SerialSendLCRQuery():
+                        if not self._SerialSendDCRQuery():
                             # failed to send question (serial error)
                             pass
                 # else if was not our answer so send it again
@@ -953,7 +953,7 @@ is running then run in the current terminal
                     else:
                         # send last again
                         self.logger.debug("tSerial: Retry toQuery, State: {}".format(self._SerialToQueryState))
-                        if not self._SerialSendLCRQuery():
+                        if not self._SerialSendDCRQuery():
                             # failed to send question (serial or retry error)
                             if self.fRetryFail.is_set():
                                 # was a retry fail
@@ -982,7 +982,7 @@ is running then run in the current terminal
                     else:
                         # send first
                         self.logger.debug("tSerial: Send first toQuery, State: {}".format(self._SerialToQueryState))
-                        if not self._SerialSendLCRQuery():
+                        if not self._SerialSendDCRQuery():
                             # failed to send question (serial or retry error)
                             pass
         elif self._SerialToQueryState:
@@ -1001,11 +1001,11 @@ is running then run in the current terminal
                 self.logger.debug("tSerial: TX:a??HELLO-----")
             return
 
-    def _SerialSendLCRQuery(self):
-        """ send out the next query in the current LCR
+    def _SerialSendDCRQuery(self):
+        """ send out the next query in the current DCR
         """
         # check retry count before sending
-        if self._SerialRetryCount < int(self.config.get('LCR', 'single_query_retry_count')):
+        if self._SerialRetryCount < int(self.config.get('DCR', 'single_query_retry_count')):
             llapToSend = "a??{}{}".format(self._SerialToQuery[self._SerialToQueryState-1]['command'],
                                            self._SerialToQuery[self._SerialToQueryState-1].get('value', "")
                                            )
@@ -1020,12 +1020,12 @@ is running then run in the current terminal
                 self.logger.debug("tSerial: TX:{}".format(llapToSend))
                 self._SerialRetryCount += 1
                 return True
-        self.logger.debug("tSerial: toQuery failed on retry count, letting tLCR know")
+        self.logger.debug("tSerial: toQuery failed on retry count, letting tDCR know")
         self.fRetryFail.set()
         return False
 
     def _SerialSendDTY(self):
-        """ Ask a LLAP+ device it devType
+        """ Ask a Language of Things device it devType
         """
         try:
           self._serial.write("a??DTY------")
@@ -1076,9 +1076,9 @@ is running then run in the current terminal
                     jsonin['network'] == "ALL"):
                     # yep its for our network or "ALL"
                     # TODO: error checking, dict should have keys for type
-                    if jsonin['type'] == "LLAP":
-                        self.logger.debug("tUDPListen: JSON of type LLAP, send out messages")
-                        # got a LLAP type json, need to generate the LLAP message and
+                    if jsonin['type'] == "WirelessMessage":
+                        self.logger.debug("tUDPListen: JSON of type WirelessMessage, send out messages")
+                        # got a WirelessMessage type json, need to generate the Language of Things message and
                         # put them on the TX queue
                         # TODO: error checking, dict should have keys for data
                         for command in jsonin['data']:
@@ -1089,26 +1089,26 @@ is running then run in the current terminal
                             try:
                                 self.qSerialOut.put_nowait(llapMsg)
                             except Queue.Full:
-                                self.logger.debug("tUDPListen: Failed to put {} on qLCRSerial as it's full".format(llapMsg))
+                                self.logger.debug("tUDPListen: Failed to put {} on qDCRSerial as it's full".format(llapMsg))
                             else:
                                 self.logger.debug("tUDPListen Put {} on qSerialOut".format(llapMsg))
 
-                    elif jsonin['type'] == "LCR" and self.config.getboolean('LCR', 'lcr_enable'):
-                        # we have a LLAPConfigRequest pass in onto the LCR thread
+                    elif jsonin['type'] == "DeviceConfigurationRequest" and self.config.getboolean('DCR', 'dcr_enable'):
+                        # we have a DeviceConfigurationRequest pass in onto the DCR thread
                         # TODO: error checking, dict should have keys for data
-                        self.logger.debug("tUDPListen: JSON of type LCR, passing to qLCRRequest")
+                        self.logger.debug("tUDPListen: JSON of type DeviceConfigurationRequest, passing to qDCRRequest")
                         try:
-                            self.qLCRRequest.put_nowait(jsonin)
+                            self.qDCRRequest.put_nowait(jsonin)
                         except Queue.Full:
-                            self.logger.debug("tUDPListen: Failed to put json on qLCRRequest")
+                            self.logger.debug("tUDPListen: Failed to put json on qDCRRequest")
 
-                    elif jsonin['type'] == "Server":
-                        # we have a SERVER json do stuff with it
-                        self.logger.debug("tUDPListen: JSON of type SERVER, passing to qServer")
+                    elif jsonin['type'] == "MessageBridge":
+                        # we have a MessageBridge json do stuff with it
+                        self.logger.debug("tUDPListen: JSON of type MessageBridge, passing to qMessageBridge")
                         try:
-                            self.qServer.put(jsonin)
+                            self.qMessageBridge.put(jsonin)
                         except Queue.Full():
-                            self.logger.debug("tUDPListen: Failed to put json on qServer")
+                            self.logger.debug("tUDPListen: Failed to put json on qMessageBridge")
  
         self.logger.info("tUDPListen: Thread stopping")
         try:
@@ -1117,7 +1117,7 @@ is running then run in the current terminal
             self.logger.exception("tUDPListen: Failed to close socket")
         return
 
-    def _processServerMessage(self, message):
+    def _processMessageBridgeMessage(self, message):
         message['timestamp'] = strftime("%d %b %Y %H:%M:%S +0000", gmtime())
         message['network'] = self.config.get('Serial', 'network')
         message['state'] = self._state
@@ -1127,7 +1127,7 @@ is running then run in the current terminal
                 for request in message['data']['request']:
                     if request == "deviceStore":
                         result['deviceStore'] = self._deviceStore
-                    # TODO: implement other server "requests"
+                    # TODO: implement other MessageBridge "requests"
                     elif request == "PANID":
                         result['PANID'] = self.config.get('Serial', 'panid')
                     elif request == "encryptionSet":
@@ -1149,11 +1149,11 @@ is running then run in the current terminal
             self.logger.debug("tMain: Put {} on qUDPSend".format(message))
 
     
-    def encodeLLAPJson(self, message, network=None):
-        """Encode a single LLAP message into an outgoing JSON message
+    def encodeWirelessMessageJson(self, message, network=None):
+        """Encode a single Language of Things message into an outgoing JSON message
             """
-        self.logger.debug("tSerial: JSON: encoding {} to json LLAP".format(message))
-        jsonDict = {'type':"LLAP"}
+        self.logger.debug("tSerial: JSON: encoding {} to json WirelessMessage".format(message))
+        jsonDict = {'type':"WirelessMessage"}
         jsonDict['network'] = network if network else "DEFAULT"
         jsonDict['timestamp'] = strftime("%d %b %Y %H:%M:%S +0000", gmtime())
         jsonDict['id'] = message[1:3]
@@ -1223,8 +1223,8 @@ is running then run in the current terminal
         except:
             pass
         try:
-            self.tLCRStop.set()
-            self.tLCR.join()
+            self.tDCRStop.set()
+            self.tDCR.join()
         except:
             pass
         try:
