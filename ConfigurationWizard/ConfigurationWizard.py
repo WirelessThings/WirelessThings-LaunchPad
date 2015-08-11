@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-""" LLAP ConfigMe
+""" Wireless Things Configuration Wizard
     Copyright (c) 2014 Ciseco Ltd.
     
     Author: Matt Lloyd
@@ -75,13 +75,13 @@ import itertools
 """
 
 
-INTRO = """Welcome to LLAP Config me wizard
+INTRO = """Welcome to Wireless Things Device Configuration Wizard
     
-Please wait while we try to reach a LLAP Transfer service"""
+Please wait while we try to reach a Wireless Things Messaging Bridge"""
 
-INTRO1 = """Welcome to LLAP Config me wizard
+INTRO1 = """Welcome to Wireless Things Device Configuration Wizard
     
-A LLAP Transfer service has be found running on this network.
+A Wireless Things Messaging Bridge has be found running on this network.
 
 Please select a service to use from the list bellow"""
 
@@ -105,17 +105,16 @@ NEWDEVICEIDTEXT = "A new ID has been automatically assigned, to override please 
 SETTINGMISSMATCHTEXT = """The network settings on your device do not match this hub, do you wish to update them?"""
 MISSMATCHINFOTEXT = """The network settings on your device do not match this hub. This could be either the PANID or Encryption, to have the automatically updated to match this hubs setting just check the box"""
 
-class LLAPCongfigMeClient:
+class ConfigurationWizard:
     """
-        LLAP ConfigMe Client Class
+        Configuration Wizard Class
         Handles display of wizard interface for configuring devices
-        pass requests onto LLAPConfigMeCore
     """
 
     _version = 0.12
     
-    _configFileDefault = "LLAPCM_defaults.cfg"
-    _configFile = "LLAPCM.cfg"
+    _configFileDefault = "ConfigurationWizard_defaults.cfg"
+    _configFile = "ConfigurationWizard.cfg"
     _myNodesFile = "MyNodes.json"
     _infoIconFile = "noun_80697_cc.gif"
     
@@ -149,7 +148,7 @@ class LLAPCongfigMeClient:
         self._running = False
 
         logging.getLogger().setLevel(logging.NOTSET)
-        self.logger = logging.getLogger('LLAPServer')
+        self.logger = logging.getLogger('Configuration Wizard')
         self._ch = logging.StreamHandler()
         self._ch.setLevel(logging.WARN)    # this should be WARN by default
         self._formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -230,14 +229,14 @@ class LLAPCongfigMeClient:
         self.master.geometry(
                  "{}x{}+{}+{}".format(self._widthMain,
                                       self._heightMain,
-                                      self.config.get('LLAPCM',
+                                      self.config.get('ConfigurationWizard',
                                                       'window_width_offset'),
-                                      self.config.get('LLAPCM',
+                                      self.config.get('ConfigurationWizard',
                                                       'window_height_offset')
                                       )
                              )
 
-        self.master.title("LLAP Config Me v{}".format(self._version))
+        self.master.title("Wireless Things Device Configuration Wizard v{}".format(self._version))
         self.master.resizable(0,0)
         
         self._initTkVariables()
@@ -1834,14 +1833,14 @@ class LLAPCongfigMeClient:
         self.serialWindow.geometry(
                "{}x{}+{}+{}".format(self._widthSerial,
                                     self._heightSerial,
-                                    int(self.config.get('LLAPCM',
+                                    int(self.config.get('ConfigurationWizard',
                                                         'window_width_offset')
                                         )+self._widthMain+20,
-                                    self.config.get('LLAPCM',
+                                    self.config.get('ConfigurationWizard',
                                                     'window_height_offset')
                                     )
                                    )
-        self.serialWindow.title("LLAP Config Me JSON Debug")
+        self.serialWindow.title("Device Configuration Wizard JSON Debug")
     
         self.serialDebugText = tk.Text(self.serialWindow, state=tk.DISABLED,
                                        relief=tk.RAISED, borderwidth=2,
@@ -1866,8 +1865,8 @@ class LLAPCongfigMeClient:
     def _endConfigMe(self):
         self.logger.debug("End Client")
         position = self.master.geometry().split("+")
-        self.config.set('LLAPCM', 'window_width_offset', position[1])
-        self.config.set('LLAPCM', 'window_height_offset', position[2])
+        self.config.set('ConfigurationWizard', 'window_width_offset', position[1])
+        self.config.set('ConfigurationWizard', 'window_height_offset', position[2])
         self.master.destroy()
         self._running = False
 
@@ -1920,9 +1919,9 @@ class LLAPCongfigMeClient:
 
     def _checkArgs(self):
         self.logger.debug("Parse Args")
-        parser = argparse.ArgumentParser(description='LLAP Config Me Client')
+        parser = argparse.ArgumentParser(description='Device Configuration Wizard')
         parser.add_argument('-d', '--debug',
-                            help='Enable debug output to console, overrides LAPCM.cfg setting',
+                            help='Enable debug output to console, overrides ConfigurationWizard.cfg setting',
                             action='store_true')
         parser.add_argument('-l', '--log',
                             help='Override the debug logging level, DEBUG, INFO, WARNING, ERROR, CRITICAL'
@@ -1958,7 +1957,7 @@ class LLAPCongfigMeClient:
     def _loadDevices(self):
         self.logger.debug("Loading device List")
         try:
-            with open(self.config.get('LLAPCM', 'devFile'), 'r') as f:
+            with open(self.config.get('ConfigurationWizard', 'devFile'), 'r') as f:
                 read_data = f.read()
             f.closed
             
@@ -1986,5 +1985,5 @@ class LLAPCongfigMeClient:
 #        sys.exit(1)
 
 if __name__ == "__main__":
-    app = LLAPCongfigMeClient()
+    app = ConfigurationWizard()
     app.on_excute()
