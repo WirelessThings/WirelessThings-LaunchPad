@@ -44,12 +44,12 @@ import itertools
     DONE: JSON debug window
     Pretty JSON format for window?
     
-    DONE: type: SERVER status check on start up
+    DONE: type: Message Bridge status check on start up
         basic PING
         
     DONE: use logger for debug output
     
-    DONE: timeouts wait windows base on timeout's sent with LCR
+    DONE: timeouts wait windows base on timeout's sent with DCR
     
     DONE: keepAwake via JSON's
     
@@ -57,16 +57,16 @@ import itertools
     
     DONE: disable next button while waiting for query
     
-    read AT settings for PANID and ENCRYPTION from server and offer as defaults to the user on a new device
+    read AT settings for PANID and ENCRYPTION from Message Bridge and offer as defaults to the user on a new device
     
     get JSON device file from network
     
     offer suggested settings based on json
     
-    DONE: UUID in LCR JSON's so only listen for my own replies
+    DONE: UUID in DCR JSON's so only listen for my own replies
              either another field or don't hard code stages via id
     
-    DONE: if more that one server on the network offer LCR target dropdown
+    DONE: if more that one Message Bridge on the network offer DCR target dropdown
     
     fix self.die()
     
@@ -129,12 +129,12 @@ class ConfigurationWizard:
     _timeout = 40
     _devIDInputs = []
     _encryptionKeyInput = 0
-    _lastLCR = []
+    _lastDCR = []
     _keepAwake = 0
     _currentFrame = None
-    _servers = {}
-    _serverButtons = {}
-    _serverQueryJSON = json.dumps({"type": "Server", "network": "ALL"})
+    _messgaeBridges = {}
+    _messgaeBridgeButtons = {}
+    _messageBridgeQueryJSON = json.dumps({"type": "MessageBridge", "network": "ALL"})
     _configState = 0
     
     _validID = "ABCDEFGHIJKLMNOPQRSTUVWXYZ-#@?\\*"
@@ -157,10 +157,10 @@ class ConfigurationWizard:
     
         # JSON Debug window Q
         self.qJSONDebug = Queue.Queue()
-        # LCR Reply Q, Incoming JSON's from the server
-        self.qLCRReply = Queue.Queue()
-        # flag to show a server msg has been received
-        self.fServerUpdate = threading.Event()
+        # DCR Reply Q, Incoming JSON's from the Message Bridge
+        self.qDCRReply = Queue.Queue()
+        # flag to show a MessageBridge msg has been received
+        self.fMessgaeBridgeUpdate = threading.Event()
         self.fWaitingForReply = threading.Event()
 
     def _initLogging(self):
@@ -253,8 +253,8 @@ class ConfigurationWizard:
             self.logger.warn("UDP Threads not running")
             # TODO: do we have an error form the UDP to show?
         else:
-            # dispatch a server status request
-            self.qUDPSend.put(self._serverQueryJSON)
+            # dispatch a Message Bridge status request
+            self.qUDPSend.put(self._messageBridgeQueryJSON)
             
             self._displayIntro()
             
@@ -373,30 +373,29 @@ class ConfigurationWizard:
             ready = select.select([UDPListenSocket], [], [], 3)  # 3 second time out using select
             if ready[0]:
                 (data, address) = UDPListenSocket.recvfrom(8192)
-#                self.logger.debug("tUDPListen: Received JSON: {} From: {}".format(data, address))
+                self.logger.debug("tUDPListen: Received JSON: {} From: {}".format(data, address))
 
                 # TODO: Test its actually json/catch errors
                 jsonin = json.loads(data)
                 
                 self.qJSONDebug.put([data, "RX"])
                 # TODO: Check for keys before trying to use them
-                if jsonin['type'] == "LLAP":
-#                    self.logger.debug("tUDPListen: JSON of type LLAP")
-                    # got a LLAP type json, need to generate the LLAP message and
-                    # TODO: we should pass on LLAP type to the JSON window if enabled
+                if jsonin['type'] == "WirelessMessage":
+                    self.logger.debug("tUDPListen: JSON of type WirelessMessage")
+                    # got a WirelessMessage type json, need to generate the Language of Things message and
+                    # TODO: we should pass on WirelessMessage type to the JSON window if enabled
                     pass
-                elif jsonin['type'] == "LCR":
-                    # we have a LLAPConfigRequest reply pass it back to the GUI to deal with
-#                    self.logger.debug("tUDPListen: JSON of type LCR, passing to qLCRReply")
+                elif jsonin['type'] == "DeviceConfigurationRequest":
+                    # we have a DeviceConfigurationRequest reply pass it back to the GUI to deal with
+                    self.logger.debug("tUDPListen: JSON of type DeviceConfigurationRequest, passing to qDCRReply")
                     try:
-                        self.qLCRReply.put_nowait(jsonin)
+                        self.qDCRReply.put_nowait(jsonin)
                     except Queue.Full:
-                        self.logger.debug("tUDPListen: Failed to put json on qLCRReply")
+                        self.logger.debug("tUDPListen: Failed to put json on qDCRReply")
 
-                elif jsonin['type'] == "Server":
-                    # TODO: we have a SERVER json do stuff with it
-#                    self.logger.debug("tUDPListen: JSON of type SERVER")
-                    self._updateServerDetailsFromJSON(jsonin)
+                elif jsonin['type'] == "MessageBridge":
+                    self.logger.debug("tUDPListen: JSON of type MessageBridge")
+                    self._updateMessageBridgeDetailsFromJSON(jsonin)
             
         self.logger.info("tUDPListen: Thread stopping")
         try:
@@ -427,7 +426,7 @@ class ConfigurationWizard:
         # this is based on the format field from the json
         # with the exception of ENKEY
         # type is used in conjunction with how these fields are displayed for user
-        # input and how we process that for LCR output
+        # input and how we process that for DeviceConfigurationRequest output
         # most are just straight copy outputs but some like ONOF and ENKEY require special handling
         self.entry = {
                       "CHDEVID" : [tk.StringVar(), tk.StringVar(), 'ID'],
@@ -458,54 +457,54 @@ class ConfigurationWizard:
         tk.Label(self.iframe, name='introText', text=INTRO
                  ).grid(row=1, column=0, columnspan=6, rowspan=4)
 
-        self._checkServerCount = 0
-        self._checkServer = True
-        self.master.after(1000, self._checkServerUpdate)
+        self._checkMessageBridgeCount = 0
+        self._checkMessageBridge = True
+        self.master.after(1000, self._checkMessageBridgeUpdate)
     
-    def _checkServerUpdate(self):
-#        self.logger.debug("Checking server reply flag")
-        if self.fServerUpdate.is_set():
+    def _checkMessageBridgeUpdate(self):
+		# self.logger.debug("Checking Message Bridge reply flag")
+        if self.fMessgaeBridgeUpdate.is_set():
             # flag set, re-draw buttons
-            self._updateServerList()
+            self._updateMessageBridgeList()
             # clear flag and schedule next check
-            self.fServerUpdate.clear()
+            self.fMessgaeBridgeUpdate.clear()
         
         
-        if self._checkServerCount == 5:
+        if self._checkMessageBridgeCount == 5:
             # send out another status ping
-            self.qUDPSend.put(self._serverQueryJSON)
-        elif self._checkServerCount == 10:
+            self.qUDPSend.put(self._messageBridgeQueryJSON)
+        elif self._checkMessageBridgeCount == 10:
             # let user know we are still looking but have not found anything yet
-            if len(self._servers) == 0:
+            if len(self._messgaeBridges) == 0:
                 pass
 
             # send out another query and reset count
-            self._checkServerCount = 0
-            self.qUDPSend.put(self._serverQueryJSON)
+            self._checkMessageBridgeCount = 0
+            self.qUDPSend.put(self._messageBridgeQueryJSON)
         
-        self._checkServerCount += 1
-        if self._checkServer:
+        self._checkMessageBridgeCount += 1
+        if self._checkMessageBridge:
             # carry on checking until user moves from first page
-            self.master.after(1000, self._checkServerUpdate)
+            self.master.after(1000, self._checkMessageBridgeUpdate)
 
-    def _updateServerList(self):
-        self.logger.debug("Updating Server list buttons")
+    def _updateMessageBridgeList(self):
+        self.logger.debug("Updating Message Bridge list buttons")
         self.iframe.children['introText'].config(text=INTRO1)
-        for network, server in self._servers.items():
+        for network, messageBridge in self._messgaeBridges.items():
             # if we don't all-ready have a button create a new one
-            if network not in self._serverButtons.keys():
-                self._serverButtons[network] = tk.Button(self.iframe,
+            if network not in self._messgaeBridgeButtons.keys():
+                self._messgaeBridgeButtons[network] = tk.Button(self.iframe,
                                                          name="n{}".format(network),
                                                          text=network,
                                                          command=lambda n=network:self._displayPressButton(n),
-                                                         state=tk.ACTIVE if server['state'] == "Running" or server['state'] == "RUNNING" else tk.DISABLED
+                                                         state=tk.ACTIVE if messageBridge['state'] == "Running" or messageBridge['state'] == "RUNNING" else tk.DISABLED
                                                          )
-                self._serverButtons[network].grid(row=5+len(self._serverButtons),
+                self._messgaeBridgeButtons[network].grid(row=5+len(self._messgaeBridgeButtons),
                                                   column=1,
                                                   columnspan=4, sticky=tk.E+tk.W)
             else:
               # need to update button state
-              self._serverButtons[network].config(state=tk.ACTIVE if server['state'] == "Running" or server['state'] == "RUNNING" else tk.DISABLED
+              self._messgaeBridgeButtons[network].config(state=tk.ACTIVE if messageBridge['state'] == "Running" or messageBridge['state'] == "RUNNING" else tk.DISABLED
                                                   )
 
     def _displayPressButton(self, network, reset=False):
@@ -729,7 +728,7 @@ class ConfigurationWizard:
     def _getNextFreeID(self):
         try:
             for id in itertools.product(string.ascii_uppercase, repeat=2):
-                if ''.join(id) not in sorted(self._servers[self._network]['data']['result']['deviceStore'].keys()):
+                if ''.join(id) not in sorted(self._messgaeBridges[self._network]['data']['result']['deviceStore'].keys()):
                     return ''.join(id)
         except:
             return "??"
@@ -738,8 +737,8 @@ class ConfigurationWizard:
         try:
             if not self.device['newDevice']:
                     if self._settingMissMatchVar.get() == 1:
-                        self.entry['PANID'][0].set(self._servers[self._network]['data']['result']['PANID'])
-                        if self._servers[self._network]['data']['result']['encryptionSet']:
+                        self.entry['PANID'][0].set(self._messgaeBridges[self._network]['data']['result']['PANID'])
+                        if self._messgaeBridges[self._network]['data']['result']['encryptionSet']:
                             self.device['setENC'] = True
                         else:
                             self.device['setENC'] = False
@@ -765,9 +764,9 @@ class ConfigurationWizard:
             infoText = ENCRYPTIONTEXT
             infoFormat = "ENKey"
         else:
-            # check LLAP Generic Commands, Cyclic Commands, device Actions and device Options all in one go
-            commandList = (self._llapGenericCommands +
-                           self._llapCyclicCommands +
+            # check Language of Things Generic Commands, Cyclic Commands, device Actions and device Options all in one go
+            commandList = (self._genericCommands +
+                           self._cyclicCommands +
                            self.devices[self.device['id']]['Actions'] +
                            self.devices[self.device['id']]['Options']
                            )
@@ -857,8 +856,8 @@ class ConfigurationWizard:
     
         self._devIDListbox = tk.Listbox(self.dframe, selectmode=tk.SINGLE)
         try:
-            # try to split get a device store list from our know server
-            ds = self._servers[self._network]['data']['result']['deviceStore']
+            # try to split get a device store list from our know Message Bridge
+            ds = self._messgaeBridges[self._network]['data']['result']['deviceStore']
         except:
             pass
         else:
@@ -885,7 +884,7 @@ class ConfigurationWizard:
     def _checkDevIDList(self, *args):
         if self._currentFrame == "chdevidFrame":
             try:
-                if self.entry['CHDEVID'][0].get() in self._servers[self._network]['data']['result']['deviceStore'].keys():
+                if self.entry['CHDEVID'][0].get() in self._messgaeBridges[self._network]['data']['result']['deviceStore'].keys():
                     self._devIDWarning.set(WARNINGTEXT)
                 else:
                     self._devIDWarning.set("")
@@ -1226,7 +1225,7 @@ class ConfigurationWizard:
     
     def validDevID(self, d, P, W, s, S):
         valid = False
-        validChar = ['#', '@', '\\', '*'] # as of llap 2.0 - and ? cannot be set
+        validChar = ['#', '@', '\\', '*'] # as of Language of Things 2.0 - and ? cannot be set
         for c in validChar:
             if S.startswith(c):
                 valid = True
@@ -1274,19 +1273,19 @@ class ConfigurationWizard:
         self._keepAwake = 1
 
         self._configState = 5
-        lcr = {"type": "LCR",
+        dcr = {"type": "DeviceConfigurationRequest",
                "network":self.device['network'],
                "data":{
                        "id": str(uuid.uuid4()),
-                       "timeout": self.config.get('LCR', 'timeout'),
+                       "timeout": self.config.get('DCR', 'timeout'),
                        "keepAwake":self._keepAwake,
                        "devType": self.device['DTY'],
                        "toQuery": query
                        }
               }
                   
-        self._lastLCR.append(lcr)
-        self._sendRequest(lcr)
+        self._lastDCR.append(dcr)
+        self._sendRequest(dcr)
 
     def _displayProgress(self):
         self.logger.debug("Displaying progress pop up")
@@ -1347,25 +1346,24 @@ class ConfigurationWizard:
 
         self._keepAwake = 0
         self._configState = 3
-        lcr = {"type": "LCR",
+        dcr = {"type": "DeviceConfigurationRequest",
                 "network":self.device['network'],
                 "data":{
                     "id": str(uuid.uuid4()),
-                    "timeout": self.config.get('LCR', 'timeout'),
+                    "timeout": self.config.get('DCR', 'timeout'),
                     "keepAwake":self._keepAwake,
                     "devType": self.device['DTY'],
                     "toQuery": query
                     }
                     }
-        if self.device['setENC']:
-            print("adding setENC to lcr")
-            lcr['data']['setENC'] = 1
-        self._lastLCR.append(lcr)
-        self._sendRequest(lcr)
+        if self.device['setENC']:            
+            dcr['data']['setENC'] = 1
+        self._lastDCR.append(dcr)
+        self._sendRequest(dcr)
 
     def _entryAppend(self, query, command, value):
         """
-            The following are use to append the correct LLAP commands
+            The following are use to append the correct Language of Things commands
             to the passed query and return the altered query
             based on the type of Entry
             
@@ -1457,7 +1455,7 @@ class ConfigurationWizard:
             devtype and apver request
         """
         self.logger.debug("Query type")
-        self._checkServer = False
+        self._checkMessageBridge = False
         # TODO: add a line here to disable NEXT button on pfame
         query = [
                  {'command': "DTY"},
@@ -1465,7 +1463,7 @@ class ConfigurationWizard:
                  {'command': "CHDEVID"}
                 ]
         self._configState = 1
-        lcr = {"type": "LCR",
+        dcr = {"type": "DeviceConfigurationRequest",
                "network":self._network,
                "data":{
                        "id": str(uuid.uuid4()),
@@ -1474,8 +1472,8 @@ class ConfigurationWizard:
                        }
               }
         
-        self._lastLCR.append(lcr)
-        self._sendRequest(lcr)
+        self._lastDCR.append(dcr)
+        self._sendRequest(dcr)
     
     def _processReply(self, json):
         self.logger.debug("Processing reply")
@@ -1489,7 +1487,7 @@ class ConfigurationWizard:
         # check if reply is valid
         if reply['state'] == "FAIL_TIMEOUT":
             # TODO: handle failed due to timeout
-            self.logger.debug("LCR timeout")
+            self.logger.debug("DeviceConfigurationRequest timeout")
             # display pop up ask user to check configme mode and try again
             if tkMessageBox.askyesno("Communications Timeout",
                                      ("Please check the device is in CONFIGME mode and \n"
@@ -1497,13 +1495,13 @@ class ConfigurationWizard:
                                       "No to return to pervious screen")
                                      ):
                 # send query again
-                self._sendRequest(self._lastLCR[-1])
+                self._sendRequest(self._lastDCR[-1])
             else:
                 if self._currentFrame == "pressFrame":
                     self._startOver()
         elif reply['state'] == "FAIL_RETRY":
             # TODO: handle failed due to retry
-            self.logger.debug("LCR retry error")
+            self.logger.debug("DeviceConfigurationRequest retry error")
             # display pop up ask user to check configme mode and try again
             if tkMessageBox.askyesno("Communications Timeout",
                                      ("Please check the device is in CONFIGME mode and \n"
@@ -1511,7 +1509,7 @@ class ConfigurationWizard:
                                       "No to return to pervious screen")
                                      ):
                 # send query again
-                self._sendRequest(self._lastLCR[-1])
+                self._sendRequest(self._lastDCR[-1])
             else:
                 if self._currentFrame == "pressFrame":
                     self._startOver()
@@ -1582,14 +1580,14 @@ class ConfigurationWizard:
                 if self.device['newDevice']:
                     self._newDeviceAutoSetup()
                 else:
-                    if self.entry['PANID'][0].get() != self._servers[self._network]['data']['result']['PANID']:
+                    if self.entry['PANID'][0].get() != self._messgaeBridges[self._network]['data']['result']['PANID']:
                         self.device['settingsMissMatch'] = True
-                    if self.entry['ENC'][0].get() != self._servers[self._network]['data']['result']['encryptionSet']:
+                    if self.entry['ENC'][0].get() != self._messgaeBridges[self._network]['data']['result']['encryptionSet']:
                         self.device['settingsMissMatch'] = True
                     
                 # show config screen
                 self.logger.debug("Setting keepAwake, display config")
-                # TODO: set keepAwake via UDP LCR
+                # TODO: set keepAwake via UDP DCR
                 self._keepAwake = 1
                 self._displaySimpleConfig()
             elif self._configState == 3:
@@ -1632,7 +1630,7 @@ class ConfigurationWizard:
     def _askCurrentConfig(self):
         # assuming we know what it is ask for the current config
         self.logger.debug("Ask current config")
-        self._requestServerDetails(self._network)
+        self._requestMessageBridgeDetails(self._network)
         self.pframe.children['pressText'].config(text=PRESSTEXT1)
         query = [
                  {'command': "PANID"},
@@ -1660,7 +1658,7 @@ class ConfigurationWizard:
         self._keepAwake = 1
         
         self._configState = 2
-        lcr = {"type": "LCR",
+        dcr = {"type": "DeviceConfigurationRequest",
                 "network":self.device['network'],
                 "data":{
                     "id": str(uuid.uuid4()),
@@ -1671,8 +1669,8 @@ class ConfigurationWizard:
                     }
                 }
     
-        self._lastLCR.append(lcr)
-        self._sendRequest(lcr)
+        self._lastDCR.append(dcr)
+        self._sendRequest(dcr)
 
     def _newDeviceAutoSetup(self):
         # double check
@@ -1680,10 +1678,10 @@ class ConfigurationWizard:
             # give it a new deviceID
             self.entry['CHDEVID'][0].set(self._getNextFreeID())
             try:
-                if self.entry['PANID'][0].get() != self._servers[self._network]['data']['result']['PANID']:
-                    self.entry['PANID'][0].set(self._servers[self._network]['data']['result']['PANID'])
-                if self.entry['ENC'][0].get() != self._servers[self._network]['data']['result']['encryptionSet']:
-                    if self._servers[self._network]['data']['result']['encryptionSet']:
+                if self.entry['PANID'][0].get() != self._messgaeBridges[self._network]['data']['result']['PANID']:
+                    self.entry['PANID'][0].set(self._messgaeBridges[self._network]['data']['result']['PANID'])
+                if self.entry['ENC'][0].get() != self._messgaeBridges[self._network]['data']['result']['encryptionSet']:
+                    if self._messgaeBridges[self._network]['data']['result']['encryptionSet']:
                         self.device['setENC'] = True
                     else:
                         self.device['setENC'] = False
@@ -1693,10 +1691,10 @@ class ConfigurationWizard:
 
 
 
-    def _requestServerDetails(self, network):
-        self.logger.debug("Ask server {} for its deviceStore".format(network))
-        serverQuery = {
-                       "type": "Server",
+    def _requestMessageBridgeDetails(self, network):
+        self.logger.debug("Ask Message Bridge {} for its deviceStore".format(network))
+        messageBridgeQuery = {
+                       "type": "MessageBridge",
                        "network": network,
                        "data":{
                            "id": str(uuid.uuid4()),
@@ -1707,36 +1705,36 @@ class ConfigurationWizard:
                                        ]
                        }
                       }
-        self._sendRequest(serverQuery)
+        self._sendRequest(messageBridgeQuery)
 
-    def _updateServerDetailsFromJSON(self, jsonin):
-        # update server entry in our list
+    def _updateMessageBridgeDetailsFromJSON(self, jsonin):
+        # update Message Bridge entry in our list
         # TODO: this needs to be a intelligent merge not just overwrite
-        if jsonin['network'] in self._servers.keys():
+        if jsonin['network'] in self._messgaeBridges.keys():
             network = jsonin['network']
-            self._servers[network]['state'] = jsonin.get('state', "Unknown")
-            self._servers[network]['timestamp'] = jsonin['timestamp']
+            self._messgaeBridges[network]['state'] = jsonin.get('state', "Unknown")
+            self._messgaeBridges[network]['timestamp'] = jsonin['timestamp']
             if jsonin.has_key('data'):
-                if not self._servers[network].has_key('data'):
-                    self._servers[network]['data'] = jsonin['data']
+                if not self._messgaeBridges[network].has_key('data'):
+                    self._messgaeBridges[network]['data'] = jsonin['data']
                 else:
                     if jsonin.has_key('id'):
-                        self._servers[network]['data']['id'] = jsonin['data']['id']
+                        self._messgaeBridges[network]['data']['id'] = jsonin['data']['id']
                     if jsonin.has_key('result'):
                         results = jsonin['data']['result']
-                        if not self._servers[network]['data'].has_key('result'):
-                            self._servers[network]['data']['result'] = results
+                        if not self._messgaeBridges[network]['data'].has_key('result'):
+                            self._messgaeBridges[network]['data']['result'] = results
                         else:
                             if results.has_key('PAINID'):
-                                self._servers[network]['data']['result']['PANID'] = results['PANID']
+                                self._messgaeBridges[network]['data']['result']['PANID'] = results['PANID']
                             if results.has_key('encryptionState'):
-                                self._servers[network]['data']['result']['encryptionSet'] = results['encryptionSet']
+                                self._messgaeBridges[network]['data']['result']['encryptionSet'] = results['encryptionSet']
                             if results.has_key('deviceStore'):
-                                self._servers[network]['data']['result']['deviceStore'] = results['deviceStore']
+                                self._messgaeBridges[network]['data']['result']['deviceStore'] = results['deviceStore']
         else:
             # new entry store the whole packet
-            self._servers[jsonin['network']] = jsonin
-        self.fServerUpdate.set()
+            self._messgaeBridges[jsonin['network']] = jsonin
+        self.fMessgaeBridgeUpdate.set()
 
 
     def _processNoReply(self):
@@ -1744,7 +1742,7 @@ class ConfigurationWizard:
         # ask user to press pair button and try again?
         
         if tkMessageBox.askyesno("Communications Timeout",
-                                 ("No replay from the Server, \n"
+                                 ("No replay from the Message Bridge, \n"
                                   "To try again \n"
                                   "click yes"
                                   )
@@ -1753,26 +1751,23 @@ class ConfigurationWizard:
             self._starttime = time()
             self._replyCheck()
         else:
-            # TODO: we need to cancel the LCR with the core
-            # TODO: UDP JSON has no cancel but it will time out
-            #            self._lcm.cancelLCR()
             if self._currentFrame == "pressFrame":
                 self._startOver
             
-    def _sendRequest(self, lcr):
-        self.logger.debug("Sending Request to LCMC")
+    def _sendRequest(self, dcr):
+        self.logger.debug("Sending Request to Message Bridge")
         self._displayProgress()
         self._starttime = time()
         self.fWaitingForReply.set()
-        self.qUDPSend.put(json.dumps(lcr))
+        self.qUDPSend.put(json.dumps(dcr))
         self._replyCheck()
     
     def _replyCheck(self):
         # look for a reply
         # TODO: wait on UDP reply (how long)
         if self.fWaitingForReply.is_set():
-            if self.qLCRReply.empty():
-                if time()-self._starttime > int(self._lastLCR[-1]['data']['timeout'])+10:
+            if self.qDCRReply.empty():
+                if time()-self._starttime > int(self._lastDCR[-1]['data']['timeout'])+10:
                     # if timeout passed, let user know no reply
                     # close wait diag
                     if self._currentFrame != "pressFrame":
@@ -1786,9 +1781,9 @@ class ConfigurationWizard:
                     # update wait diag and check again
                     self.master.after(500, self._replyCheck)
             else:
-                json = self.qLCRReply.get()
+                json = self.qDCRReply.get()
                 # check reply ID with Expected ID
-                if json['data']['id'] != self._lastLCR[-1]['data']['id']:
+                if json['data']['id'] != self._lastDCR[-1]['data']['id']:
                     # added this to cope with receiving multiple replies
                     # e.g. if there are multiple network interfaces active
                     self.master.after(500, self._replyCheck)
@@ -1803,7 +1798,7 @@ class ConfigurationWizard:
                         if self._currentFrame is not "pressFrame" and self._currentFrame is not "introFrame":
                             self.master.children[self._currentFrame].children['next'].config(state=tk.ACTIVE)
                     self._processReply(json)
-                self.qLCRReply.task_done()
+                self.qDCRReply.task_done()
     
     def _buildGrid(self, frame, quit=False, halfSize=False):
         self.logger.debug("Building Grid for {}".format(frame.winfo_name()))
@@ -1878,8 +1873,6 @@ class ConfigurationWizard:
         self._stopKeepAwake()
     
         # cancel anything outstanding
-        # TODO: we have no cancel, we have time outs
-        # self._lcm.cancelLCR()
         # disconnect resources
         # TODO: close sockets
         # self._lcm.disconnect_transport()
@@ -1901,7 +1894,7 @@ class ConfigurationWizard:
             self._keepAwake = 0
             query = [{'command': "CONFIGEND"}]
             self._configState = 4
-            lcr = {"type": "LCR",
+            dcr = {"type": "DeviceConfigurationRequest",
                     "network":self.device['network'],
                     "data":{
                         "id": str(uuid.uuid4()),
@@ -1911,10 +1904,10 @@ class ConfigurationWizard:
                         "toQuery": query
                         }
                     }
-            self.logger.debug("Sending ConfigEnd LCR")
+            self.logger.debug("Sending ConfigEnd DeviceConfigurationRequest")
             self._starttime = time()
-            self.qUDPSend.put(json.dumps(lcr))
-            while self.qLCRReply.empty() and time()-self._starttime < 5:
+            self.qUDPSend.put(json.dumps(dcr))
+            while self.qDCRReply.empty() and time()-self._starttime < 5:
                 sleep(0.1)
 
     def _checkArgs(self):
@@ -1962,8 +1955,8 @@ class ConfigurationWizard:
             f.closed
             
             # TODO: Check/catch json errors
-            self._llapGenericCommands = json.loads(read_data)['Generic Commands']
-            self._llapCyclicCommands = json.loads(read_data)['Cyclic Commands']
+            self._genericCommands = json.loads(read_data)['Generic Commands']
+            self._cyclicCommands = json.loads(read_data)['Cyclic Commands']
             self._readingPeriods = json.loads(read_data)['Reading Periods']
             self.devices = json.loads(read_data)['Devices']
     
