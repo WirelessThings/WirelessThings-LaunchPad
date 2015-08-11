@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-""" LLAPServer
+""" Wireless Things Message Bridge
     Copyright (c) 2014 Ciseco Ltd.
     
     Requires pySerial
@@ -86,25 +86,25 @@ else:
    
 """
 
-class LLAPServer():
+class MessageBridge():
     """Core logic and master thread control
         
-    LLAPServer looks after the following threads
+    MessageBridge looks after the following threads
     Serial
     LCR
     UDP Send
     UDP Listen
     
-    It starts by loading the LLAPServerConfig.cfg file
+    It starts by loading the MessageBridge.cfg file
     Setting up debug out put and logging
     Then starts the threads for the various transport layers
     
     
     """
 
-    _configFile = "./LLAPServer.cfg"
+    _configFile = "./MessageBridge.cfg"
     _pidFile = None
-    _pidFilePath = "./LLAPServer.pid"
+    _pidFilePath = "./MessageBridge.pid"
     _pidFileTimeout = 5
     _background = False
     
@@ -135,7 +135,7 @@ class LLAPServer():
 start = Starts as a background daemon/service
 stop = Stops a daemon/service if running
 restart = Restarts the daemon/service
-status = Check if a LLAP transfer serveice is running
+status = Check if a Message Bridge is running
 If none of the above are given and no daemon/service
 is running then run in the current terminal
 """
@@ -162,7 +162,7 @@ is running then run in the current terminal
         
         # setup initial Logging
         logging.getLogger().setLevel(logging.NOTSET)
-        self.logger = logging.getLogger('LLAPServer')
+        self.logger = logging.getLogger('Message Bridge')
         self._ch = logging.StreamHandler()
         self._ch.setLevel(logging.WARN)    # this should be WARN by default
         self._formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -201,19 +201,19 @@ is running then run in the current terminal
     def _checkArgs(self):
         """Parse the command line options
         """
-        parser = argparse.ArgumentParser(description='LLAP Server', formatter_class=argparse.RawTextHelpFormatter)
+        parser = argparse.ArgumentParser(description='Message Bridge', formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('action', nargs = '?', choices=('start', 'stop', 'restart', 'status'), help =self._ActionHelp)
         #parser.add_argument('-u', '--noupdate',
         #                    help='disable checking for update',
         #                    action='store_false')
         parser.add_argument('-d', '--debug',
-                            help='Enable debug output to console, overrides LLAPServer.cfg setting',
+                            help='Enable debug output to console, overrides MessageBridge.cfg setting',
                             action='store_true')
         parser.add_argument('-l', '--log',
                             help='Override the console debug logging level, DEBUG, INFO, WARNING, ERROR, CRITICAL'
                             )
         parser.add_argument('-p', '--port',
-                            help='Override the serial port given in LLAPServer.cfg'
+                            help='Override the serial port given in MessageBridge.cfg'
                             )
                             
         self.args = parser.parse_args()
@@ -1267,5 +1267,5 @@ is running then run in the current terminal
 
 # run code
 if __name__ == "__main__" :
-    app = LLAPServer()
+    app = MessageBridge()
     app.start()

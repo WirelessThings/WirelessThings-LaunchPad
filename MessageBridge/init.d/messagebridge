@@ -4,40 +4,40 @@
 #
 # Author: Matt Lloyd
 #
-# /etc/init.d/llapserver
+# /etc/init.d/messagebridge
 #
 ### BEGIN INIT INFO
-# Provides: llapserver
+# Provides: messagebridge
 # Required-Start: $remotefs $syslog
 # Required-Stop: $remotefs $syslog
 # Default-Start:  2 3 4 5
 # Default-Stop:   0 1 6
-# Short-Description: LLAP Translator service
-# Description:    LLAP Translator service to pass LLAP trafic between serial and UDP intrefaces
+# Short-Description: Wireless Things Message Bridge
+# Description:    Wireless Things Message Bridge to pass Language of Things trafic between serial and UDP interfaces
 ### END INIT INFO
 
 ###
 # This line will be auto updated with the path to your current install path
-# by LLAPLauncher on clicking the Enable Autostart button
-cd /home/pi/LLAPServer
+# by Wireless Things Launchpad on clicking the Enable Autostart button
+cd /home/pi/MessageBridge
 ###
 
 case "$1" in
   start)
-    echo "Starting translator"
-    python ./LLAPServer.py start
+    echo "Starting Message Bridge"
+    python ./MessageBridge.py start
     ;;
   stop)
-    echo "Stopping translator"
-    python ./LLAPServer.py stop
+    echo "Stopping Message Bridge"
+    python ./MessageBridge.py stop
     ;;
   restart)
-    echo "Restarting translator"
-    python ./LLAPServer.py restart
+    echo "Restarting Message Bridge"
+    python ./MessageBridge.py restart
     ;;
   *)
-    # Igonre everything else
-    echo "Usage: /etc/init.d/llapserver {start|stop|restart}"
+    # Ignore everything else
+    echo "Usage: /etc/init.d/messagebridge {start|stop|restart}"
     exit 1
     ;;
 esac
