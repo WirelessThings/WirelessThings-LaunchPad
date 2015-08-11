@@ -25,11 +25,10 @@ ehthumbs.db
 Thumbs.db
 
 
-LLAPCM.cfg
+ConfigurationWizard.cfg
 Download/
-launcher.cfg
+Launchpad.cfg
 Dump
 py2exe/build
-py2exe/LLAPPlus
 py2exe/*.zip
 *.local.*
