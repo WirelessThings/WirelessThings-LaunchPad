@@ -2,32 +2,23 @@
     "Apps": [
         {
             "id" : 0,
-            "Name" : "Transfer service",
-            "FileName" : "LLAPServer.py",
-            "CWD" : "../LLAPServer/",
+            "Name" : "Message Bridge",
+            "FileName" : "MessageBridge.py",
+            "CWD" : "../MessageBridge/",
              "Service": 1,
              "Autostart": 1,
-             "InitScript": "llapserver",
+             "InitScript": "messagebridge",
             "Args" : "",
-             "Description" : "LLAP+ Transfer Service\r\r"
+             "Description" : "Wireless Things Message Bridge\r\r"
         },
          {
              "id" : 1,
-             "Name" : "Configuration wizard",
-             "FileName" : "LLAPConfigMe.py",
-             "CWD" : "../LLAPConfigMeUI/",
+             "Name" : "Configuration Wizard",
+             "FileName" : "ConfigurationWizard.py",
+             "CWD" : "../ConfigurationWizard/",
              "Service": 0,
              "Args" : "",
-             "Description" : "LLAP+ Device Configuration UI\r\r"
-             },
-             {
-             "id" : 2,
-             "Name" : "Test serice",
-             "FileName" : "LLAPConfigMe.py",
-             "CWD" : "../LLAPConfigMeUI/",
-             "Service": 1,
-             "Args" : "",
-             "Description" : "LLAP+ Device Configuration UI\r\r"
+             "Description" : "Wireless Things Device Configuration Wizard\r\r"
              }
 
     ],
