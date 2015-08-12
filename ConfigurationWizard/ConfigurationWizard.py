@@ -569,7 +569,7 @@ class ConfigurationWizard:
         r = 0
         # device name and rssi (topbar)
         tk.Label(self.sframe,
-                 text="{}".format(self.devices[self.device['id']]['Name'])
+                 text="{}".format(self.devices[self.device['index']]['Name'])
                  ).grid(row=r, column=0, columnspan=6)
         tk.Label(self.sframe,
                  text="RSSI: -{}".format(self.entry['RSSI'][0].get()),
@@ -595,7 +595,7 @@ class ConfigurationWizard:
         # description
         r += 1
         tk.Label(self.sframe,
-                 text="{}".format(self.devices[self.device['id']]['Description']),
+                 text="{}".format(self.devices[self.device['index']]['Description']),
                  wraplength=self._widthMain/6*4,
                  ).grid(row=r, column=1, columnspan=4, rowspan=3)
         r += 1
@@ -632,7 +632,7 @@ class ConfigurationWizard:
         r += 2 # start row for next set of options
 
         # if supports message
-        for option in self.devices[self.device['id']]['Options']:
+        for option in self.devices[self.device['index']]['Options']:
             if option['Command'] == "MSG":
                 # display message filed
                 tk.Label(self.sframe, text="Message text:"
@@ -653,7 +653,7 @@ class ConfigurationWizard:
                 r +=2
 
         # if cyclic device show slider
-        if self.devices[self.device['id']]['SleepMode'] == "Cyclic":
+        if self.devices[self.device['index']]['SleepMode'] == "Cyclic":
             self._updateScaleAndDescriptionFromPeriod(self.entry['INTVL'][0].get(), not fromConfig)
             tk.Label(self.sframe, text="Reading Interval:"
                      ).grid(row=r, column=1, sticky=tk.E)
@@ -698,7 +698,7 @@ class ConfigurationWizard:
             self._readingScale[1].set("{}".format(self._parseIntervalToString(self.entry['INTVL'][0].get())))
             self._readingScale[2].set("{}.\r {}".format(
                                         self._readingPeriods[self._readingScale[0].get()]['Description'],
-                                        self._estimateLifeTimeForPeriod(self.entry['INTVL'][0].get(), self.device['id'])
+                                        self._estimateLifeTimeForPeriod(self.entry['INTVL'][0].get(), self.device['index'])
                                                                               )
                                       )
         except:
@@ -709,7 +709,7 @@ class ConfigurationWizard:
         for (index,period) in enumerate(self._readingPeriods):
             if intval == "000S":
                 # period no set use default from json
-                self._readingScale[0].set(self.devices[self.device['id']]['ReadingPeriod'])
+                self._readingScale[0].set(self.devices[self.device['index']]['ReadingPeriod'])
                 self._readingScale[1].set(self._readingPeriods[self._readingScale[0].get()]['Description'])
                 self._readingScale[2].set("{}.\r {}".format(
                                             self._readingPeriods[self._readingScale[0].get()]['Description'],
@@ -723,7 +723,7 @@ class ConfigurationWizard:
                 self._readingScale[1].set("{}".format(self._parseIntervalToString(self.entry['INTVL'][0].get())))
                 self._readingScale[2].set("{}.\r {}".format(
                                             self._readingPeriods[self._readingScale[0].get()]['Description'],
-                                            self._estimateLifeTimeForPeriod(self.entry['INTVL'][0].get(), self.device['id'])
+                                            self._estimateLifeTimeForPeriod(self.entry['INTVL'][0].get(), self.device['index'])
                                                                                   )
                                           )
                 if setCycle:
@@ -734,7 +734,7 @@ class ConfigurationWizard:
         self._readingScale[1].set("Custom Period {}".format(self._parseIntervalToString(self.entry['INTVL'][0].get())))
         self._readingScale[2].set("You have chosen a custom period of {}.\r {}".format(
                                     self._parseIntervalToString(self.entry['INTVL'][0].get()),
-                                    self._estimateLifeTimeForPeriod(self.entry['INTVL'][0].get(), self.device['id'])
+                                    self._estimateLifeTimeForPeriod(self.entry['INTVL'][0].get(), self.device['index'])
                                                                                                              )
                                  )
 
@@ -774,7 +774,7 @@ class ConfigurationWizard:
         infoFormat = None
 
         if subject == "Description":
-            infoText = self.devices[self.device['id']]['Description']
+            infoText = self.devices[self.device['index']]['Description']
         elif subject == "Interval":
             infoText = INTERVALTEXT
         elif subject == "MissMatch":
@@ -837,7 +837,7 @@ class ConfigurationWizard:
 
         # device name and rssi (topbar)
         tk.Label(self.dframe,
-                 text="{}".format(self.devices[self.device['id']]['Name'])
+                 text="{}".format(self.devices[self.device['index']]['Name'])
                  ).grid(row=0, column=0, columnspan=6)
         tk.Label(self.dframe,
                  text="RSSI: -{}".format(self.entry['RSSI'][0].get()),
@@ -924,7 +924,7 @@ class ConfigurationWizard:
 
         # device name and rssi (topbar)
         tk.Label(self.cframe,
-                 text="{}".format(self.devices[self.device['id']]['Name'])
+                 text="{}".format(self.devices[self.device['index']]['Name'])
                  ).grid(row=0, column=0, columnspan=6)
         tk.Label(self.cframe,
                  text="RSSI: -{}".format(self.entry['RSSI'][0].get()),
@@ -1021,7 +1021,7 @@ class ConfigurationWizard:
                       command=lambda: self._displayMoreInfo("CYCLE"),
                       image=self._infoIcon,
                       ).grid(row=16, column=2, sticky=tk.E)
-        elif self.devices[self.device['id']]['SleepMode'] == "Interrupt":
+        elif self.devices[self.device['index']]['SleepMode'] == "Interrupt":
             # Interrupt sleep devices
             tk.Label(self.cframe, text="Interrupt Sleep"
                      ).grid(row=10, column=0, columnspan=3)
@@ -1438,12 +1438,12 @@ class ConfigurationWizard:
                          }
                          )
         elif value[2] == 'SleepMode':
-            if self.devices[self.device['id']]['SleepMode'] == "Cyclic":
+            if self.devices[self.device['index']]['SleepMode'] == "Cyclic":
                 query.append({'command': "SLEEPM",
                              'value': ("16" if self.entry['SLEEPM'][0].get() else "0")
                              }
                              )
-            elif self.devices[self.device['id']]['SleepMode'] == "Interrupt":
+            elif self.devices[self.device['index']]['SleepMode'] == "Interrupt":
                 query.append({'command': "SLEEPM",
                              'value': ("8" if self.entry['SLEEPM'][0].get() else "0")
                              }
@@ -1543,7 +1543,7 @@ class ConfigurationWizard:
                         if self.devices[n]['DTY'] == reply['replies']['DTY']['reply']:
                             # we have a match
                             self.logger.debug("Matched device")
-                            self.device = {'id': n,
+                            self.device = {'index': n,
                                            'DTY': self.devices[n]['DTY'],   # copy form JSON not reply
                                            'devID': reply['replies']['CHDEVID']['reply'],
                                            'newDevice': False,
