@@ -1,13 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """ Wireless Things Configuration Wizard
-    Copyright (c) 2014 Ciseco Ltd.
 
     Author: Matt Lloyd
+    Copyright 2015 Ciseco Ltd.
 
-    This code is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
 
 """
 
@@ -112,7 +120,7 @@ class ConfigurationWizard:
         Handles display of wizard interface for configuring devices
     """
 
-    _version = 0.12
+    _version = 0.13
 
     _configFileDefault = "ConfigurationWizard_defaults.cfg"
     _configFile = "ConfigurationWizard.cfg"
