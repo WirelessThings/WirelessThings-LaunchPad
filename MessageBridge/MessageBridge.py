@@ -647,17 +647,17 @@ is running then run in the current terminal
             while not self.qDCRSerial.empty():
                 self.logger.debug("tDCR: Something in qDCRSerial")
                 try:
-                    llapReply = self.qDCRSerial.get_nowait()
+                    wirelessReply = self.qDCRSerial.get_nowait()
                 except Queue.Empty:
                     self.logger.debug("tDCR: Failed to get item from qDCRSerial")
                 else:
-                    self.logger.debug("tDCR: Got {} to process".format(llapReply))
+                    self.logger.debug("tDCR: Got {} to process".format(wirelessReply))
                     if self._currentDCR:
                         # we are working on a request check and store the reply
                         for q in self._currentDCR['data']['toQuery']:
-                            if llapReply.strip('-').startswith(q['command']):
+                            if wirelessReply.strip('-').startswith(q['command']):
                                 self._currentDCR['data']['replies'][q['command']] = {'value': q.get('value', ""),
-                                                                                'reply': llapReply[len(q['command']):].strip('-')
+                                                                                'reply': wirelessReply[len(q['command']):].strip('-')
                                                                                 }
                                 self.logger.debug("tDCR: Stored reply '{}':{}".format(q['command'], self._currentDCR['data']['replies'][q['command']]))
                         # and reset the timeout
@@ -717,7 +717,7 @@ is running then run in the current terminal
         try:
             self.qUDPSend.put_nowait(jsonout)
         except Queue.Full:
-            self.logger.warn("tDCR: Failed to put {} on qUDPSend as it's full".format(llapMsg))
+            self.logger.warn("tDCR: Failed to put {} on qUDPSend as it's full".format(wirelessMsg))
         else:
             self.logger.debug("tDCR: Sent DCR reply to qUDPSend")
             # and clear DCR and SentAll flag
@@ -802,14 +802,14 @@ is running then run in the current terminal
                     if not self.qSerialOut.empty():
                         self.logger.debug("tSerial: got something to send")
                         try:
-                            llapMsg = self.qSerialOut.get_nowait()
-                            self._serial.write(llapMsg)
+                            wirelessMsg = self.qSerialOut.get_nowait()
+                            self._serial.write(wirelessMsg)
                         except Queue.Empty:
                             self.logger.debug("tSerial: failed to get item from queue")
                         except Serial.SerialException, e:
                             self.logger.warn("tSerial: failed to write to the serial port {}: {}".format(self._serial.port, e))
                         else:
-                             self.logger.debug("tSerial: TX:{}".format(llapMsg))
+                             self.logger.debug("tSerial: TX:{}".format(wirelessMsg))
                              self.qSerialOut.task_done()
                 
                     # sleep for a little
@@ -855,7 +855,7 @@ is running then run in the current terminal
         if char == 'a':
             # this should be the start of a Language of Things message
             # read 11 more or time out
-            llapMsg = "a"
+            wirelessMsg = "a"
             count = 0
             while count < 11:
                 char = self._serial.read()
@@ -866,33 +866,33 @@ is running then run in the current terminal
                 if char == 'a':
                     # start again and
                     count = 0
-                    llapMsg = "a"
+                    wirelessMsg = "a"
                     self.logger.debug("tSerial: RX:{}".format(char))
                 elif (count == 0 or count == 1) and char in self._validID:
                     # we have a vlaid ID
-                    llapMsg += char
+                    wirelessMsg += char
                     count += 1
                 elif count >= 2 and char in self._validData:
                     # we have a valid data
-                    llapMsg += char
+                    wirelessMsg += char
                     count +=1
                 else:
-                    self.logger.debug("tSerial: RX:{}".format(llapMsg[1:] + char))
+                    self.logger.debug("tSerial: RX:{}".format(wirelessMsg[1:] + char))
                     return
     
-            self.logger.debug("tSerial: RX:{}".format(llapMsg[1:]))
+            self.logger.debug("tSerial: RX:{}".format(wirelessMsg[1:]))
             
-            if len(llapMsg) == 12:  # just double check length
-                if llapMsg[1:3] == "??":
-                    self._SerialProcessQQ(llapMsg[3:].strip("-"))
+            if len(wirelessMsg) == 12:  # just double check length
+                if wirelessMsg[1:3] == "??":
+                    self._SerialProcessQQ(wirelessMsg[3:].strip("-"))
                 else:
                     # not a configme Language of Things message so send out via UDP WirelessMessage
                     try:
-                        self.qUDPSend.put_nowait(self.encodeWirelessMessageJson(llapMsg, self.config.get('Serial', 'network')))
+                        self.qUDPSend.put_nowait(self.encodeWirelessMessageJson(wirelessMsg, self.config.get('Serial', 'network')))
                     except Queue.Full:
-                        self.logger.warn("tSerial: Failed to put {} on qUDPSend as it's full".format(llapMsg))
+                        self.logger.warn("tSerial: Failed to put {} on qUDPSend as it's full".format(wirelessMsg))
 
-    def _SerialProcessQQ(self, llapMsg):
+    def _SerialProcessQQ(self, wirelessMsg):
         """ process an incoming ?? Language of Things message
         """
         # has the timeout expired
@@ -901,8 +901,8 @@ is running then run in the current terminal
                 # was it a reply to our DTY test
                 if self.devType and (not self._SerialDTYSync):
                     # we should have a reply to DTY
-                    if llapMsg.startswith("DTY"):
-                        if llapMsg[3:] == self.devType:
+                    if wirelessMsg.startswith("DTY"):
+                        if wirelessMsg[3:] == self.devType:
                             self._SerialDTYSync = True
                             self.logger.debug("tSerial: Confirmed DTY, Send next toQuery, State: {}".format(self._SerialToQueryState))
                             if not self._SerialSendDCRQuery():
@@ -914,11 +914,11 @@ is running then run in the current terminal
                             return
         
                 # check reply was to the last question
-                if llapMsg.startswith(self._SerialToQuery[self._SerialToQueryState-1]['command']) or (self._encryptionCommandMatch.match(self._SerialToQuery[self._SerialToQueryState-1]['command']) and llapMsg == "ENACK"):
+                if wirelessMsg.startswith(self._SerialToQuery[self._SerialToQueryState-1]['command']) or (self._encryptionCommandMatch.match(self._SerialToQuery[self._SerialToQueryState-1]['command']) and wirelessMsg == "ENACK"):
                     
                     # special case for encryption
                     if self._encryptionCommandMatch.match(self._SerialToQuery[self._SerialToQueryState-1]['command']):
-                        llapMsg = self._SerialToQuery[self._SerialToQueryState-1]['command'] + llapMsg
+                        wirelessMsg = self._SerialToQuery[self._SerialToQueryState-1]['command'] + wirelessMsg
                     
                     # reduce the state count and reset retry count
                     self._SerialToQueryState -= 1
@@ -926,9 +926,9 @@ is running then run in the current terminal
 
                     # store the reply
                     try:
-                        self.qDCRSerial.put_nowait(llapMsg)
+                        self.qDCRSerial.put_nowait(wirelessMsg)
                     except Queue.Full:
-                        self.logger.warn("tSerial: Failed to put {} on qDCRSerial as it's full".format(llapMsg))
+                        self.logger.warn("tSerial: Failed to put {} on qDCRSerial as it's full".format(wirelessMsg))
                     
                     # if we have replies for all state == 0:
                     if self._SerialToQueryState == 0:
@@ -943,7 +943,7 @@ is running then run in the current terminal
                             # failed to send question (serial error)
                             pass
                 # else if was not our answer so send it again
-                elif llapMsg == "CONFIGME":
+                elif wirelessMsg == "CONFIGME":
                     if self.devType:
                         # out of sync should we recheck DTY?
                         self._SerialDTYSync = False
@@ -961,7 +961,7 @@ is running then run in the current terminal
                                 self._SerialToQueryState = 0
                                 return
         
-            elif llapMsg == "CONFIGME":
+            elif wirelessMsg == "CONFIGME":
                 # do we have a waiting query and can we send one
                 try:
                     self._SerialToQuery = self.qSerialToQuery.get_nowait()
@@ -992,7 +992,7 @@ is running then run in the current terminal
         
             
         # only thing left now would be a CONFIGME so do we need to send a keepAwake
-        if llapMsg == "CONFIGME" and self.fKeepAwake.is_set():
+        if wirelessMsg == "CONFIGME" and self.fKeepAwake.is_set():
             try:
                 self._serial.write("a??HELLO----")
             except Serial.SerialException, e:
@@ -1006,18 +1006,18 @@ is running then run in the current terminal
         """
         # check retry count before sending
         if self._SerialRetryCount < int(self.config.get('DCR', 'single_query_retry_count')):
-            llapToSend = "a??{}{}".format(self._SerialToQuery[self._SerialToQueryState-1]['command'],
+            wirelessToSend = "a??{}{}".format(self._SerialToQuery[self._SerialToQueryState-1]['command'],
                                            self._SerialToQuery[self._SerialToQueryState-1].get('value', "")
                                            )
-            while len(llapToSend) < 12:
-                llapToSend += "-"
+            while len(wirelessToSend) < 12:
+                wirelessToSend += "-"
             try:
-                self._serial.write(llapToSend)
+                self._serial.write(wirelessToSend)
             except Serial.SerialException, e:
                 self.logger.warn("tSerial: failed to write to the serial port {}: {}".format(self._serial.port, e))
                 return False
             else:
-                self.logger.debug("tSerial: TX:{}".format(llapToSend))
+                self.logger.debug("tSerial: TX:{}".format(wirelessToSend))
                 self._SerialRetryCount += 1
                 return True
         self.logger.debug("tSerial: toQuery failed on retry count, letting tDCR know")
@@ -1082,16 +1082,16 @@ is running then run in the current terminal
                         # put them on the TX queue
                         # TODO: error checking, dict should have keys for data
                         for command in jsonin['data']:
-                            llapMsg = "a{}{}".format(jsonin['id'], command[0:9].upper())
-                            while len(llapMsg) <12:
-                                llapMsg += '-'
+                            wirelessMsg = "a{}{}".format(jsonin['id'], command[0:9].upper())
+                            while len(wirelessMsg) <12:
+                                wirelessMsg += '-'
                             
                             try:
-                                self.qSerialOut.put_nowait(llapMsg)
+                                self.qSerialOut.put_nowait(wirelessMsg)
                             except Queue.Full:
-                                self.logger.debug("tUDPListen: Failed to put {} on qDCRSerial as it's full".format(llapMsg))
+                                self.logger.debug("tUDPListen: Failed to put {} on qDCRSerial as it's full".format(wirelessMsg))
                             else:
-                                self.logger.debug("tUDPListen Put {} on qSerialOut".format(llapMsg))
+                                self.logger.debug("tUDPListen Put {} on qSerialOut".format(wirelessMsg))
 
                     elif jsonin['type'] == "DeviceConfigurationRequest" and self.config.getboolean('DCR', 'dcr_enable'):
                         # we have a DeviceConfigurationRequest pass in onto the DCR thread
