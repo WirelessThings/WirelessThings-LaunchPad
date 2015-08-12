@@ -89,7 +89,7 @@ Please wait while we try to reach a Wireless Things Message Bridge"""
 
 INTRO1 = """Welcome to Wireless Things Device Configuration Wizard
 
-One or more Wireless Things Message Bridge have been found running on this network.
+One or more Wireless Things Message Bridges have been found running on this network.
 
 Please select a Message Bridge to use from the list bellow"""
 
