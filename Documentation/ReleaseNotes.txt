@@ -1,4 +1,8 @@
-LLAPFiles from Ciseco
+WirelessThings LaunchPad from Ciseco
+
+0.13:
+    Licensed under the Apache License, Version 2.0
+    Big rename
 
 0.12:
     UDPUI, Server, JSON: Change case on Server.state
