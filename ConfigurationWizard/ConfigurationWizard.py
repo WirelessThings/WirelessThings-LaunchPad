@@ -149,6 +149,16 @@ class ConfigurationWizard:
     _validID = "ABCDEFGHIJKLMNOPQRSTUVWXYZ-#@?\\*"
     _validData = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !\"#$%&'()*+,-.:;<=>?@[\\\/]^_`{|}~"
     _periodUnits = {"T":"Milli seconds", "S":"Seconds", "M":"Minutes", "H":"Hours", "D":"Days"}
+    
+    device = {
+              'index': "",
+              'DTY': "",
+              'devID': "",
+              'newDevice': "",
+              'setENC': False,
+              'settingsMissMatch': False,
+              'network': ""
+              }
 
     def __init__(self):
         """
