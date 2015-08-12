@@ -1,7 +1,7 @@
-#MessageBridge.py
+# MessageBridge.py
 Wireless Things Message Bridge for Language of Things message between Serial and UDP networks
 
-##Description
+## Description
 MessageBridge.py provides a Message Bridge for Language of Things message between Serial and UDP networks
 On the serial side it talks strick Language of Things On the UDP network it encodes/decodes the Language of Things messages using a JSON packet.
 < Need more of an explanation here>
@@ -13,7 +13,7 @@ The Message Bridge can be run on any system with the following requirements
 * pySerial
 * Wireless Things radio with firmware version of at least Serial V0.88 or USB V0.53
 
-##Invoking
+## Invoking
 Starting the Message Bridge can be done though several means as detailed below
 Using a command line or shell form with in the MessageBridge directory
 
@@ -23,16 +23,16 @@ or
 
     $ ./MessageBridge.py
 
-The Message Bridge can be started from the Wireless Things Launchpad
+The Message Bridge can be started from the Wireless Things LaunchPad
 Select **01. Message Bridge** from the List of app's and click the Start button
 
 Double click, your OS may have a run action associated with python script files and double clicking will launch the Message Bridge. Some systems will just open the script in a text editor, if so use one of the methods above.
 
-##Running in the console (foreground)
+## Running in the console (foreground)
 If MessageBridge.py is run from the command line without any options it will run in the foreground, if console debug output is enable you will see this in your terminal, if you close the terminal session then the Message Bridge will be stopped.
 To stop the service running use Ctrl-C after a short while the service will exit
 
-##Running as a Daemon or Service (background)
+## Running as a Daemon or Service (background)
 Currently this is not yet supported on Windows.  
 It is posible to have the Message Bridge run as a background process. Control of background mode is done with the command line options start, stop, restart and status.  
 To check is a Message Bridge is running on the local machine you can use the status option  
@@ -46,9 +46,9 @@ Start, Stop and Restart can all be used to control the service like so
     $ ./MessageBridge.py start
 
 
-It is also posible to control the Message Bridge using the Wireless Things Launchpad which has buttons for Start, Stop and Restart
+It is also posible to control the Message Bridge using the Wireless Things LaunchPad which has buttons for Start, Stop and Restart
 
-##Install as Daemon or Service for start on boot
+## Install as Daemon or Service for start on boot
 Currently this is not yet supported on Windows or OSX.  
 It is posible to have the Message Bridge start automatically on boot.  
 For Linux we provide a init.d script that can be found in the ./init.d/ folder. From the MessageBridge folder you can use the following commands to install the script.
@@ -59,9 +59,9 @@ For Linux we provide a init.d script that can be found in the ./init.d/ folder. 
 
 At next reboot the Message Bridge will now start automatically
 
-It is also posible to use the Wireless Things Launchpad to install and remove this script using the Enable/Disable AutoStart button.
+It is also posible to use the Wireless Things LaunchPad to install and remove this script using the Enable/Disable AutoStart button.
 
-##Command line options
+## Command line options
 * -h --help  
 Display help message
 
@@ -82,7 +82,7 @@ DEBUG, INFO, WARNING, ERROR, CRITICAL
     If none of the above are given and no daemon/service  
     is running then run in the current terminal
 
-##Configuration file
+## Configuration file
 Message Bridge keeps its configuration settings in a file called MessageBridge.cfg. This can be edited with a text editor of your choice.  
 The file is split into the following sections. Complete details of the option in each section can be found in the config file.  
 * Debug  
