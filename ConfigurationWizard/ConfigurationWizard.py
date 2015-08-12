@@ -1550,6 +1550,7 @@ class ConfigurationWizard:
                 if float(reply['replies']['APVER']['reply']) >= 2.0:
                     # valid apver
                     # so check what replied
+                    matched = False
                     for n in range(len(self.devices)):
                         if self.devices[n]['DTY'] == reply['replies']['DTY']['reply']:
                             # we have a match
@@ -1562,7 +1563,18 @@ class ConfigurationWizard:
                                            'settingsMissMatch': False,
                                            'network': json['network']
                                           }
+                            matched = True
                             self._askCurrentConfig()
+                    if not matched:
+                        self.logger.debug("Failed to find DTY in Devices JSON")
+                        # TODO: let the user know we couldn't match the device type
+                        tkMessageBox.showerror("Unknown device",
+                                     ("The device is of an unknown type\n"
+                                      "")
+                                     )
+                        if self._currentFrame == "pressFrame":
+                            self._startOver()
+
                 else:
                     # apver mismatch, show error screen
                     pass
