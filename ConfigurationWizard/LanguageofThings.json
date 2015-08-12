@@ -1,6 +1,6 @@
 {
-    "Version":150602
-    "PortocolVersion":2.0,
+    "Version":150602,
+    "ProtocolVersions":[2.0,2.1],
     "ActionsType":[
                    {
                    "Name":"Polled",
@@ -116,153 +116,191 @@
     "Generic Commands":[
                         {
                         "Command":"ACK",
+                        "ProtocolFrom":1.0,
                         "Description":"Sent as a general acknowledgment of an incoming announcement message."
                         },
                         {
                         "Command":"APVER",
+                        "ProtocolFrom":1.0,
                         "Format":"Float",
                         "Description":"Request a devices LLAP protocol version \nResponse from the device is aXXAPVER9.99 where 9.99 is the version number. The current versions at present are 1.0 and 2.0"
                         },
                         {
                         "Command":"DEVTYPE",
+                        "ProtocolFrom":1.0,
                         "Format":"String",
                         "Description":"Request the device type (LLAP 1.0 format)\n Response is a nine character device type e.g. aXXU00000001 Device types beginning with U are reserved for users to assign to their own prototype devices. All other device types will be kept on a register by CISECO Plc., that can be used to update hubs on a regular basis. In APVER 1.1 this will change to a eight character field e.g. aXXU0000001-"
                         },
                         {
                         "Command":"DTY",
+                        "ProtocolFrom":2.0,
                         "Format":"String",
                         "Description":"Request the device type (LLAP 2.0 format)\n Response is a six character device type e.g. aXXDTYTHERM2"
                         },
                         {
                         "Command":"DEVNAME",
+                        "ProtocolFrom":1.0,
                         "Format":"String",
                         "Description":"Request the manufacturer device name \nResponse is a nine character “friendly” name."
                         },
                         {
                         "Command":"DNM",
+                        "ProtocolFrom":2.0,
                         "Format":"String",
                         "Description":"Request the manufacturer device name (LLAP 2.0 format)\n "
                         },
                         {
                         "Command":"DMI",
+                        "ProtocolFrom":2.0,
                         "Format":"String",
                         "Description":"Request the device manufacturer ID (LLAP 2.0 format)\n aXXDMI000001 <> CISECO"
                         },
                         {
+                        "Command":"DVI",
+                        "ProtocolFrom":2.1,
+                        "Format":"Stting",
+                        "Description":"Request the device variant information."
+                        },
+                        {
                         "Command":"HELLO",
+                        "ProtocolFrom":1.0,
                         "Description":"Request the device to acknowledge it’s there."
                         },
                         {
                         "Command":"SER",
+                        "ProtocolFrom":1.0,
                         "Format":"String",
                         "Description":"Request the manufacturer serial number (LLAP 1.0) \n Also used to set serial number, can only be done once after sending $ER command"
                         },
                         {
                         "Command":"SNH",
+                        "ProtocolFrom":2.0,
                         "Format":"ReadOnlyHex",
                         "Description":"Request the manufacturer serial number HIGH Bytes (LLAP 2.0)"
                         },
                         {
                         "Command":"SNL",
+                        "ProtocolFrom":2.0,
                         "Format":"ReadOnlyHex",
                         "Description":"Request the manufacturer serial number LOW Bytes (LLAP 2.0)"
                         },
                         {
                         "Command":"ENC",
+                        "ProtocolFrom":2.0,
                         "Format":"ONOFF",
                         "Description":"Turn Encryption On or OFF"
                         },
                         {
                         "Command":"EN1",
+                        "ProtocolFrom":2.0,
                         "Format":"ENKey",
                         "Description":"Set 1st set of three bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"EN2",
+                        "ProtocolFrom":2.0,
                         "Format":"ENKey",
                         "Description":"Set 2nd set of three bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"EN3",
+                        "ProtocolFrom":2.0,
                         "Format":"ENKey",
                         "Description":"Set 3rd set of three bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"EN4",
+                        "ProtocolFrom":2.0,
                         "Format":"ENKey",
                         "Description":"Set 4th set of three bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"EN5",
+                        "ProtocolFrom":2.0,
                         "Format":"ENKey",
                         "Description":"Set 5th set of three bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"EN6",
+                        "ProtocolFrom":2.0,
                         "Format":"ENKey",
                         "Description":"Set last byte of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
                         },
                         {
                         "Command":"$ER",
+                        "ProtocolFrom":1.0,
                         "Description":"Initiate Serial number update, can be only used once."
                         },
                         {
                         "Command":"FVER",
+                        "ProtocolFrom":1.0,
                         "Format":"Float",
                         "Description":"Request the manufacturer firmware version \n Response is aXXFVER9.99- e.g. aXXFVER0.32-"
                         },
                         {
                         "Command":"CHDEVID",
+                        "ProtocolFrom":1.0,
                         "Format":"ID",
                         "Description":"Request that the device change its device ID"
                         },
                         {
                         "Command":"PANID",
+                        "ProtocolFrom":1.0,
                         "Format":"Hex",
                         "Description":"Requests that the device change its PANID (the id of the channel the device listens to). PANID is a four character hexadecimal number on Ciseco wireless networks. All devices within the same PANID can communicate with each other. The change will only take place when the device is reset or powered on/off."
                         },
                         {
                         "Command":"REBOOT",
+                        "ProtocolFrom":1.0,
                         "Description":"Request that the device reboots itself, This saves the current config to flash"
                         },
                         {
                         "Command":"RETRIES",
+                        "ProtocolFrom":1.0,
                         "Format":"Int",
                         "Description":"Set the amount of messages to retry to get an ACK from the hub \n Set the amount of retries that uninitiated “sends” should try before giving up, default is 5 (number can be 00-99) this is set by RR"
                         },
                         {
                         "Command":"BATT",
+                        "ProtocolFrom":1.0,
                         "Format":"Float",
                         "Description":"Request battery level in Volts"
                         },
                         {
                         "Command":"SLEEP",
+                        "ProtocolFrom":1.0,
                         "Format":"Period",
                         "Description":"Requests the device go into low power mode (only applies to sleeping devices) \n aXXSLEEP999P \n Request that the device sleep for 999 “periods”, the response echoes the command, the device will then send the notification aXXSLEEPING- when going to sleep, and the announcement aXXAWAKE---- when the device reawakens. Periods can be S(seconds), M(minutes), H(hours), D(days) T(milliseconds) \n aXXSLEEP---- (only applies to interrupt sleeping devices) . Sleep until an interrupt is received. Only the Button firmware behaves like this at present. \n Every (default 10) times it will send aXXAWAKE---- aXXBATTv.vv- wait for 100mS incase there is a command for the unit and then send aXXSLEEPING-. This is configurable by using aXXWAKECnnn- where nnn is the count of transmits before it will wake and send the battery reading."
                         },
                         {
                         "Command":"SAVE",
+                        "ProtocolFrom":1.2,
                         "Description":"Save the current config to flash."
                         },
                         {
                         "Command":"LLAPRESET",
+                        "ProtocolFrom":1.2,
                         "Description":"Reset all values that can be changed via LLAP to the default values. The values are not saved to the config, aXXSAVE----- or aXXREBOOT--- will do that."
                         },
                         {
                         "Command":"CONFIGEND",
+                        "ProtocolFrom":2.0,
                         "Description":"Exit config mode resetting working ID to the stored ID, any config changes are not saved"
                         },
                         {
                         "Command":"CONFIGON",
+                        "ProtocolFrom":2.0,
                         "Description":"Enter config mode, the device will go into CONFIGME just as if the config button had been pressed"
                         },
                         {
                         "Command":"SLEEPM",
+                        "ProtocolFrom":1.2,
                         "Format":"SleepMode",
                         "Description":"Set and return the sleep mode. (LLAP 2.0). AP_SLEEP_INTERRUPT = 8 \n AP_SLEEP_CYCLIC = 16 \n AP_SLEEP_ONESHOT = 32 "
                         },
                         {
                         "Command":"RSSI",
+                        "ProtocolFrom":2.0,
                         "Format":"Int",
                         "Description":"Request an RSSI reading from the device, Returns a negative dBm RSSI of the RSSI enquiry message when received"
                         }
@@ -270,19 +308,23 @@
     "Cyclic Commands":[
                        {
                        "Command":"INTVL",
+                       "ProtocolFrom":1.0,
                        "Format":"Period",
                        "Description":"Sets the sleep interval between 'activities'"
                        },
                        {
                        "Command":"CYCLE",
+                       "ProtocolFrom":1.0,
                        "Description":"Start cyclic mode (only applies to cyclic sleeping devices) \nRequest that the device starts a cyclic sleep – the device should sleep for the sleep interval, awaken and send any reading. The device will then go back to sleep. Every (default 10) times it will send aXXAWAKE---- aXXBATTv.vv- wait for 100mS incase there is a command for the unit and then send aXXSLEEPING-. This is configurable by using aXXWAKECnnn- where nnn is the count of transmits before it will wake and send the battery reading."
                        },
                        {
                        "Command":"WAKE",
+                       "ProtocolFrom":1.0,
                        "Description":"Wake a sleeping device, use to get out of cyclic sleep"
                        },
                        {
                        "Command":"WAKEC",
+                       "ProtocolFrom":1.0,
                        "Format":"Int",
                        "Description":"Change how often a sleeping device reports its battery reading and wake opportunity"
                        }
@@ -290,27 +332,33 @@
     "Announcements":[
                      {
                      "Command":"STARTED",
+                     "ProtocolFrom":1.0,
                      "Description":"This is to notify the hub that a device has just started. The hub can then add the device back into the list of active devices."
                      },
                      {
                      "Command":"ERROR",
+                     "ProtocolFrom":1.0,
                      "Format":"Int",
                      "Description":"This is to notify that something unexpected happened at the device and that should be investigated. The nnnn can be used by the manufacturer to denote what type of error occurred"
                      },
                      {
                      "Command":"SLEEPING",
+                     "ProtocolFrom":1.0,
                      "Description":"Device is going to sleep (only applies to devices that support sleep)"
                      },
                      {
                      "Command":"AWAKE",
+                     "ProtocolFrom":1.0,
                      "Description":"Device is now awake, for a brief period, can be kept awake via a WAKE command"
                      },
                      {
                      "Command":"BATTLOW",
+                     "ProtocolFrom":1.0,
                      "Description":"Device battery is low (only applies to battery powered devices)"
                      },
                      {
                      "Command":"CONFIGME",
+                     "ProtocolFrom":2.0,
                      "Description":"A device is in configme mode"
                      }
                      ],
