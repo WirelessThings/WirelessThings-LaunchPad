@@ -3,13 +3,13 @@
 """ AT command mode Class
     Ciseco AT command mode helper class
     Copyright (c) 2014 Ciseco Ltd.
-    
+
     Author: Matt Lloyd
-    
+
     This code is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-    
+
 """
 import sys
 from time import time, sleep, gmtime, strftime
@@ -17,7 +17,7 @@ import serial
 import logging
 
 class AT():
-    
+
     _inATMode = False
 
     def __init__(self, serialHandle=None, logger=None, event=None):
@@ -27,7 +27,7 @@ class AT():
             self.logger = logging.getLogger()
         else:
             self.logger = logger
-        
+
         self.event = event
 
     def __del__(self):
@@ -72,13 +72,13 @@ class AT():
         self.logger.debug("AT: Enter Command Mode")
         for r in range(retries):
             self._serial.flushInput()
-            
+
             self._sleep(1)
-            
+
             self._serial.write("+++")
 
             self._sleep(0.1)
-                
+
             self._serial.flushInput()
 
             if self.waitForOK(1.5):
@@ -145,9 +145,7 @@ if __name__ == "__main__":
     app.setupSerial('/dev/tty.usbmodem000001', 9600)
 
     app.enterATMode()
-    
+
     app.sendATWaitForOK("AT")
 
     app.endSerial()
-
-

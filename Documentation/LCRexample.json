@@ -114,7 +114,7 @@
                    }
                    ]
     }
-    
+
 }
 
 // Device Configuration Request, reply from the Message Bridge
@@ -162,7 +162,7 @@
             }
         }
     }
-    
+
 }
 
 // Genral call to find state of any Message Bridges on the local network
@@ -174,7 +174,7 @@
 
 // Status response from a MessageBridge
 {
-    "type":"MessageBridge",    // type MessageBridge 
+    "type":"MessageBridge",    // type MessageBridge
     "network":"Serial",     //  require, network destination, "ALL" will query all MessageBridge, anything else will target a spefic MessageBridge
     "state":"Running",  // optional (include in response from Message Bridge, state could be "Running", "Error", "Unknown"
     "timestamp":"12 Mar 2014 14:19:21 +0000",          // optional, always provided by the Message Bridge
@@ -196,7 +196,7 @@
                       "encryptionSet":true, // optional, current encryptiom state
                       "encrptionKey":"Fail", // optional, Pass/Fail state for setting encryption key
                       "version":0.12,       // optional, current Message Bridge version
-                      "deciceStore":{       // optional, the device store contains information abbout the last Language of Things message a Message Bridge saw for every device it has heard from since its last reboot, 
+                      "deciceStore":{       // optional, the device store contains information abbout the last Language of Things message a Message Bridge saw for every device it has heard from since its last reboot,
                                      "AA":{     // information is store by device ID, the array will not grow bigger than 656 entries
                                            "data":"TEMP19.50",      // last message seen
                                            "timestamp":"12 Mar 2014 14:19:21 +0000" // timestamp of last message

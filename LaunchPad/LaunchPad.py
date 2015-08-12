@@ -2,13 +2,13 @@
 # -*- coding: utf-8 -*-
 """ Wireless Things LaunchPad
     Copyright (c) 2014 Ciseco Ltd.
-    
+
     Author: Matt Lloyd
-    
+
     This code is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-    
+
 """
 import Tkinter as tk
 import ttk
@@ -36,15 +36,15 @@ from Tabs import *
 
 """
    todo list:-
-   
+
    Move advance list from json into py
-   
+
    switch to debug prints to logging
-     
+
    TODO: catch permisions error on exec and set permission if needed
-   
+
    TODO: updater should remove files and process renames as needed, (execute a script?)
-   
+
 """
 
 class LaunchPad:
@@ -89,12 +89,12 @@ class LaunchPad:
         self.updateAvailable = False
 
         self._running = False
-    
+
     def on_excute(self):
         self.checkArgs()
         self.readConfig()
         self.loadApps()
-        
+
         if self.args.noupdate:
             self.checkForUpdate()
 
@@ -103,17 +103,17 @@ class LaunchPad:
         self.runLauncher()
 
         self.cleanUp()
-        
+
     def restart(self):
         # restart after update
         args = sys.argv[:]
-        
+
         self.debugPrint('Re-spawning %s' % ' '.join(args))
         args.append('-u')   # no need to check for update again
         args.insert(0, sys.executable)
         if sys.platform == 'win32':
             args = ['"%s"' % arg for arg in args]
-        
+
         os.execv(sys.executable, args)
 
     def endLauncher(self):
@@ -135,7 +135,7 @@ class LaunchPad:
             if c.poll() == None:
                 c.terminate()
         self.writeConfig()
-    
+
     def debugPrint(self, msg):
         if self.debugArg or self.debug:
             print(msg)
@@ -149,9 +149,9 @@ class LaunchPad:
         parser.add_argument('-d', '--debug',
                             help='Extra Debug Output, overrides launcher.cfg setting',
                             action='store_true')
-        
+
         self.args = parser.parse_args()
-        
+
         if self.args.debug:
             self.debugArg = True
         else:
@@ -174,7 +174,7 @@ class LaunchPad:
             self.debugPrint('Unable to get latest version info - URLError = ' +
                             str(e.reason))
             self.newVersion = False
-        
+
         except httplib.HTTPException, e:
             self.debugPrint('Unable to get latest version info - HTTPException')
             self.newVersion = False
@@ -195,7 +195,7 @@ class LaunchPad:
                 self.updateAvailable = True
         else:
             self.debugPrint("Could not check for new Version")
-            
+
     def offerUpdate(self):
         self.debugPrint("Ask to update")
         if tkMessageBox.askyesno("{} Update Available".format(self._name),
@@ -215,27 +215,27 @@ class LaunchPad:
                 self.debugPrint('Unable to get download file size - HTTPError = ' +
                                 str(e.code))
                 self.updateFailed = "Unable to get download file size"
-            
+
             except urllib2.URLError, e:
                 self.debugPrint('Unable to get download file size- URLError = ' +
                                 str(e.reason))
                 self.updateFailed = "Unable to get download file size"
-            
+
             except httplib.HTTPException, e:
                 self.debugPrint('Unable to get download file size- HTTPException')
                 self.updateFailed = "Unable to get download file size"
-            
+
             except Exception, e:
                 import traceback
                 self.debugPrint('Unable to get download file size - Exception = ' +
                                 traceback.format_exc())
                 self.updateFailed = "Unable to get download file size"
-            
+
             if self.updateFailed:
                 tkMessageBox.showerror("Update Failed", self.updateFailed)
             else:
                 position = self.master.geometry().split("+")
-                
+
                 self.progressWindow = tk.Toplevel()
                 self.progressWindow.geometry("+{}+{}".format(
                                                 int(position[1]
@@ -245,16 +245,16 @@ class LaunchPad:
                                                              )
                                              )
                 self.progressWindow.title("Downloading Zip Files")
-                
+
                 tk.Label(self.progressWindow, text="Downloading Zip Progress"
                          ).pack()
-                
+
                 self.progressBar = tk.IntVar()
                 ttk.Progressbar(self.progressWindow, orient="horizontal",
                                 length=200, mode="determinate",
                                 maximum=self.file_size,
                                 variable=self.progressBar).pack()
-                
+
                 self.downloadThread = threading.Thread(target=self.downloadUpdate)
                 self.progressQueue = Queue.Queue()
                 self.downloadThread.start()
@@ -278,19 +278,19 @@ class LaunchPad:
 
     def downloadUpdate(self):
         self.debugPrint("Downloading Update Zip")
-        
+
         url = (self.config.get('Update', 'updateurl') +
                self.config.get('Update', 'updatefile').format(self.newVersion))
-               
+
         self.debugPrint(url)
         # mk dir Download
         if not os.path.exists(self.config.get('Update', 'downloaddir')):
             os.makedirs(self.config.get('Update', 'downloaddir'))
-        
+
         localFile = (self.config.get('Update', 'downloaddir') +
                      self.config.get('Update', 'updatefile'
                                      ).format(self.newVersion))
-        
+
         self.debugPrint(localFile)
 
         try:
@@ -307,7 +307,7 @@ class LaunchPad:
                 buffer = u.read(block_sz)
                 if not buffer:
                     break
-                
+
                 file_size_dl += len(buffer)
                 f.write(buffer)
                 p = float(file_size_dl) / file_size
@@ -321,16 +321,16 @@ class LaunchPad:
             self.debugPrint('Unable to get download file - HTTPError = ' +
                             str(e.code))
             self.updateFailed = "Unable to get download file"
-        
+
         except urllib2.URLError, e:
             self.debugPrint('Unable to get download file - URLError = ' +
                             str(e.reason))
             self.updateFailed = "Unable to get download file"
-        
+
         except httplib.HTTPException, e:
             self.debugPrint('Unable to get download file - HTTPException')
             self.updateFailed = "Unable to get download file"
-        
+
         except Exception, e:
             import traceback
             self.debugPrint('Unable to get download file - Exception = ' +
@@ -340,7 +340,7 @@ class LaunchPad:
     def manualZipUpdate(self):
         self.debugPrint("Location Zip for Update")
         self.updateFailed = False
-        
+
         filename = tkFileDialog.askopenfilename(title="Please select the {} Update zip".format(self._name),
                                                 filetypes = [("Zip Files",
                                                               "*.zip")])
@@ -354,27 +354,27 @@ class LaunchPad:
             # do the update
             self.doUpdate(filename)
 
-            
+
     def doUpdate(self, file):
         self.debugPrint("Doing Update with file: {}".format(file))
-    
+
         self.zfobj = zipfile.ZipFile(file)
         self.extractDir = "../"
         # self.config.get('Update', 'downloaddir') + self.newVersion + "/"
         # if not os.path.exists(self.extractDir):
         #       os.mkdir(self.extractDir)
-        
+
         self.zipFileCount = len(self.zfobj.namelist())
 
         position = self.master.geometry().split("+")
-        
+
         self.progressWindow = tk.Toplevel()
         self.progressWindow.geometry("+{}+{}".format(
                                              int(position[1])+self.widthMain/4,
                                              int(position[2])+self.heightMain/4
                                                      )
                                      )
-            
+
         self.progressWindow.title("Extracting Zip Files")
 
         tk.Label(self.progressWindow, text="Extracting Zip Progress").pack()
@@ -384,7 +384,7 @@ class LaunchPad:
                      length=200, mode="determinate",
                      maximum=self.zipFileCount,
                      variable=self.progressBar).pack()
-                     
+
         self.zipThread = threading.Thread(target=self.zipExtract)
         self.progressQueue = Queue.Queue()
         self.zipThread.start()
@@ -392,7 +392,7 @@ class LaunchPad:
 
     def zipProgressUpdate(self):
         self.debugPrint("Zip Progress Update")
-        
+
         value = self.progressQueue.get()
         self.progressBar.set(value)
         self.progressQueue.task_done()
@@ -425,13 +425,13 @@ class LaunchPad:
                              (st.st_mode | stat.S_IXUSR | stat.S_IXGRP)
                              )
                 sleep(0.1)
-                
+
     def updateAllAutoStarts(self):
         self.debugPrint("Updating all installed Autostart Services")
         """
             for each app in list that has auto start 1
                 check status
-                    if install 
+                    if install
                         reinstall
         """
         for app in self.appList:
@@ -451,7 +451,7 @@ class LaunchPad:
             if app.get('Service', 0):
                 if self.checkStatus(app['id']):
                     self.launch(app['id'], 'restart', True)
-    
+
     def runLauncher(self):
         self.debugPrint("Running Main Launcher")
         self.master = tk.Tk()
@@ -465,23 +465,23 @@ class LaunchPad:
                                                   'window_height_offset')
                                   )
                              )
-                             
+
         self.master.title("Wireless Things LaunchPad v{}".format(self.currentVersion))
         #self.master.resizable(0,0)
-        
+
         self.tabFrame = tk.Frame(self.master, name='tabFrame')
         self.tabFrame.pack(pady=2)
-        
+
         self.initTabBar()
         self.initMain()
         self.initAdvanced()
         self.initStatusBar()
-        
+
         self.tBarFrame.show()
-        
+
         if self.updateAvailable:
             self.master.after(500, self.offerUpdate)
-        
+
         self.master.mainloop()
 
     def initTabBar(self):
@@ -489,7 +489,7 @@ class LaunchPad:
         # tab button frame
         self.tBarFrame = TabBar(self.tabFrame, "Main", fname='tabBar')
         self.tBarFrame.config(relief=tk.RAISED, pady=4)
-        
+
         # tab buttons
         tk.Button(self.tBarFrame, text='Quit', command=self.endLauncher
                ).pack(side=tk.RIGHT)
@@ -501,8 +501,8 @@ class LaunchPad:
         iframe.config(relief=tk.RAISED, borderwidth=2, width=self.widthMain,
                       height=self.heightTab)
         self.tBarFrame.add(iframe)
-        
-        
+
+
         #canvas = tk.Canvas(iframe, bd=0, width=self.widthMain-4,
         #                       height=self.heightTab-4, highlightthickness=0)
         #canvas.grid(row=0, column=0, columnspan=3, rowspan=5)
@@ -511,10 +511,10 @@ class LaunchPad:
                   height=28).grid(row=1, column=1, columnspan=3)
         tk.Canvas(iframe, bd=0, highlightthickness=0, width=150,
                   height=self.heightTab-4).grid(row=1, column=1, rowspan=3)
-        
+
         tk.Label(iframe, text="Select an App to Launch").grid(row=1, column=1,
                                                               sticky=tk.W)
-        
+
         lbframe = tk.Frame(iframe, bd=2, relief=tk.SUNKEN)
 
         self.scrollbar = tk.Scrollbar(lbframe)
@@ -535,7 +535,7 @@ class LaunchPad:
 
         self.buttonFrame = tk.Frame(iframe)
         self.buttonFrame.grid(row=3, column=1, columnspan=3, sticky=tk.W+tk.E)
-        
+
         self.initLaunchFrame()
         self.initSSRFrame()
 
@@ -543,10 +543,10 @@ class LaunchPad:
                                 relief=tk.RAISED, justify=tk.LEFT, anchor=tk.NW)
         self.appText.grid(row=2, column=3, rowspan=2, sticky=tk.W+tk.E+tk.N,
                           padx=2)
-                          
+
         self.appSelect.selection_set(0)
         self.onAppSelect(None)
-        
+
         #self.appText.insert(tk.END, )
         #self.appText.config(state=tk.DISABLED)
         #tk.Text(iframe).grid(row=0, column=1, rowspan=2)
@@ -598,35 +598,35 @@ class LaunchPad:
         aframe.config(relief=tk.RAISED, borderwidth=2, width=self.widthMain,
                       height=self.heightTab)
         self.tBarFrame.add(aframe)
-        
+
         tk.Canvas(aframe, bd=0, highlightthickness=0, width=self.widthMain-4,
                   height=28).grid(row=1, column=1, columnspan=3)
         tk.Canvas(aframe, bd=0, highlightthickness=0, width=150,
                   height=self.heightTab-4).grid(row=1, column=1, rowspan=3)
-              
+
         tk.Label(aframe, text="Select an Advanced Task to Launch").grid(row=1,
                                                                         columnspan=3,
                                                                         column=1,
                                                                         sticky=tk.W)
-                                                            
+
         lbframe = tk.Frame(aframe, bd=2, relief=tk.SUNKEN)
-        
+
         self.scrollbar = tk.Scrollbar(lbframe)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        
+
         self.advanceSelect = tk.Listbox(lbframe, bd=0, height=10,
                                     yscrollcommand=self.scrollbar.set)
         self.advanceSelect.bind('<<ListboxSelect>>', self.onAdvanceSelect)
         self.advanceSelect.pack()
-        
+
         self.scrollbar.config(command=self.advanceSelect.yview)
-        
+
         lbframe.grid(row=2, column=1, sticky=tk.W+tk.E+tk.N+tk.S, padx=2)
-        
+
         for n in range(len(self.advanceList)):
             self.advanceSelect.insert(n, "{}: {}".format(n+1,
                                                      self.advanceList[n]['Name']))
-        
+
         self.launchAdvanceButton = tk.Button(aframe, text="Launch",
                                       command=self.launchAdvance,)
         self.launchAdvanceButton.grid(row=3, column=1, columnspan=3)
@@ -649,12 +649,12 @@ class LaunchPad:
         self._serviceStatus.set(self._serviceStatusText['checking'])
         self.statusBar = tk.Label(self.master, textvariable=self._serviceStatus, bd=1, relief=tk.SUNKEN, anchor=tk.W)
         self.statusBar.pack(side=tk.BOTTOM, fill=tk.X)
-        
+
         self.tUDPListenStop = threading.Event()
-        
+
         self.tUDPListen = threading.Thread(name='tUDPListen', target=self._UDPListenThread)
         self.tUDPListen.deamon = False
-        
+
         try:
             self.tUDPListen.start()
         except:
@@ -668,17 +668,17 @@ class LaunchPad:
     def checkNetwork(self):
         """
             Check for a Message Bridge running on the network
-            
+
             Do we have a replay in the Que
                 update messge
                 restart timmers
             has our udp time out expierd
                 update message
             is it time to check again
-                send out UDP 
+                send out UDP
                 restart timmer
             checkagain in 1s
-            
+
         """
         if self.fMessageBridgeGood.is_set():
             self._serviceStatus.set(self._serviceStatusText['found'])
@@ -699,12 +699,12 @@ class LaunchPad:
 
 
         self.master.after(1000, self.checkNetwork)
-    
+
     def _UDPListenThread(self):
         """ UDP Listen Thread
         """
         self.debugPrint("tUDPListen: UDP listen thread started")
-        
+
         try:
             UDPListenSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         except socket.error:
@@ -714,14 +714,14 @@ class LaunchPad:
         UDPListenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         if sys.platform == 'darwin':
             UDPListenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-        
+
         try:
             UDPListenSocket.bind(('', int(self.config.get('UDP', 'listen_port'))))
         except socket.error:
             self.debugPrint("tUDPListen: Failed to bind port, Exiting")
-        
+
         UDPListenSocket.setblocking(0)
-        
+
         self.debugPrint("tUDPListen: listening")
         while not self.tUDPListenStop.is_set():
             datawaiting = select.select([UDPListenSocket], [], [], self._UDPListenTimeout)
@@ -729,7 +729,7 @@ class LaunchPad:
                 (data, address) = UDPListenSocket.recvfrom(2048)
                 self.debugPrint("tUDPListen: Received JSON: {} From: {}".format(data, address))
                 jsonin = json.loads(data)
-                
+
                 if jsonin['type'] == "WirelessMessage":
                     pass
                 elif jsonin['type'] == "DeviceConfigurationRequest":
@@ -739,26 +739,26 @@ class LaunchPad:
                     self.debugPrint("tUDPListen: JSON of type MessageBridge")
                     if jsonin['state'] == "Running" or jsonin['state'] == "RUNNING":
                         self.fMessageBridgeGood.set()
-                            
+
         self.debugPrint("tUDPListen: Thread stopping")
         try:
             UDPListenSocket.close()
         except socket.error:
             self.debugPrint("tUDPListen: Failed to close socket")
         return
-            
+
     def _initUDPSendThread(self):
         """ Start the UDP output thread
             """
         self.debugPrint("UDP Send Thread init")
-        
+
         self.qUDPSend = Queue.Queue()
-        
+
         self.tUDPSendStop = threading.Event()
-        
+
         self.tUDPSend = threading.Thread(target=self._UDPSendTread)
         self.tUDPSend.daemon = False
-        
+
         try:
             self.tUDPSend.start()
         except:
@@ -776,12 +776,12 @@ class LaunchPad:
             # TODO: tUDPSend needs to stop here
             # TODO: need to send message to user saying could not open socket
             return
-        
+
         UDPSendSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         UDPSendSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        
+
         sendPort = int(self.config.get('UDP', 'send_port'))
-        
+
         while not self.tUDPSendStop.is_set():
             try:
                 message = self.qUDPSend.get(timeout=1)     # block for up to 30 seconds
@@ -812,12 +812,12 @@ class LaunchPad:
 
     def onAppSelect(self, *args):
         self.debugPrint("App select update")
-        
+
         # which app is selected
         app = int(self.appSelect.curselection()[0])
-    
+
         self.appText.config(text=self.appList[app]['Description'])
-    
+
         # update buttons in self.launchFrame based on service or not
         if self.appList[app].get('Service', 0):
             self.launchFrame.pack_forget()
@@ -831,13 +831,13 @@ class LaunchPad:
         else:
             self.SSRFrame.pack_forget()
             self.launchFrame.pack()
-    
+
     def onAdvanceSelect(self, *args):
         self.debugPrint("Advnace select update")
         #self.debugPrint(args)
         app = int(self.advanceSelect.curselection()[0])
         self.advanceText.config(text=self.advanceList[app]['Description'])
-    
+
     def updateSSRButtons(self, app):
         """ Update buttons based on the state of the current selection in appList
         """
@@ -849,7 +849,7 @@ class LaunchPad:
             # check using 'status'
             if app is not None:
                 running = self.checkStatus(app)
-                        
+
         if running:
             self.SSRFrame.children['start'].config(state=tk.DISABLED)
             self.SSRFrame.children['stop'].config(state=tk.ACTIVE)
@@ -877,12 +877,12 @@ class LaunchPad:
     def checkStatus(self, app):
         running = None
         appCommand = ["./{}".format(self.appList[app]['FileName'])]
-        
+
         if not self.appList[app]['Args'] == "":
             appCommand.append(self.appList[app]['Args'])
-        
+
         appCommand.append("status")
-        
+
         self.debugPrint("Querying {}".format(appCommand))
         output = subprocess.check_output(appCommand,
                                          cwd=self.appList[app]['CWD'])
@@ -912,13 +912,13 @@ class LaunchPad:
                 installed = False
 
         return installed
-    
+
     def disableSSRButtons(self):
         self.SSRFrame.children['start'].config(state=tk.DISABLED)
         self.SSRFrame.children['stop'].config(state=tk.DISABLED)
         self.SSRFrame.children['restart'].config(state=tk.DISABLED)
         self.serviceButton.config(state=tk.DISABLED)
-    
+
     def autostart(self, app, command, NoUIUpdate=False):
         self.debugPrint("Configer autostart for app: {}".format(app))
         if sys.platform == 'win32':
@@ -940,7 +940,7 @@ class LaunchPad:
                        self.appList[app]['InitScript']
                        )
                 dst = ('/etc/init.d/' + self.appList[app]['InitScript'])
-                       
+
                 # modify init.d script path before copying file
                 for lines in fileinput.FileInput(src, inplace=1): ## edit file in place
                     if lines.startswith("cd "):
@@ -960,7 +960,7 @@ class LaunchPad:
                 cproc.stdin.write(self.password+'\n')
                 cproc.stdin.close()
                 cproc.wait()
-                
+
                 # need to give it execute permissions
                 chCommand = ['sudo', '-p','','-S',
                              'chmod', '+x', dst
@@ -972,13 +972,13 @@ class LaunchPad:
                 chproc.stdin.write(self.password+'\n')
                 chproc.stdin.close()
                 chproc.wait()
-                
+
                 # run update-rc.d {} defaults
                 self.updateRCd(app, 'defaults')
                 if not NoUIUpdate:
                     self.password = None
                     self.master.after(500, lambda: self.updateSSRButtons(app))
-    
+
             elif command == 'disable':
                 self.debugPrint("Removing init.d script for app: {}".format(app))
                 self.disableSSRButtons()
@@ -1004,7 +1004,7 @@ class LaunchPad:
                 if not NoUIUpdate:
                     self.password = None
                     self.master.after(500, lambda: self.updateSSRButtons(app))
-                
+
 
     def updateRCd(self, app, command):
         self.debugPrint("Calling updateRC.d for app: {} with: {}".format(app, command))
@@ -1019,19 +1019,19 @@ class LaunchPad:
         proc.stdin.write(self.password+'\n')
         proc.stdin.close()
         proc.wait()
-                            
+
 
     def launch(self, app, command, NoUIUpdate=False):
         appCommand = ["./{}".format(self.appList[app]['FileName'])]
         if not self.appList[app]['Args'] == "":
             appCommand.append(self.appList[app]['Args'])
-    
+
         if self.debugArg:
                 appCommand.append("-d")
-    
+
         if command is not 'launch':
             appCommand.append(command)
-        
+
         self.debugPrint("Launching {}".format(appCommand))
         self.proc.append(subprocess.Popen(appCommand,
                                           cwd=self.appList[app]['CWD']))
@@ -1042,7 +1042,7 @@ class LaunchPad:
                 self.master.after(2000, lambda: self.updateSSRButtons(app))
             else:
                 self.master.after(5000, lambda: self.updateSSRButtons(app))
-                    
+
     def launchAdvance(self):
         items = map(int, self.advanceSelect.curselection())
         if items:
@@ -1055,21 +1055,21 @@ class LaunchPad:
         self.debugPrint("Reading Config")
 
         self.config = ConfigParser.SafeConfigParser()
-        
+
         # load defaults
         try:
             self.config.readfp(open(self.configFileDefault))
         except:
             self.debugPrint("Could Not Load Default Settings File")
-        
+
         # read the user config file
         if not self.config.read(self.configFile):
             self.debugPrint("Could Not Load User Config, One Will be Created on Exit")
-        
+
         if not self.config.sections():
             self.debugPrint("No Config Loaded, Quitting")
             sys.exit()
-        
+
         self.debug = self.config.getboolean('Shared', 'debug')
 
         try:
@@ -1078,7 +1078,7 @@ class LaunchPad:
             f.close()
         except:
             pass
-                
+
     def writeConfig(self):
         self.debugPrint("Writing Config")
         with open(self.configFile, 'wb') as configfile:
@@ -1090,7 +1090,7 @@ class LaunchPad:
             with open(self.appFile, 'r') as f:
                 read_data = f.read()
             f.closed
-            
+
             self.appList = json.loads(read_data)['Apps']
             self.advanceList = json.loads(read_data)['Advanced']
         except IOError:
@@ -1132,10 +1132,10 @@ class PasswordDialog(tk.Toplevel):
         self.button["text"] = "Submit"
         self.button["command"] = self.StorePass
         self.button.pack()
-    
+
     def StorePassEvent(self, event):
         self.StorePass()
-    
+
     def StorePass(self):
         self.parent.password = self.entry.get()
         self.destroy()
@@ -1143,4 +1143,3 @@ class PasswordDialog(tk.Toplevel):
 if __name__ == "__main__":
     app = LaunchPad()
     app.on_excute()
-

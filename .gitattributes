@@ -1,0 +1,9 @@
+* text=auto
+
+# keep files as explict LS
+*.py texteol=lf 
+*.cfg text eol=lf
+*.md text eol=lf
+
+*.png binary
+*.jpg binary
