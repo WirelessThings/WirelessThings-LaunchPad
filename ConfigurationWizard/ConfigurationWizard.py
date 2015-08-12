@@ -797,8 +797,8 @@ class ConfigurationWizard:
             # check Language of Things Generic Commands, Cyclic Commands, device Actions and device Options all in one go
             commandList = (self._genericCommands +
                            self._cyclicCommands +
-                           self.devices[self.device['id']]['Actions'] +
-                           self.devices[self.device['id']]['Options']
+                           self.devices[self.device['index']]['Actions'] +
+                           self.devices[self.device['index']]['Options']
                            )
 
             for command in commandList:
@@ -996,7 +996,7 @@ class ConfigurationWizard:
                   image=self._infoIcon,
                   ).grid(row=8, column=2, sticky=tk.E)
 
-        if self.devices[self.device['id']]['SleepMode'] == "Cyclic":
+        if self.devices[self.device['index']]['SleepMode'] == "Cyclic":
             # cyclic config options
             tk.Label(self.cframe, text="Cyclic Commands"
                      ).grid(row=10, column=0, columnspan=3)
@@ -1046,10 +1046,10 @@ class ConfigurationWizard:
 
         # device config options
         tk.Label(self.cframe,
-                 text="Device specific options".format(self.devices[self.device['id']]['Name'])
+                 text="Device specific options".format(self.devices[self.device['index']]['Name'])
                  ).grid(row=2, column=3, columnspan=3)
         r = 1
-        for n in self.devices[self.device['id']]['Options']:
+        for n in self.devices[self.device['index']]['Options']:
 
             tk.Label(self.cframe, text=n['Description']
                      ).grid(row=2+r, column=3, columnspan=3)
@@ -1671,14 +1671,14 @@ class ConfigurationWizard:
                  {'command': "RSSI"}
                  ]
 
-        if self.devices[self.device['id']]['SleepMode'] == "Cyclic":
+        if self.devices[self.device['index']]['SleepMode'] == "Cyclic":
             query.append({'command': "INTVL"})
             query.append({'command': "WAKEC"})
             query.append({'command': "SLEEPM"})
-        elif self.devices[self.device['id']]['SleepMode'] == "Interrupt":
+        elif self.devices[self.device['index']]['SleepMode'] == "Interrupt":
             query.append({'command': "SLEEPM"})
 
-        for n in self.devices[self.device['id']]['Options']:
+        for n in self.devices[self.device['index']]['Options']:
             # create place to put the reply later
             self.entry[n['Command']] = [tk.StringVar(), tk.StringVar(), 'String']
             query.append({'command': n['Command'].encode('ascii', 'ignore')})
