@@ -77,19 +77,20 @@ import itertools
 
 INTRO = """Welcome to Wireless Things Device Configuration Wizard
     
-Please wait while we try to reach a Wireless Things Messaging Bridge"""
+Please wait while we try to reach a Wireless Things Message Bridge"""
 
 INTRO1 = """Welcome to Wireless Things Device Configuration Wizard
     
-A Wireless Things Messaging Bridge has be found running on this network.
+One or more Wireless Things Message Bridge have been found running on this network.
 
-Please select a service to use from the list bellow"""
+Please select a Message Bridge to use from the list bellow"""
 
 CONFIG = """Select your device config options"""
 
 END = """Your device has been configured"""
 
-PRESSTEXT = """Please press the Configure button on your device for 1 second"""
+PRESSTEXT = """Please press the Configure button on your device for 1 second
+For a Keyfob press any button for 5 seconds"""
 PRESSTEXT1 = """Communicating with device"""
 
 INTERVALTEXT = """Use the slider to select a reporting period for the device. 
@@ -1961,7 +1962,8 @@ class ConfigurationWizard:
             self.devices = json.loads(read_data)['Devices']
     
         except IOError:
-            self.logger.debug("Could Not Load DevList File")
+			# TODO: better fail condition
+            self.logger.warn("Could Not Load DevList File")
             self.devices = [
                             {'id': 0,
                              'Description': 'Error loading DevList file'
