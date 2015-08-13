@@ -38,6 +38,9 @@ import logging
 import uuid
 from collections import OrderedDict
 import itertools
+import urllib2
+import httplib
+
 
 """
     Big TODO list
@@ -91,7 +94,7 @@ INTRO1 = """Welcome to Wireless Things Device Configuration Wizard
 
 One or more Wireless Things Message Bridges have been found running on this network.
 
-Please select a Message Bridge to use from the list bellow"""
+Please select a Message Bridge to use from the list below"""
 
 CONFIG = """Select your device config options"""
 
@@ -119,13 +122,13 @@ class ConfigurationWizard:
         Configuration Wizard Class
         Handles display of wizard interface for configuring devices
     """
-
+    # MARK: - Instance Vars
     _version = 0.13
 
     _configFileDefault = "ConfigurationWizard_defaults.cfg"
     _configFile = "ConfigurationWizard.cfg"
-    _myNodesFile = "MyNodes.json"
     _infoIconFile = "noun_80697_cc.gif"
+    _languageFile = "LanguageofThings.json"
 
     _rows = 19
     _rowHeight = 28
@@ -160,6 +163,7 @@ class ConfigurationWizard:
               'network': ""
               }
 
+    # MARK: - Init
     def __init__(self):
         """
             setup variables
@@ -182,6 +186,7 @@ class ConfigurationWizard:
         self.fMessgaeBridgeUpdate = threading.Event()
         self.fWaitingForReply = threading.Event()
 
+    # MARK: - Logging
     def _initLogging(self):
         """ now we have the config file loaded and the command line args setup
             setup the loggers
@@ -226,6 +231,7 @@ class ConfigurationWizard:
             self.logger.addHandler(self._fh)
             self.logger.info("File Logging started")
 
+    # MARK: - Entry point
     def on_excute(self):
         """
             entry point for running
@@ -233,7 +239,9 @@ class ConfigurationWizard:
         self._checkArgs()
         self._readConfig()
         self._initLogging()
+        self._updateDevicesFile()
         self._loadDevices()
+        self._loadLanguage()
 
         self._running = True
 
@@ -279,6 +287,7 @@ class ConfigurationWizard:
 
             self.master.mainloop()
 
+    # MARK: - UDP Send
     def _initUDPSendThread(self):
         """ Start the UDP output thread
             """
@@ -344,7 +353,8 @@ class ConfigurationWizard:
         except socket.error:
             self.logger.exception("tUDPSend: Failed to close socket")
         return
-
+    
+    # MARK: - UDP listen
     def _initUDPListenThread(self):
         """ Start the UDP Listen thread and queues
         """
@@ -423,6 +433,7 @@ class ConfigurationWizard:
             self.logger.exception("tUDPListen: Failed to close socket")
         return
 
+    # MARK: - Display screens
     def _initTkVariables(self):
         self.logger.debug("Init Tk Variables")
         # any tk variables we need to keep permanent
@@ -786,8 +797,8 @@ class ConfigurationWizard:
             # check Language of Things Generic Commands, Cyclic Commands, device Actions and device Options all in one go
             commandList = (self._genericCommands +
                            self._cyclicCommands +
-                           self.devices[self.device['id']]['Actions'] +
-                           self.devices[self.device['id']]['Options']
+                           self.devices[self.device['index']]['Actions'] +
+                           self.devices[self.device['index']]['Options']
                            )
 
             for command in commandList:
@@ -985,7 +996,7 @@ class ConfigurationWizard:
                   image=self._infoIcon,
                   ).grid(row=8, column=2, sticky=tk.E)
 
-        if self.devices[self.device['id']]['SleepMode'] == "Cyclic":
+        if self.devices[self.device['index']]['SleepMode'] == "Cyclic":
             # cyclic config options
             tk.Label(self.cframe, text="Cyclic Commands"
                      ).grid(row=10, column=0, columnspan=3)
@@ -1035,10 +1046,10 @@ class ConfigurationWizard:
 
         # device config options
         tk.Label(self.cframe,
-                 text="Device specific options".format(self.devices[self.device['id']]['Name'])
+                 text="Device specific options".format(self.devices[self.device['index']]['Name'])
                  ).grid(row=2, column=3, columnspan=3)
         r = 1
-        for n in self.devices[self.device['id']]['Options']:
+        for n in self.devices[self.device['index']]['Options']:
 
             tk.Label(self.cframe, text=n['Description']
                      ).grid(row=2+r, column=3, columnspan=3)
@@ -1180,7 +1191,7 @@ class ConfigurationWizard:
         tk.Button(self.eframe, text='Start Over', command=self._startOver
                   ).grid(row=4, column=2, columnspan=2, sticky=tk.E+tk.W)
 
-    # validation rules
+    # MARK: - Validation rules
 
     # valid percent substitutions (from the Tk entry man page)
     # %d = Type of action (1=insert, 0=delete, -1 for others)
@@ -1268,6 +1279,7 @@ class ConfigurationWizard:
         self._encryptionKeyInput.icursor(self._encryptionKeyInput.index(tk.INSERT)+1)
         self._encryptionKeyInput.config(validate='key')
 
+    # MARK: - Processing logic
     def _startOver(self):
         self.logger.debug("Starting over")
         self._stopKeepAwake()
@@ -1539,6 +1551,7 @@ class ConfigurationWizard:
                 if float(reply['replies']['APVER']['reply']) >= 2.0:
                     # valid apver
                     # so check what replied
+                    matched = False
                     for n in range(len(self.devices)):
                         if self.devices[n]['DTY'] == reply['replies']['DTY']['reply']:
                             # we have a match
@@ -1551,7 +1564,18 @@ class ConfigurationWizard:
                                            'settingsMissMatch': False,
                                            'network': json['network']
                                           }
+                            matched = True
                             self._askCurrentConfig()
+                    if not matched:
+                        self.logger.debug("Failed to find DTY in Devices JSON")
+                        # TODO: let the user know we couldn't match the device type
+                        tkMessageBox.showerror("Unknown device",
+                                     ("The device is of an unknown type\n"
+                                      "")
+                                     )
+                        if self._currentFrame == "pressFrame":
+                            self._startOver()
+
                 else:
                     # apver mismatch, show error screen
                     pass
@@ -1660,14 +1684,14 @@ class ConfigurationWizard:
                  {'command': "RSSI"}
                  ]
 
-        if self.devices[self.device['id']]['SleepMode'] == "Cyclic":
+        if self.devices[self.device['index']]['SleepMode'] == "Cyclic":
             query.append({'command': "INTVL"})
             query.append({'command': "WAKEC"})
             query.append({'command': "SLEEPM"})
-        elif self.devices[self.device['id']]['SleepMode'] == "Interrupt":
+        elif self.devices[self.device['index']]['SleepMode'] == "Interrupt":
             query.append({'command': "SLEEPM"})
 
-        for n in self.devices[self.device['id']]['Options']:
+        for n in self.devices[self.device['index']]['Options']:
             # create place to put the reply later
             self.entry[n['Command']] = [tk.StringVar(), tk.StringVar(), 'String']
             query.append({'command': n['Command'].encode('ascii', 'ignore')})
@@ -1819,6 +1843,7 @@ class ConfigurationWizard:
                     self._processReply(json)
                 self.qDCRReply.task_done()
 
+    # MARK: - Display grid builder
     def _buildGrid(self, frame, quit=False, halfSize=False):
         self.logger.debug("Building Grid for {}".format(frame.winfo_name()))
         canvas = tk.Canvas(frame, bd=0, width=self._widthMain-4,
@@ -1840,7 +1865,7 @@ class ConfigurationWizard:
             tk.Button(frame, text='Quit', command=self._endConfigMe
                       ).grid(row=rows-2, column=0, sticky=tk.E)
 
-    # TODO: UDP JSON debug window
+    # MARK: - JSON Debug window
     def _jsonWindowDebug(self):
         self.logger.debug("Setting up JSON debug window")
         self.serialWindow = tk.Toplevel(self.master)
@@ -1876,6 +1901,7 @@ class ConfigurationWizard:
 
         self.master.after(2, self._serialDebugUpdate)
 
+    # MARK: - Clean up stuff
     def _endConfigMe(self):
         self.logger.debug("End Client")
         position = self.master.geometry().split("+")
@@ -1929,6 +1955,7 @@ class ConfigurationWizard:
             while self.qDCRReply.empty() and time()-self._starttime < 5:
                 sleep(0.1)
 
+    # MARK: - Command line Args
     def _checkArgs(self):
         self.logger.debug("Parse Args")
         parser = argparse.ArgumentParser(description='Device Configuration Wizard')
@@ -1938,9 +1965,21 @@ class ConfigurationWizard:
         parser.add_argument('-l', '--log',
                             help='Override the debug logging level, DEBUG, INFO, WARNING, ERROR, CRITICAL'
                             )
+        parser.add_argument('-u', '--url',
+                            help='Override the URL from which to downlaod the latest JSON device file'
+                            )
+        parser.add_argument('-j', '--json',
+                            help='Use specfied JSON device file instead file set via ConfigurationWizard.cfg',
+                            type=file
+                            )
 
-        self.args = parser.parse_args()
+        try:
+            self.args = parser.parse_args()
+        except:
+            self.logger.critical("Failed to open the JSON device file given on the command line")
+            sys.exit()
 
+    # MARK: - Config file
     def _readConfig(self):
         self.logger.debug("Reading Config")
 
@@ -1957,35 +1996,101 @@ class ConfigurationWizard:
             self.logger.debug("Could Not Load User Config, One Will be Created on Exit")
 
         if not self.config.sections():
-            self.logger.debug("No Config Loaded, Quitting")
+            self.logger.error("No Config Loaded, Quitting")
             sys.exit()
-
 
     def _writeConfig(self):
         self.logger.debug("Writing Config")
         with open(self._configFile, 'wb') as _configFile:
             self.config.write(_configFile)
 
+    # MARK: - Device file loading
+
+    def _updateDevicesFile(self):
+        """ 
+            If posible fetch the latest devices.json from the net
+        """
+        self.logger.info("Updating device list")
+
+        # if a JSON device file is specified on the command line skip the download
+        if (self.args.json):
+            self.logger.debug("Skipping download and using command line JSON")
+            return
+        # use url from config or command line if set
+        if (self.args.url):
+            url = self.args.url
+        else:
+            url = self.config.get('ConfigurationWizard', 'devFileURL')
+                
+        # open the url and download the file
+        try:
+            request = urllib2.urlopen(url)
+            self.newJSON = request.read()
+
+        except urllib2.HTTPError, e:
+            self.logger.error('Unable to get latest device JSON - HTTPError = ' +
+                            str(e.code))
+            self.newJSON = False
+
+        except urllib2.URLError, e:
+            self.logger.error('Unable to get latest device JSON - URLError = ' +
+                            str(e.reason))
+            self.newJSON = False
+
+        except httplib.HTTPException, e:
+            self.logger.error('Unable to get latest device JSON - HTTPException')
+            self.newJSON = False
+
+        except Exception, e:
+            import traceback
+            self.logger.error('Unable to get latest device JSON - Exception = ' +
+                            traceback.format_exc())
+            self.newJSON = False
+                
+        if self.newJSON:
+            self.logger.debug("Got new devices file saveing to disk")
+            with open(self.config.get('ConfigurationWizard', 'devFile'), 'w') as f:
+                f.write(self.newJSON)
+            f.close()
+
     def _loadDevices(self):
         self.logger.debug("Loading device List")
+        # if files name give on command line use that else use file from config file
+        
         try:
-            with open(self.config.get('ConfigurationWizard', 'devFile'), 'r') as f:
-                read_data = f.read()
-            f.closed
+            if (self.args.json):
+                read_data = self.args.json.read()
+                self.args.json.close()
+            else:
+                with open(self.config.get('ConfigurationWizard', 'devFile'), 'r') as f:
+                    read_data = f.read()
+                f.closed
 
             # TODO: Check/catch json errors
-            self._genericCommands = json.loads(read_data)['Generic Commands']
-            self._cyclicCommands = json.loads(read_data)['Cyclic Commands']
-            self._readingPeriods = json.loads(read_data)['Reading Periods']
             self.devices = json.loads(read_data)['Devices']
 
         except IOError:
 			# TODO: better fail condition
             self.logger.warn("Could Not Load DevList File")
-            self.devices = [
-                            {'id': 0,
-                             'Description': 'Error loading DevList file'
-                            }]
+            sys.exit()
+
+    # MARK: - Language of Things JSON
+    def _loadLanguage(self):
+        self.logger.debug("Loading Language JSON")
+        try:
+            with open(self._languageFile, 'r') as f:
+                read_data = f.read()
+            f.closed
+        
+            # TODO: Check/catch json errors
+            self._genericCommands = json.loads(read_data)['Generic Commands']
+            self._cyclicCommands = json.loads(read_data)['Cyclic Commands']
+            self._readingPeriods = json.loads(read_data)['Reading Periods']
+    
+        except IOError:
+            # TODO: better fail condition
+            self.logger.critical("Could Not Load Language JSON File")
+            sys.exit()
 
 #    def die(self):
 #        """For some reason we can not longer go forward
