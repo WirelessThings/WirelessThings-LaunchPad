@@ -98,7 +98,7 @@ class LaunchPad:
 
         self._running = False
 
-    def on_excute(self):
+    def on_execute(self):
         self.checkArgs()
         self.readConfig()
         self.loadApps()
@@ -528,7 +528,7 @@ class LaunchPad:
         self.scrollbar = tk.Scrollbar(lbframe)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        self.appSelect = tk.Listbox(lbframe, bd=0, height=10,
+        self.appSelect = tk.Listbox(lbframe, bd=0, height=10, exportselection=0,
                                     yscrollcommand=self.scrollbar.set)
         self.appSelect.bind('<<ListboxSelect>>', self.onAppSelect)
         self.appSelect.pack()
@@ -622,7 +622,7 @@ class LaunchPad:
         self.scrollbar = tk.Scrollbar(lbframe)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        self.advanceSelect = tk.Listbox(lbframe, bd=0, height=10,
+        self.advanceSelect = tk.Listbox(lbframe, bd=0, height=10, exportselection=0,
                                     yscrollcommand=self.scrollbar.set)
         self.advanceSelect.bind('<<ListboxSelect>>', self.onAdvanceSelect)
         self.advanceSelect.pack()
@@ -834,14 +834,14 @@ class LaunchPad:
                 self.serviceButton.pack()
             else:
                 self.serviceButton.pack_forget()
-            if args[0] is not None:
-                self.updateSSRButtons(app)
+
+            self.updateSSRButtons(app)
         else:
             self.SSRFrame.pack_forget()
             self.launchFrame.pack()
 
     def onAdvanceSelect(self, *args):
-        self.debugPrint("Advnace select update")
+        self.debugPrint("Advance select update")
         #self.debugPrint(args)
         app = int(self.advanceSelect.curselection()[0])
         self.advanceText.config(text=self.advanceList[app]['Description'])
@@ -1150,4 +1150,4 @@ class PasswordDialog(tk.Toplevel):
 
 if __name__ == "__main__":
     app = LaunchPad()
-    app.on_excute()
+    app.on_execute()
