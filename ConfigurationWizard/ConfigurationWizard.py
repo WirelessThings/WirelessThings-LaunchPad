@@ -40,6 +40,7 @@ from collections import OrderedDict
 import itertools
 import urllib2
 import httplib
+import tkFont
 
 
 """
@@ -127,7 +128,6 @@ class ConfigurationWizard:
 
     _configFileDefault = "ConfigurationWizard_defaults.cfg"
     _configFile = "ConfigurationWizard.cfg"
-    _infoIconFile = "noun_80697_cc.gif"
     _languageFile = "LanguageofThings.json"
 
     _rows = 19
@@ -440,7 +440,8 @@ class ConfigurationWizard:
         self._readingScale = [tk.IntVar(), tk.StringVar(), tk.StringVar()]
         self._readingScale[0].trace_variable('w', self._updateIntervalOnScaleChange)
 
-        self._infoIcon = tk.PhotoImage(file=self._infoIconFile)
+        self._italicFont = tkFont.Font(font='TKDefaultFont')
+        self._italicFont.config(slant="italic")
         self._devIDWarning = tk.StringVar()
         self._settingMissMatchVar = tk.IntVar()
         self._settingMissMatchVar.trace_variable('w', self._updateMissMatchSettings)
@@ -610,11 +611,11 @@ class ConfigurationWizard:
                  wraplength=self._widthMain/6*4,
                  ).grid(row=r, column=1, columnspan=4, rowspan=3)
         r += 1
-        tk.Button(self.sframe, text='More Info', state=tk.ACTIVE,
+        b = tk.Button(self.sframe, text='i', state=tk.ACTIVE,
                   command=lambda: self._displayMoreInfo("Description"),
-                  image=self._infoIcon
+                  font = self._italicFont
                   ).grid(row=r, column=5, sticky=tk.W)
-
+    
         # new device Label
         if self.device['newDevice']:
             r += 2
@@ -631,9 +632,9 @@ class ConfigurationWizard:
                  ).grid(row=r, column=3, sticky=tk.W+tk.E)
         tk.Button(self.sframe, text="Change", command=self._displayChangeDevID
                   ).grid(row=r, column=4)
-        tk.Button(self.sframe, text='More Info', state=tk.ACTIVE,
+        tk.Button(self.sframe, text='i', state=tk.ACTIVE,
                   command=lambda: self._displayMoreInfo("CHDEVID"),
-                  image=self._infoIcon,
+                  font = self._italicFont,
                   ).grid(row=r, column=5, sticky=tk.W)
         if self.device['newDevice']:
             r += 1
@@ -657,9 +658,9 @@ class ConfigurationWizard:
                          invalidcommand='bell',
                          validatecommand=self.vUpper)
                 self._devIDInputs.append(e)
-                tk.Button(self.sframe, text='More Info', state=tk.ACTIVE,
+                tk.Button(self.sframe, text='i', state=tk.ACTIVE,
                           command=lambda: self._displayMoreInfo("MSG"),
-                          image=self._infoIcon
+                          font = self._italicFont
                           ).grid(row=r, column=5, sticky=tk.W)
                 r +=2
 
@@ -672,9 +673,9 @@ class ConfigurationWizard:
                      orient=tk.HORIZONTAL, showvalue=0,
                      from_=0, to=len(self._readingPeriods), resolution=1
                      ).grid(row=r, column=2, columnspan=2, sticky=tk.W+tk.E)
-            tk.Button(self.sframe, text='More Info', state=tk.ACTIVE,
+            tk.Button(self.sframe, text='i', state=tk.ACTIVE,
                       command=lambda: self._displayMoreInfo("Interval"),
-                      image=self._infoIcon
+                      font = self._italicFont
                       ).grid(row=r, column=5, sticky=tk.W)
             tk.Label(self.sframe, textvariable=self._readingScale[1],
                      wraplength=self._widthMain/6
@@ -690,9 +691,9 @@ class ConfigurationWizard:
                      ).grid(row=r, column=1, columnspan=2, sticky=tk.E)
             tk.Checkbutton(self.sframe, variable=self._settingMissMatchVar
                            ).grid(row=r, column=3, columnspan=2)
-            tk.Button(self.sframe, text='More Info', state=tk.ACTIVE,
+            tk.Button(self.sframe, text='i', state=tk.ACTIVE,
                       command=lambda: self._displayMoreInfo("MissMatch"),
-                      image=self._infoIcon,
+                      font = self._italicFont,
                       ).grid(row=r, column=5, sticky=tk.W)
             tk.Label(self.sframe, text=SETTINGMISSMATCHTEXT,
                      wraplength=self._widthMain/6*4
@@ -969,9 +970,9 @@ class ConfigurationWizard:
                                          )
                                 )
         self._devIDInputs[-1].grid(row=4, column=1, columnspan=2, sticky=tk.W)
-        tk.Button(self.cframe, text='More Info', state=tk.ACTIVE,
+        tk.Button(self.cframe, text='i', state=tk.ACTIVE,
                   command=lambda: self._displayMoreInfo("CHDEVID"),
-                  image=self._infoIcon,
+                  font = self._italicFont,
                   ).grid(row=4, column=2, sticky=tk.E)
 
         tk.Label(self.cframe, text="Pan ID").grid(row=5, column=0, columnspan=3)
@@ -981,9 +982,9 @@ class ConfigurationWizard:
                  invalidcommand='bell',
                  validatecommand=self.vUpper,
                  ).grid(row=6, column=1, columnspan=2, sticky=tk.W)
-        tk.Button(self.cframe, text='More Info', state=tk.ACTIVE,
+        tk.Button(self.cframe, text='i', state=tk.ACTIVE,
                   command=lambda: self._displayMoreInfo("PANID"),
-                  image=self._infoIcon,
+                  font = self._italicFont,
                   ).grid(row=6, column=2, sticky=tk.E)
 
         tk.Label(self.cframe, text="Retries for Announcements"
@@ -991,9 +992,9 @@ class ConfigurationWizard:
         tk.Label(self.cframe, text="RETRIES").grid(row=8, column=0, sticky=tk.E)
         tk.Entry(self.cframe, textvariable=self.entry['RETRIES'][0], width=20
                  ).grid(row=8, column=1, columnspan=2, sticky=tk.W)
-        tk.Button(self.cframe, text='More Info', state=tk.ACTIVE,
+        tk.Button(self.cframe, text='i', state=tk.ACTIVE,
                   command=lambda: self._displayMoreInfo("RETRIES"),
-                  image=self._infoIcon,
+                  font = self._italicFont,
                   ).grid(row=8, column=2, sticky=tk.E)
 
         if self.devices[self.device['index']]['SleepMode'] == "Cyclic":
@@ -1008,9 +1009,9 @@ class ConfigurationWizard:
                      invalidcommand='bell',
                      validatecommand=self.vUpper,
                     ).grid(row=12, column=1, columnspan=2, sticky=tk.W)
-            tk.Button(self.cframe, text='More Info', state=tk.ACTIVE,
+            tk.Button(self.cframe, text='i', state=tk.ACTIVE,
                       command=lambda: self._displayMoreInfo("INTVL"),
-                      image=self._infoIcon,
+                      font = self._italicFont,
                       ).grid(row=12, column=2, sticky=tk.E)
 
             tk.Label(self.cframe, text="Battery Wake Count"
@@ -1018,9 +1019,9 @@ class ConfigurationWizard:
             tk.Label(self.cframe, text="WAKEC").grid(row=14, column=0, sticky=tk.E)
             tk.Entry(self.cframe, textvariable=self.entry['WAKEC'][0], width=20,
                     ).grid(row=14, column=1, columnspan=2, sticky=tk.W)
-            tk.Button(self.cframe, text='More Info', state=tk.ACTIVE,
+            tk.Button(self.cframe, text='i', state=tk.ACTIVE,
                       command=lambda: self._displayMoreInfo("WAKEC"),
-                      image=self._infoIcon,
+                      font = self._italicFont,
                       ).grid(row=14, column=2, sticky=tk.E)
 
             tk.Label(self.cframe, text="Enable Cyclic Sleep"
@@ -1028,9 +1029,9 @@ class ConfigurationWizard:
             tk.Label(self.cframe, text="CYCLE").grid(row=16, column=0, sticky=tk.E)
             tk.Checkbutton(self.cframe, variable=self.entry['SLEEPM'][0]
                           ).grid(row=16, column=1, columnspan=2, sticky=tk.W)
-            tk.Button(self.cframe, text='More Info', state=tk.ACTIVE,
+            tk.Button(self.cframe, text='i', state=tk.ACTIVE,
                       command=lambda: self._displayMoreInfo("CYCLE"),
-                      image=self._infoIcon,
+                      font = self._italicFont,
                       ).grid(row=16, column=2, sticky=tk.E)
         elif self.devices[self.device['index']]['SleepMode'] == "Interrupt":
             # Interrupt sleep devices
@@ -1039,9 +1040,9 @@ class ConfigurationWizard:
             tk.Label(self.cframe, text="SLEEP").grid(row=11, column=0, sticky=tk.E)
             tk.Checkbutton(self.cframe, variable=self.entry['SLEEPM'][0]
                           ).grid(row=11, column=1, columnspan=2, sticky=tk.W)
-            tk.Button(self.cframe, text='More Info', state=tk.ACTIVE,
+            tk.Button(self.cframe, text='i', state=tk.ACTIVE,
                       command=lambda: self._displayMoreInfo("SLEEP"),
-                      image=self._infoIcon,
+                      font = self._italicFont,
                       ).grid(row=11, column=2, sticky=tk.E)
 
         # device config options
@@ -1079,9 +1080,9 @@ class ConfigurationWizard:
                              invalidcommand='bell',
                              validatecommand=self.vDevID)
                     self._devIDInputs.append(e)
-            tk.Button(self.cframe, text='More Info', state=tk.ACTIVE,
+            tk.Button(self.cframe, text='i', state=tk.ACTIVE,
                       command=lambda: self._displayMoreInfo(n['Command']),
-                      image=self._infoIcon,
+                      font = self._italicFont,
                       ).grid(row=3+r, column=5, sticky=tk.E)
 
             r += 2
@@ -1125,9 +1126,9 @@ class ConfigurationWizard:
         tk.Entry(self.aframe, textvariable=self.entry['SNH'][0], width=20,
                  state=tk.DISABLED
                  ).grid(row=3, column=1, columnspan=2, sticky=tk.W)
-        tk.Button(self.aframe, text='More Info', state=tk.ACTIVE,
+        tk.Button(self.aframe, text='i', state=tk.ACTIVE,
                   command=lambda: self._displayMoreInfo("SNH"),
-                  image=self._infoIcon,
+                  font = self._italicFont,
                   ).grid(row=3, column=2, sticky=tk.E)
 
         tk.Label(self.aframe, text="Low Bytes").grid(row=4, column=0, columnspan=3)
@@ -1135,16 +1136,16 @@ class ConfigurationWizard:
         tk.Entry(self.aframe, textvariable=self.entry['SNL'][0], width=20,
                  state=tk.DISABLED
                  ).grid(row=5, column=1, columnspan=2, sticky=tk.W)
-        tk.Button(self.aframe, text='More Info', state=tk.ACTIVE,
+        tk.Button(self.aframe, text='i', state=tk.ACTIVE,
                   command=lambda: self._displayMoreInfo("SNL"),
-                  image=self._infoIcon,
+                  font = self._italicFont,
                   ).grid(row=5, column=2, sticky=tk.E)
 
         tk.Label(self.aframe, text="Encryption Options"
                  ).grid(row=1, column=3, columnspan=3)
-        tk.Button(self.aframe, text='More Info', state=tk.ACTIVE,
+        tk.Button(self.aframe, text='i', state=tk.ACTIVE,
                   command=lambda: self._displayMoreInfo("Encryption"),
-                  image=self._infoIcon,
+                  font = self._italicFont,
                   ).grid(row=1, column=5)
 
         tk.Label(self.aframe, text="Enable Encryption"
@@ -1785,9 +1786,8 @@ class ConfigurationWizard:
         # ask user to press pair button and try again?
 
         if tkMessageBox.askyesno("Communications Timeout",
-                                 ("No replay from the Message Bridge, \n"
-                                  "To try again \n"
-                                  "click yes"
+                                 ("No reply from the Message Bridge, \n"
+                                  "To try again click yes"
                                   )
                                  ):
             self._displayProgress()
