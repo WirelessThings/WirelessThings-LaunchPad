@@ -108,7 +108,7 @@ class LaunchPad:
 
         self._running = True
 
-        self.runLauncher()
+        self.runLaunchPad()
 
         self.cleanUp()
 
@@ -124,8 +124,8 @@ class LaunchPad:
 
         os.execv(sys.executable, args)
 
-    def endLauncher(self):
-        self.debugPrint("End Launcher")
+    def endLaunchPad(self):
+        self.debugPrint("End LaunchPad")
         position = self.master.geometry().split("+")
         self.config.set('LaunchPad', 'window_width_offset', position[1])
         self.config.set('LaunchPad', 'window_height_offset', position[2])
@@ -155,7 +155,7 @@ class LaunchPad:
                             help='disable checking for update',
                             action='store_false')
         parser.add_argument('-d', '--debug',
-                            help='Extra Debug Output, overrides launcher.cfg setting',
+                            help='Extra Debug Output, overrides LaunchPad.cfg setting',
                             action='store_true')
 
         self.args = parser.parse_args()
@@ -460,10 +460,10 @@ class LaunchPad:
                 if self.checkStatus(app['id']):
                     self.launch(app['id'], 'restart', True)
 
-    def runLauncher(self):
-        self.debugPrint("Running Main Launcher")
+    def runLaunchPad(self):
+        self.debugPrint("Running LaunchPad")
         self.master = tk.Tk()
-        self.master.protocol("WM_DELETE_WINDOW", self.endLauncher)
+        self.master.protocol("WM_DELETE_WINDOW", self.endLaunchPad)
         self.master.geometry(
              "{}x{}+{}+{}".format(self.widthMain,
                                   self.heightMain+self.heightStatusBar,
@@ -499,13 +499,13 @@ class LaunchPad:
         self.tBarFrame.config(relief=tk.RAISED, pady=4)
 
         # tab buttons
-        tk.Button(self.tBarFrame, text='Quit', command=self.endLauncher
+        tk.Button(self.tBarFrame, text='Quit', command=self.endLaunchPad
                ).pack(side=tk.RIGHT)
         #tk.Label(self.tBarFrame, text=self.currentVersion).pack(side=tk.RIGHT)
 
     def initMain(self):
         self.debugPrint("Setting up Main Tab")
-        iframe = Tab(self.tabFrame, "Main", fname='launcher')
+        iframe = Tab(self.tabFrame, "Main", fname='launchPad')
         iframe.config(relief=tk.RAISED, borderwidth=2, width=self.widthMain,
                       height=self.heightTab)
         self.tBarFrame.add(iframe)
