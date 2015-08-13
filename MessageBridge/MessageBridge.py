@@ -129,6 +129,10 @@ class MessageBridge():
     _DCRStartTime = 0
     _DCRCurrentTimeout = 0
 
+    _panID = 0
+    _encryption = False
+    _encryptionKey = 0
+    
     _validID = "ABCDEFGHIJKLMNOPQRSTUVWXYZ-#@?\\*"
     _validData = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !\"#$%&'()*+,-.:;<=>?@[\\\/]^_`{|}~"
     _encryptionCommandMatch = re.compile('^EN[1-6]')
@@ -392,7 +396,7 @@ is running then run in the current terminal
                     self.logger.error("tMain: Serial thread stopped, wait 1 before trying to re-establish ")
                     self._state = self.Error
                     self.tMainStop.wait(1)
-                    self._startSerail()
+                    self._startSerial()
                     self.tMainStop.wait(1)
                     if self.tSerial.is_alive():
                         self._state = self.Running
@@ -555,8 +559,7 @@ is running then run in the current terminal
         else:
             self._serial.port = self.config.get('Serial', 'port')
         self._serial.baud = self.config.get('Serial', 'baudrate')
-        self._serial.timeout = self._serialTimeout
-
+        self._serial.timeout = self._serialTimeout        
         # setup queue
         self.qSerialOut = Queue.Queue()
         self.qSerialToQuery = Queue.Queue()
@@ -564,9 +567,9 @@ is running then run in the current terminal
         # setup thread
         self.tSerialStop = threading.Event()
 
-        self._startSerail()
+        self._startSerial()
 
-    def _startSerail(self):
+    def _startSerial(self):
         self.tSerial = threading.Thread(name='tSerial', target=self._SerialThread)
         self.tSerial.daemon = False
         try:
@@ -625,10 +628,10 @@ is running then run in the current terminal
                             toQuery = list(self._currentDCR['data']['toQuery'])
                             if self._currentDCR['data'].has_key('setENC'):
                                 # TODO: need to perpend encryption key setup to the toQuery
-                                if self.config.getboolean('Serial','encryption'):
+                                if self._encryption:
                                     self.logger.debug("tDCR: auto setting encryption")
                                     toQuery.insert(0, {"command":"ENC", "value":"ON"})
-                                    for (index, hex) in enumerate(list(self._chunkstring(self.config.get('Serial', 'encryption_key'), 6))):
+                                    for (index, hex) in enumerate(list(self._chunkstring(self._encryptionKey, 6))):
                                         toQuery.insert(0, {"command":"EN{}".format(index+1), "value":hex})
 
                             # pass queries on to the serial thread to send out
@@ -797,7 +800,9 @@ is running then run in the current terminal
                 self._serial.flushInput()
 
                 # check the ATLH settings
-                self._SerialCheckATLH()
+                if not self._SerialCheckATLH():
+                    self.debug.critical("tSerial: Error on Check ATLH")
+                    self.die()
 
                 # main serial processing loop
                 while self._serial.isOpen() and not self.tSerialStop.is_set():
@@ -828,7 +833,7 @@ is running then run in the current terminal
 
                 # port closed for some reason (or tSerialStop), if tSerialStop is not set we will try reopening
         except IOError:
-            self.logger.exception("tSerail: IOError on serial port")
+            self.logger.exception("tSerial: IOError on serial port")
 
         # close the port
         self.logger.info("tSerial: Closing serial port")
@@ -846,15 +851,41 @@ is running then run in the current terminal
         self._serial.flushInput()
 
         at = AT.AT(self._serial, self.logger, self.tSerialStop)
-        # TODO: make this way more reliable
-        if at.enterATMode():
-            if at.sendATWaitForOK("ATLH1"):
-                if at.sendATWaitForOK("ATAC"):
-                    if 0:
-                        at.sendATWaitForOK("ATWR")
-            # TODO: check/set out PANID and encryption settings as per config
 
+        if at.enterATMode():            
+            #ask for the ATLH            
+            if at.sendATWaitForResponse("ATLH") != "1": #if the ATLH returns diff from 1, we force the 1 status            
+                if at.sendATWaitForOK("ATLH1"):
+                    if at.sendATWaitForOK("ATAC"):                        
+                        if at.sendATWaitForOK("ATWR"):
+                            self.logger.debug("SerialCheckATLH: ATLH1 setted")
+            # TODO: check/set out PANID and encryption settings as per config
+            self._panID = at.sendATWaitForResponse("ATID")
+            if not self._panID:
+                self.logger.critical("SerialCheckATLH: Invalid PANID")
+                self._cleanUp()                
+                return False
+                
+            self._encryption = at.sendATWaitForResponse("ATEE")
+            if not self._encryption:
+                self.logger.critical("SerialCheckATLH: Invalid Encryption")                
+                self._cleanUp()                
+                return False
+            self._encryption = bool(int(self._encryption)) #convert the received encryption to bool
+            
+            self._encryptionKey = at.sendATWaitForResponse("ATEK")
+            if not self._encryptionKey:
+                self.logger.critical("SerialCheckATLH: Invalid encryptionKey")                
+                self._cleanUp()
+                return False
+                
             at.leaveATMode()
+            return True
+            
+        self.logger.debug("SerialCheckATLH: Failed to enter on AT Mode")
+        return False
+                
+            
 
     def _SerialReadIncomingLanguageOfThings(self):
         char = self._serial.read()  # should not time out but we should check anyway
@@ -1137,9 +1168,9 @@ is running then run in the current terminal
                         result['deviceStore'] = self._deviceStore
                     # TODO: implement other MessageBridge "requests"
                     elif request == "PANID":
-                        result['PANID'] = self.config.get('Serial', 'panid')
+                        result['PANID'] = self._panID
                     elif request == "encryptionSet":
-                        result['encryptionSet'] = self.config.getboolean('Serial', 'encryption')
+                        result['encryptionSet'] = self._encryption
                     elif request == "version":
                         result['version'] = self._version
             elif message['data'].has_key('set'):
