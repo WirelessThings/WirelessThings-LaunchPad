@@ -433,7 +433,7 @@ class ConfigurationWizard:
             self.logger.exception("tUDPListen: Failed to close socket")
         return
 
-    # MARK: -
+    # MARK: - Display screens
     def _initTkVariables(self):
         self.logger.debug("Init Tk Variables")
         # any tk variables we need to keep permanent
@@ -1191,7 +1191,7 @@ class ConfigurationWizard:
         tk.Button(self.eframe, text='Start Over', command=self._startOver
                   ).grid(row=4, column=2, columnspan=2, sticky=tk.E+tk.W)
 
-    # validation rules
+    # MARK: - Validation rules
 
     # valid percent substitutions (from the Tk entry man page)
     # %d = Type of action (1=insert, 0=delete, -1 for others)
@@ -1279,6 +1279,7 @@ class ConfigurationWizard:
         self._encryptionKeyInput.icursor(self._encryptionKeyInput.index(tk.INSERT)+1)
         self._encryptionKeyInput.config(validate='key')
 
+    # MARK: - Processing logic
     def _startOver(self):
         self.logger.debug("Starting over")
         self._stopKeepAwake()
@@ -1842,6 +1843,7 @@ class ConfigurationWizard:
                     self._processReply(json)
                 self.qDCRReply.task_done()
 
+    # MARK: - Display grid builder
     def _buildGrid(self, frame, quit=False, halfSize=False):
         self.logger.debug("Building Grid for {}".format(frame.winfo_name()))
         canvas = tk.Canvas(frame, bd=0, width=self._widthMain-4,
@@ -1863,7 +1865,7 @@ class ConfigurationWizard:
             tk.Button(frame, text='Quit', command=self._endConfigMe
                       ).grid(row=rows-2, column=0, sticky=tk.E)
 
-    # TODO: UDP JSON debug window
+    # MARK: - JSON Debug window
     def _jsonWindowDebug(self):
         self.logger.debug("Setting up JSON debug window")
         self.serialWindow = tk.Toplevel(self.master)
