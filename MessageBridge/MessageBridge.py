@@ -210,6 +210,7 @@ is running then run in the current terminal
                     self._pidFile.release()
                 except:
                     pass
+
     def _checkArgs(self):
         """Parse the command line options
         """
@@ -1186,7 +1187,6 @@ is running then run in the current terminal
             self.logger.debug("tMain: Failed to put {} on qUDPSend as it's full".format(message))
         else:
             self.logger.debug("tMain: Put {} on qUDPSend".format(message))
-
 
     def encodeWirelessMessageJson(self, message, network=None):
         """Encode a single Language of Things message into an outgoing JSON message
