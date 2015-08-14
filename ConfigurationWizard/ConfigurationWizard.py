@@ -492,52 +492,6 @@ class ConfigurationWizard:
         self._checkMessageBridge = True
         self.master.after(1000, self._checkMessageBridgeUpdate)
 
-    def _checkMessageBridgeUpdate(self):
-		# self.logger.debug("Checking Message Bridge reply flag")
-        if self.fMessgaeBridgeUpdate.is_set():
-            # flag set, re-draw buttons
-            self._updateMessageBridgeList()
-            # clear flag and schedule next check
-            self.fMessgaeBridgeUpdate.clear()
-
-
-        if self._checkMessageBridgeCount == 5:
-            # send out another status ping
-            self.qUDPSend.put(self._messageBridgeQueryJSON)
-        elif self._checkMessageBridgeCount == 10:
-            # let user know we are still looking but have not found anything yet
-            if len(self._messgaeBridges) == 0:
-                pass
-
-            # send out another query and reset count
-            self._checkMessageBridgeCount = 0
-            self.qUDPSend.put(self._messageBridgeQueryJSON)
-
-        self._checkMessageBridgeCount += 1
-        if self._checkMessageBridge:
-            # carry on checking until user moves from first page
-            self.master.after(1000, self._checkMessageBridgeUpdate)
-
-    def _updateMessageBridgeList(self):
-        self.logger.debug("Updating Message Bridge list buttons")
-        self.iframe.children['introText'].config(text=INTRO1)
-        for network, messageBridge in self._messgaeBridges.items():
-            # if we don't all-ready have a button create a new one
-            if network not in self._messgaeBridgeButtons.keys():
-                self._messgaeBridgeButtons[network] = tk.Button(self.iframe,
-                                                         name="n{}".format(network),
-                                                         text=network,
-                                                         command=lambda n=network:self._displayPressButton(n),
-                                                         state=tk.ACTIVE if messageBridge['state'] == "Running" or messageBridge['state'] == "RUNNING" else tk.DISABLED
-                                                         )
-                self._messgaeBridgeButtons[network].grid(row=5+len(self._messgaeBridgeButtons),
-                                                  column=1,
-                                                  columnspan=4, sticky=tk.E+tk.W)
-            else:
-              # need to update button state
-              self._messgaeBridgeButtons[network].config(state=tk.ACTIVE if messageBridge['state'] == "Running" or messageBridge['state'] == "RUNNING" else tk.DISABLED
-                                                  )
-
     def _displayPressButton(self, network, reset=False):
         self.logger.debug("Displaying PressButton")
 
@@ -699,86 +653,7 @@ class ConfigurationWizard:
                      wraplength=self._widthMain/6*4
                      ).grid(row=r+1, column=1, columnspan=4, rowspan=2)
             r += 3
-
-
-    def _updateIntervalOnScaleChange(self, *args):
-        if self._readingScale[0].get() != len(self._readingPeriods):
-            if self.entry['INTVL'][0].get() != self._readingPeriods[self._readingScale[0].get()]['Period']:
-                self.entry['INTVL'][0].set(self._readingPeriods[self._readingScale[0].get()]['Period'])
-                self.entry['SLEEPM'][0].set(1)
-        try:
-            self._readingScale[1].set("{}".format(self._parseIntervalToString(self.entry['INTVL'][0].get())))
-            self._readingScale[2].set("{}.\r {}".format(
-                                        self._readingPeriods[self._readingScale[0].get()]['Description'],
-                                        self._estimateLifeTimeForPeriod(self.entry['INTVL'][0].get(), self.device['index'])
-                                                                              )
-                                      )
-        except:
-            self._readingScale[1].set("Custom Period")
-            self._readingScale[2].set("To set a custom reporting period please use the \"Advanced Config\" option below".format(self._parseIntervalToString(self.entry['INTVL'][0].get())))
-
-    def _updateScaleAndDescriptionFromPeriod(self, intval, setCycle=True):
-        for (index,period) in enumerate(self._readingPeriods):
-            if intval == "000S":
-                # period no set use default from json
-                self._readingScale[0].set(self.devices[self.device['index']]['ReadingPeriod'])
-                self._readingScale[1].set(self._readingPeriods[self._readingScale[0].get()]['Description'])
-                self._readingScale[2].set("{}.\r {}".format(
-                                            self._readingPeriods[self._readingScale[0].get()]['Description'],
-                                            "?")
-                                          )
-                if setCycle:
-                    self.entry['SLEEPM'][0].set(1)
-                return
-            elif intval == period['Period']:
-                self._readingScale[0].set(index)
-                self._readingScale[1].set("{}".format(self._parseIntervalToString(self.entry['INTVL'][0].get())))
-                self._readingScale[2].set("{}.\r {}".format(
-                                            self._readingPeriods[self._readingScale[0].get()]['Description'],
-                                            self._estimateLifeTimeForPeriod(self.entry['INTVL'][0].get(), self.device['index'])
-                                                                                  )
-                                          )
-                if setCycle:
-                    self.entry['SLEEPM'][0].set(1)
-                return
-
-        self._readingScale[0].set(len(self._readingPeriods))
-        self._readingScale[1].set("Custom Period {}".format(self._parseIntervalToString(self.entry['INTVL'][0].get())))
-        self._readingScale[2].set("You have chosen a custom period of {}.\r {}".format(
-                                    self._parseIntervalToString(self.entry['INTVL'][0].get()),
-                                    self._estimateLifeTimeForPeriod(self.entry['INTVL'][0].get(), self.device['index'])
-                                                                                                             )
-                                 )
-
-    def _parseIntervalToString(self, period):
-        return "{} {}".format(int(period[:3]), self._periodUnits[period[3:]])
-
-    def _estimateLifeTimeForPeriod(self, period, deviceID):
-        return "Expected life will be {}".format("?")
-
-    def _getNextFreeID(self):
-        try:
-            for id in itertools.product(string.ascii_uppercase, repeat=2):
-                if ''.join(id) not in sorted(self._messgaeBridges[self._network]['data']['result']['deviceStore'].keys()):
-                    return ''.join(id)
-        except:
-            return "??"
-
-    def _updateMissMatchSettings(self, *args):
-        try:
-            if not self.device['newDevice']:
-                    if self._settingMissMatchVar.get() == 1:
-                        self.entry['PANID'][0].set(self._messgaeBridges[self._network]['data']['result']['PANID'])
-                        if self._messgaeBridges[self._network]['data']['result']['encryptionSet']:
-                            self.device['setENC'] = True
-                        else:
-                            self.device['setENC'] = False
-                    else:
-                        self.entry['PANID'][0].set(self.entry['PANID'][1].get())
-                        self.device['setENC'] = False
-        except:
-            pass
-
+    
     def _displayMoreInfo(self, subject):
         self.logger.debug("Displaying more info for {}".format(subject))
 
@@ -907,20 +782,6 @@ class ConfigurationWizard:
 
         self._devIDListbox.grid(row=8, column=1, columnspan=4,
                                 rowspan=9, sticky=tk.E+tk.W+tk.N+tk.S)
-
-    def _onDevIDselect(self, evt):
-        w = evt.widget
-        w.selection_clear(0, w.size())
-
-    def _checkDevIDList(self, *args):
-        if self._currentFrame == "chdevidFrame":
-            try:
-                if self.entry['CHDEVID'][0].get() in self._messgaeBridges[self._network]['data']['result']['deviceStore'].keys():
-                    self._devIDWarning.set(WARNINGTEXT)
-                else:
-                    self._devIDWarning.set("")
-            except:
-                pass
 
     def _displayConfig(self):
         self.logger.debug("Displaying Device type based config screen")
@@ -1087,9 +948,6 @@ class ConfigurationWizard:
 
             r += 2
 
-    def _entryCopy(self):
-        for key, value in self.entry.items():
-            value[1].set(value[0].get())
 
     def _displayAdvance(self):
         """Advance config diag to show Serial number and set ENC"""
@@ -1191,6 +1049,155 @@ class ConfigurationWizard:
 
         tk.Button(self.eframe, text='Start Over', command=self._startOver
                   ).grid(row=4, column=2, columnspan=2, sticky=tk.E+tk.W)
+    
+    # MARK: - Display helpers
+
+    def _checkMessageBridgeUpdate(self):
+		# self.logger.debug("Checking Message Bridge reply flag")
+        if self.fMessgaeBridgeUpdate.is_set():
+            # flag set, re-draw buttons
+            self._updateMessageBridgeList()
+            # clear flag and schedule next check
+            self.fMessgaeBridgeUpdate.clear()
+
+
+        if self._checkMessageBridgeCount == 5:
+            # send out another status ping
+            self.qUDPSend.put(self._messageBridgeQueryJSON)
+        elif self._checkMessageBridgeCount == 10:
+            # let user know we are still looking but have not found anything yet
+            if len(self._messgaeBridges) == 0:
+                pass
+
+            # send out another query and reset count
+            self._checkMessageBridgeCount = 0
+            self.qUDPSend.put(self._messageBridgeQueryJSON)
+
+        self._checkMessageBridgeCount += 1
+        if self._checkMessageBridge:
+            # carry on checking until user moves from first page
+            self.master.after(1000, self._checkMessageBridgeUpdate)
+
+    def _updateMessageBridgeList(self):
+        self.logger.debug("Updating Message Bridge list buttons")
+        self.iframe.children['introText'].config(text=INTRO1)
+        for network, messageBridge in self._messgaeBridges.items():
+            # if we don't all-ready have a button create a new one
+            if network not in self._messgaeBridgeButtons.keys():
+                self._messgaeBridgeButtons[network] = tk.Button(self.iframe,
+                                                         name="n{}".format(network),
+                                                         text=network,
+                                                         command=lambda n=network:self._displayPressButton(n),
+                                                         state=tk.ACTIVE if messageBridge['state'] == "Running" or messageBridge['state'] == "RUNNING" else tk.DISABLED
+                                                         )
+                self._messgaeBridgeButtons[network].grid(row=5+len(self._messgaeBridgeButtons),
+                                                  column=1,
+                                                  columnspan=4, sticky=tk.E+tk.W)
+            else:
+              # need to update button state
+              self._messgaeBridgeButtons[network].config(state=tk.ACTIVE if messageBridge['state'] == "Running" or messageBridge['state'] == "RUNNING" else tk.DISABLED
+                                                  )
+
+    def _updateIntervalOnScaleChange(self, *args):
+        if self._readingScale[0].get() != len(self._readingPeriods):
+            if self.entry['INTVL'][0].get() != self._readingPeriods[self._readingScale[0].get()]['Period']:
+                self.entry['INTVL'][0].set(self._readingPeriods[self._readingScale[0].get()]['Period'])
+                self.entry['SLEEPM'][0].set(1)
+        try:
+            self._readingScale[1].set("{}".format(self._parseIntervalToString(self.entry['INTVL'][0].get())))
+            self._readingScale[2].set("{}.\r {}".format(
+                                        self._readingPeriods[self._readingScale[0].get()]['Description'],
+                                        self._estimateLifeTimeForPeriod(self.entry['INTVL'][0].get(), self.device['index'])
+                                                                              )
+                                      )
+        except:
+            self._readingScale[1].set("Custom Period")
+            self._readingScale[2].set("To set a custom reporting period please use the \"Advanced Config\" option below".format(self._parseIntervalToString(self.entry['INTVL'][0].get())))
+
+    def _updateScaleAndDescriptionFromPeriod(self, intval, setCycle=True):
+        for (index,period) in enumerate(self._readingPeriods):
+            if intval == "000S":
+                # period no set use default from json
+                self._readingScale[0].set(self.devices[self.device['index']]['ReadingPeriod'])
+                self._readingScale[1].set("{}".format(self._parseIntervalToString(self.entry['INTVL'][0].get())))
+                # TODO: add reading period estimated battery life
+                self._readingScale[2].set("{}.\r {}".format(
+                                            self._readingPeriods[self._readingScale[0].get()]['Description'],
+                                            self._estimateLifeTimeForPeriod(self.entry['INTVL'][0].get(), self.device['index'])
+                                                            )
+                                          )
+                if setCycle:
+                    self.entry['SLEEPM'][0].set(1)
+                return
+            elif intval == period['Period']:
+                self._readingScale[0].set(index)
+                self._readingScale[1].set("{}".format(self._parseIntervalToString(self.entry['INTVL'][0].get())))
+                self._readingScale[2].set("{}.\r {}".format(
+                                            self._readingPeriods[self._readingScale[0].get()]['Description'],
+                                            self._estimateLifeTimeForPeriod(self.entry['INTVL'][0].get(), self.device['index'])
+                                                           )
+                                          )
+                if setCycle:
+                    self.entry['SLEEPM'][0].set(1)
+                return
+
+        self._readingScale[0].set(len(self._readingPeriods))
+        self._readingScale[1].set("Custom Period {}".format(self._parseIntervalToString(self.entry['INTVL'][0].get())))
+        self._readingScale[2].set("You have chosen a custom period of {}.\r {}".format(
+                                    self._parseIntervalToString(self.entry['INTVL'][0].get()),
+                                    self._estimateLifeTimeForPeriod(self.entry['INTVL'][0].get(), self.device['index'])
+                                                                                       )
+                                 )
+
+    def _parseIntervalToString(self, period):
+        return "{} {}".format(int(period[:3]), self._periodUnits[period[3:]])
+
+    def _estimateLifeTimeForPeriod(self, period, deviceID):
+        # TODO: correctly calculate and display expected life text
+        # return "Expected life will be {}".format("?")
+        return ""
+    
+    def _getNextFreeID(self):
+        try:
+            for id in itertools.product(string.ascii_uppercase, repeat=2):
+                if ''.join(id) not in sorted(self._messgaeBridges[self._network]['data']['result']['deviceStore'].keys()):
+                    return ''.join(id)
+        except:
+            return "??"
+
+    def _updateMissMatchSettings(self, *args):
+        try:
+            if not self.device['newDevice']:
+                    if self._settingMissMatchVar.get() == 1:
+                        self.entry['PANID'][0].set(self._messgaeBridges[self._network]['data']['result']['PANID'])
+                        if self._messgaeBridges[self._network]['data']['result']['encryptionSet']:
+                            self.device['setENC'] = True
+                        else:
+                            self.device['setENC'] = False
+                    else:
+                        self.entry['PANID'][0].set(self.entry['PANID'][1].get())
+                        self.device['setENC'] = False
+        except:
+            pass
+
+    def _onDevIDselect(self, evt):
+        w = evt.widget
+        w.selection_clear(0, w.size())
+
+    def _checkDevIDList(self, *args):
+        if self._currentFrame == "chdevidFrame":
+            try:
+                if self.entry['CHDEVID'][0].get() in self._messgaeBridges[self._network]['data']['result']['deviceStore'].keys():
+                    self._devIDWarning.set(WARNINGTEXT)
+                else:
+                    self._devIDWarning.set("")
+            except:
+                pass
+    
+    def _entryCopy(self):
+        for key, value in self.entry.items():
+            value[1].set(value[0].get())
+
 
     # MARK: - Validation rules
 
