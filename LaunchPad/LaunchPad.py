@@ -647,7 +647,6 @@ class LaunchPad:
         self.advanceText.grid(row=2, column=3, rowspan=2, sticky=tk.W+tk.E+tk.N,
                         padx=2)
 
-
         self.advanceSelect.selection_set(0)
         self.onAdvanceSelect(None)
 
@@ -677,10 +676,10 @@ class LaunchPad:
         """
             Check for a Message Bridge running on the network
 
-            Do we have a replay in the Que
+            Do we have a replay in the Queue
                 update messge
                 restart timmers
-            has our udp time out expierd
+            has our udp time out expired
                 update message
             is it time to check again
                 send out UDP
@@ -743,7 +742,7 @@ class LaunchPad:
                 elif jsonin['type'] == "DeviceConfigurationRequest":
                     pass
                 elif jsonin['type'] == "MessageBridge":
-                    # we have a MessageBridge json do stuff with it
+                    # we have a MessageBridge JSON do stuff with it
                     self.debugPrint("tUDPListen: JSON of type MessageBridge")
                     if jsonin['state'] == "Running" or jsonin['state'] == "RUNNING":
                         self.fMessageBridgeGood.set()
@@ -764,7 +763,7 @@ class LaunchPad:
 
         self.tUDPSendStop = threading.Event()
 
-        self.tUDPSend = threading.Thread(target=self._UDPSendTread)
+        self.tUDPSend = threading.Thread(target=self._UDPSendThread)
         self.tUDPSend.daemon = False
 
         try:
@@ -772,7 +771,7 @@ class LaunchPad:
         except:
             self.debugPrint("Failed to Start the UDP send thread")
 
-    def _UDPSendTread(self):
+    def _UDPSendThread(self):
         """ UDP Send thread
         """
         self.debugPrint("tUDPSend: Send thread started")
