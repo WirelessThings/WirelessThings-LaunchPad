@@ -98,7 +98,7 @@ class LaunchPad:
 
         self._running = False
 
-    def on_excute(self):
+    def on_execute(self):
         self.checkArgs()
         self.readConfig()
         self.loadApps()
@@ -108,7 +108,7 @@ class LaunchPad:
 
         self._running = True
 
-        self.runLauncher()
+        self.runLaunchPad()
 
         self.cleanUp()
 
@@ -124,8 +124,8 @@ class LaunchPad:
 
         os.execv(sys.executable, args)
 
-    def endLauncher(self):
-        self.debugPrint("End Launcher")
+    def endLaunchPad(self):
+        self.debugPrint("End LaunchPad")
         position = self.master.geometry().split("+")
         self.config.set('LaunchPad', 'window_width_offset', position[1])
         self.config.set('LaunchPad', 'window_height_offset', position[2])
@@ -155,7 +155,7 @@ class LaunchPad:
                             help='disable checking for update',
                             action='store_false')
         parser.add_argument('-d', '--debug',
-                            help='Extra Debug Output, overrides launcher.cfg setting',
+                            help='Extra Debug Output, overrides LaunchPad.cfg setting',
                             action='store_true')
 
         self.args = parser.parse_args()
@@ -460,10 +460,10 @@ class LaunchPad:
                 if self.checkStatus(app['id']):
                     self.launch(app['id'], 'restart', True)
 
-    def runLauncher(self):
-        self.debugPrint("Running Main Launcher")
+    def runLaunchPad(self):
+        self.debugPrint("Running LaunchPad")
         self.master = tk.Tk()
-        self.master.protocol("WM_DELETE_WINDOW", self.endLauncher)
+        self.master.protocol("WM_DELETE_WINDOW", self.endLaunchPad)
         self.master.geometry(
              "{}x{}+{}+{}".format(self.widthMain,
                                   self.heightMain+self.heightStatusBar,
@@ -499,13 +499,13 @@ class LaunchPad:
         self.tBarFrame.config(relief=tk.RAISED, pady=4)
 
         # tab buttons
-        tk.Button(self.tBarFrame, text='Quit', command=self.endLauncher
+        tk.Button(self.tBarFrame, text='Quit', command=self.endLaunchPad
                ).pack(side=tk.RIGHT)
         #tk.Label(self.tBarFrame, text=self.currentVersion).pack(side=tk.RIGHT)
 
     def initMain(self):
         self.debugPrint("Setting up Main Tab")
-        iframe = Tab(self.tabFrame, "Main", fname='launcher')
+        iframe = Tab(self.tabFrame, "Main", fname='launchPad')
         iframe.config(relief=tk.RAISED, borderwidth=2, width=self.widthMain,
                       height=self.heightTab)
         self.tBarFrame.add(iframe)
@@ -528,7 +528,7 @@ class LaunchPad:
         self.scrollbar = tk.Scrollbar(lbframe)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        self.appSelect = tk.Listbox(lbframe, bd=0, height=10,
+        self.appSelect = tk.Listbox(lbframe, bd=0, height=10, exportselection=0,
                                     yscrollcommand=self.scrollbar.set)
         self.appSelect.bind('<<ListboxSelect>>', self.onAppSelect)
         self.appSelect.pack()
@@ -622,7 +622,7 @@ class LaunchPad:
         self.scrollbar = tk.Scrollbar(lbframe)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        self.advanceSelect = tk.Listbox(lbframe, bd=0, height=10,
+        self.advanceSelect = tk.Listbox(lbframe, bd=0, height=10, exportselection=0,
                                     yscrollcommand=self.scrollbar.set)
         self.advanceSelect.bind('<<ListboxSelect>>', self.onAdvanceSelect)
         self.advanceSelect.pack()
@@ -834,14 +834,14 @@ class LaunchPad:
                 self.serviceButton.pack()
             else:
                 self.serviceButton.pack_forget()
-            if args[0] is not None:
-                self.updateSSRButtons(app)
+
+            self.updateSSRButtons(app)
         else:
             self.SSRFrame.pack_forget()
             self.launchFrame.pack()
 
     def onAdvanceSelect(self, *args):
-        self.debugPrint("Advnace select update")
+        self.debugPrint("Advance select update")
         #self.debugPrint(args)
         app = int(self.advanceSelect.curselection()[0])
         self.advanceText.config(text=self.advanceList[app]['Description'])
@@ -1150,4 +1150,4 @@ class PasswordDialog(tk.Toplevel):
 
 if __name__ == "__main__":
     app = LaunchPad()
-    app.on_excute()
+    app.on_execute()
