@@ -132,7 +132,7 @@ class ConfigurationWizard:
 
     _rows = 19
     _rowHeight = 28
-    _widthMain = 604
+    _widthMain = 664
     _heightMain = (_rows*_rowHeight)+4
     _widthSerial = 600
     _heightSerial = 200
@@ -486,7 +486,8 @@ class ConfigurationWizard:
 
         self._buildGrid(self.iframe)
 
-        tk.Label(self.iframe, name='introText', text=INTRO
+        tk.Label(self.iframe, name='introText', text=INTRO,
+                 wraplength=self._widthMain/6*4,
                  ).grid(row=1, column=0, columnspan=6, rowspan=4)
 
         self._checkMessageBridgeCount = 0
@@ -593,7 +594,8 @@ class ConfigurationWizard:
                   ).grid(row=r, column=5, sticky=tk.W)
         if self.device['newDevice']:
             r += 1
-            tk.Label(self.sframe, text=NEWDEVICEIDTEXT
+            tk.Label(self.sframe, text=NEWDEVICEIDTEXT,
+                     wraplength=self._widthMain/6*4,
                      ).grid(row=r, column=1, columnspan=4, sticky=tk.W+tk.E)
 
         r += 2 # start row for next set of options
@@ -1014,7 +1016,7 @@ class ConfigurationWizard:
                        ).grid(row=3, column=4, columnspan=2, sticky=tk.W)
 
 
-        tk.Label(self.aframe, text="Encryption Key (set Only)"
+        tk.Label(self.aframe, text="Encryption Key (set Only, 32 HEX characters)"
                  ).grid(row=4, column=3, columnspan=3)
         tk.Label(self.aframe, text="EN[1-6]").grid(row=5, column=3, sticky=tk.E)
         self._encryptionKeyInput = tk.Entry(self.aframe,
