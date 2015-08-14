@@ -568,7 +568,7 @@ class ConfigurationWizard:
                  ).grid(row=r, column=1, columnspan=4, rowspan=3)
         r += 1
         b = tk.Button(self.sframe, text='i', state=tk.ACTIVE,
-                  command=lambda: self._displayMoreInfo("Description"),
+                  command=lambda: self._displayMoreInfo("LongDescription"),
                   font = self._italicFont
                   ).grid(row=r, column=5, sticky=tk.W)
     

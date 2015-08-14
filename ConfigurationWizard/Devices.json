@@ -4,7 +4,8 @@
                {
                "DTY":"AAAB01",
                "Name":"Temperature Sensor SB-CA",
-               "Description":"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut tempus turpis sit amet diam auctor, ac semper dui sollicitudin. Pellentesque at semper lorem. Vivamus scelerisque id elit in porttitor. Sed eget condimentum dolor. Nunc sollicitudin.",
+               "Description":"This Temerature Sensor device sends periodic readings in degrees centigrade. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade",
+               "LongDescription":"This small, matchbox sized, wireless sensor uses The Language of Things open messaging standard, this means it is more power friendly and easier to understand than 6lowpan, Zigbee, Zwave etc. The device sends periodic encrypted readings to another receiving WirelessThings device. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade. The internal coin cell battery is capable of running for well in excess of 10 years (based on 1 reading per hour).",
                "SleepMode":"Cyclic",
                "ReadingPeriod":1,
                "PowerClass":"SB",
@@ -49,7 +50,8 @@
                {
                "DTY":"AAAB02",
                "Name":"Temperature Sensor SB-CA",
-               "Description":"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut tempus turpis sit amet diam auctor, ac semper dui sollicitudin. Pellentesque at semper lorem. Vivamus scelerisque id elit in porttitor. Sed eget condimentum dolor. Nunc sollicitudin.",
+               "Description":"This Temerature Sensor device sends periodic readings in degrees centigrade. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade",
+               "LongDescription":"This small, matchbox sized, wireless sensor uses The Language of Things open messaging standard, this means it is more power friendly and easier to understand than 6lowpan, Zigbee, Zwave etc. The device sends periodic encrypted readings to another receiving WirelessThings device. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade. The internal coin cell battery is capable of running for well in excess of 10 years (based on 1 reading per hour).",
                "SleepMode":"Cyclic",
                "ReadingPeriod":1,
                "PowerClass":"SB",
@@ -88,7 +90,8 @@
                {
                "DTY":"AAAB03",
                "Name":"Temperature Sensor SB-CA",
-               "Description":"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut tempus turpis sit amet diam auctor, ac semper dui sollicitudin. Pellentesque at semper lorem. Vivamus scelerisque id elit in porttitor. Sed eget condimentum dolor. Nunc sollicitudin.",
+               "Description":"This Temerature Sensor device sends periodic readings in degrees centigrade. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade",
+               "LongDescription":"This small, matchbox sized, wireless sensor uses The Language of Things open messaging standard, this means it is more power friendly and easier to understand than 6lowpan, Zigbee, Zwave etc. The device sends periodic encrypted readings to another receiving WirelessThings device. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade. The internal coin cell battery is capable of running for well in excess of 10 years (based on 1 reading per hour).",
                "SleepMode":"Cyclic",
                "ReadingPeriod":1,
                "PowerClass":"SB",

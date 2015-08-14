@@ -64,43 +64,43 @@
     "Reading Periods":[
                          {
                          "Period":"010S",
-                         "Description":"10 Second reading period"
+                         "Description":"10 Second reading interval"
                          },
                          {
                          "Period":"001M",
-                         "Description":"1 Minute reading period"
+                         "Description":"1 Minute reading interval"
                          },
                          {
                          "Period":"005M",
-                         "Description":"5 Minute reading period"
+                         "Description":"5 Minute reading interval"
                          },
                          {
                          "Period":"010M",
-                         "Description":"10 Minute reading period"
+                         "Description":"10 Minute reading interval"
                          },
                          {
                          "Period":"030M",
-                         "Description":"30 Minute reading period"
+                         "Description":"30 Minute reading interval"
                          },
                          {
                          "Period":"001H",
-                         "Description":"1 Hour reading period"
+                         "Description":"1 Hour reading interval"
                          },
                          {
                          "Period":"002H",
-                         "Description":"2 Hour reading period"
+                         "Description":"2 Hour reading interval"
                          },
                          {
                          "Period":"006H",
-                         "Description":"6 Hour reading period"
+                         "Description":"6 Hour reading interval"
                          },
                          {
                          "Period":"012H",
-                         "Description":"12 Hours reading period"
+                         "Description":"12 Hours reading interval"
                          },
                          {
                          "Period":"024H",
-                         "Description":"24 Hours reading period"
+                         "Description":"24 Hours reading interval"
                          }
                         ],
     "Valid Characters":{
