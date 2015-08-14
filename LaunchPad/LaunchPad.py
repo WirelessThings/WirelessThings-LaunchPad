@@ -647,7 +647,6 @@ class LaunchPad:
         self.advanceText.grid(row=2, column=3, rowspan=2, sticky=tk.W+tk.E+tk.N,
                         padx=2)
 
-
         self.advanceSelect.selection_set(0)
         self.onAdvanceSelect(None)
 
@@ -764,7 +763,7 @@ class LaunchPad:
 
         self.tUDPSendStop = threading.Event()
 
-        self.tUDPSend = threading.Thread(target=self._UDPSendTread)
+        self.tUDPSend = threading.Thread(target=self._UDPSendThread)
         self.tUDPSend.daemon = False
 
         try:
@@ -772,7 +771,7 @@ class LaunchPad:
         except:
             self.debugPrint("Failed to Start the UDP send thread")
 
-    def _UDPSendTread(self):
+    def _UDPSendThread(self):
         """ UDP Send thread
         """
         self.debugPrint("tUDPSend: Send thread started")
