@@ -116,15 +116,23 @@ class AT():
         else:
             return False
 
-    def sendATWaitForOK(self, command, timeout=1.5):
+    def sendATWaitForOK(self, command, timeout=1.5, retries=3):
         """ Send an AT command and wait of "OK\r"
             used for command that do not return anything
         """
-        if self._inATMode:
+        if not self._inATMode:
+            #if not in AT Mode, try to enter the AT Mode
+            self.enterATMode()                        
+            if not self._inATMode: # if still not in AT Mode, return False
+                return False
+        
+        retry = 0
+        response = False
+        while not response and retry < retries:
             self.sendAT(command)
-            return self.waitForOK(timeout)
-        else:
-            return False
+            response = self.waitForOK(timeout)
+            retry += 1
+        return response
 
     def waitForOK(self, timeout=1.5):
         """ wait/look for an "OK\r" from the radio
@@ -135,19 +143,67 @@ class AT():
         char = ""
         while (time() - starttime) < timeout and char != "\r":
             char = self._serial.read()
-            # self.logger.debug("AT: RX:{}".format(char))
+            #self.logger.debug("AT: RX:{}".format(char))
             buffer += char
 
-        if buffer == "OK\r":
+        if "OK\r" in buffer:
             self.logger.debug("AT: Got OK")
             return True
-        elif buffer == "ERR\r":
+        elif "ERR\r" in buffer:
             self.logger.debug("AT: Got ERR")
             return False
         else:
             self.logger.debug("AT: OK timed out")
             return False
 
+    def sendATWaitForResponse(self, command, timeout=1.5, retries=3):
+        """ Send an AT command and wait for response followed by an "OK\r"            
+            Otherwise returns False
+        """
+        if not self._inATMode:
+            #if not in AT Mode, try to enter the AT Mode
+            self.enterATMode()                        
+            if not self._inATMode: # if still not in AT Mode, return False
+                return False
+            
+        retry = 0
+        response = False
+        while not response and retry < retries:
+            self.sendAT(command)
+            response = self.waitForResponse(timeout)
+            retry += 1        
+        return response
+        
+           
+    def waitForResponse(self, timeout=1.5):
+        """ wait/look for response from the radio
+        """
+
+        self.logger.debug("AT: Wait for Response")
+        starttime = time()
+        buffer = ""
+        char = ""
+        while (time() - starttime) < timeout and char != "\r":
+            char = self._serial.read()
+            # self.logger.debug("AT: RX:{}".format(char))
+            buffer += char
+        ### receive the first line, if there's no info (or ERR), return False
+        if buffer == "":
+            self.logger.debug("AT: OK timed out")
+            return False        
+        elif "ERR\r" in buffer:
+            self.logger.debug("AT: Got ERR")
+            return False
+
+        buffer.rsplit('\r') #doesn't need to send the '\r' char at the end
+        #receive the second line (expecting 'OK\r') to make sure that the data received is valid
+        if self.waitForOK():
+            return buffer
+            
+        return False
+
+        
+            
 if __name__ == "__main__":
     app = AT()
     app.setupSerial('/dev/tty.usbmodem000001', 9600)

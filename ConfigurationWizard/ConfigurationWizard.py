@@ -548,7 +548,7 @@ class ConfigurationWizard:
         tk.Button(self.sframe, text='Back', state=tk.ACTIVE,
                   command=self._startOver,
                   ).grid(row=r, column=1, sticky=tk.W)
-        tk.Button(self.sframe, name='next', text='Apply settings to decive',
+        tk.Button(self.sframe, name='next', text='Apply settings to device',
                  command=self._sendConfigRequest
                  ).grid(row=self._rows-4, column=2, columnspan=2,
                         sticky=tk.E+tk.W)
