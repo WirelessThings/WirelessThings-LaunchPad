@@ -34,6 +34,7 @@ import socket
 import select
 import json
 import logging
+import LogHandler
 import AT
 import re
 if sys.platform == 'win32':
@@ -462,6 +463,24 @@ is running then run in the current terminal
             setup the loggers
         """
         self.logger.info("Setting up Loggers. Console output may stop here")
+        #enable the CSV log
+        self._csvLog = self.config.getboolean('CSVLog', 'csv_log')
+        if self._csvLog:
+            self.logger.debug('Setting CSV Log')
+            self.csvLogger = logging.getLogger('CSV Log')
+            # maybe add the current date to the first filename log?
+            filename = self.config.get('CSVLog', 'directory') + self.config.get('CSVLog', 'csv_file_name')
+            self._tr = LogHandler.CSVTimedRotatingFileHandler(filename, when='D', interval=1,
+                                                                    backupCount=self.config.getint('CSVLog', 'days_to_keep'))
+            formatter = logging.Formatter('%(message)s')
+            self._tr.setFormatter(formatter)
+            self._tr.setLevel(self.config.get('CSVLog', 'csv_log_level'))
+            logLevel = self.config.get('CSVLog', 'csv_log_level')
+            numeric_level = getattr(logging, logLevel.upper(), None)
+            if not isinstance(numeric_level, int):
+                raise ValueError('Invalid CSV log level: %s' % loglevel)
+            self._tr.setLevel(numeric_level)
+            self.csvLogger.addHandler(self._tr)
 
         # disable logging if no options are enabled
         if (self.args.debug == False and
@@ -560,7 +579,7 @@ is running then run in the current terminal
         else:
             self._serial.port = self.config.get('Serial', 'port')
         self._serial.baud = self.config.get('Serial', 'baudrate')
-        self._serial.timeout = self._serialTimeout        
+        self._serial.timeout = self._serialTimeout
         # setup queue
         self.qSerialOut = Queue.Queue()
         self.qSerialToQuery = Queue.Queue()
@@ -909,7 +928,7 @@ is running then run in the current terminal
                     wirelessMsg = "a"
                     self.logger.debug("tSerial: RX:{}".format(char))
                 elif (count == 0 or count == 1) and char in self._validID:
-                    # we have a vlaid ID
+                    # we have a valid ID
                     wirelessMsg += char
                     count += 1
                 elif count >= 2 and char in self._validData:
@@ -1197,6 +1216,9 @@ is running then run in the current terminal
         jsonDict['timestamp'] = strftime("%d %b %Y %H:%M:%S +0000", gmtime())
         jsonDict['id'] = message[1:3]
         jsonDict['data'] = [message[3:].strip("-")]
+
+        if self._csvLog:
+            self.csvLogger.info(jsonDict['timestamp']+','+jsonDict['id']+','+jsonDict['data'][0])
 
         jsonout = json.dumps(jsonDict)
         self._updateDeviceStore(jsonDict)
