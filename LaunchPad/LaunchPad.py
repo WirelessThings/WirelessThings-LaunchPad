@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-""" Wireless Things LaunchPad
+""" WirelessThings LaunchPad
 
     Author: Matt Lloyd
     Copyright 2015 Ciseco Ltd.
@@ -56,7 +56,7 @@ from Tabs import *
 """
 
 class LaunchPad:
-    _name = "Wireless Things LaunchPad"
+    _name = "WirelessThings LaunchPad"
     _autoStartText = {
                       'enable': "Enable Autostart",
                       'disable': "Disable Autostart"
@@ -474,7 +474,7 @@ class LaunchPad:
                                   )
                              )
 
-        self.master.title("Wireless Things LaunchPad v{}".format(self.currentVersion))
+        self.master.title("WirelessThings LaunchPad v{}".format(self.currentVersion))
         #self.master.resizable(0,0)
 
         self.tabFrame = tk.Frame(self.master, name='tabFrame')

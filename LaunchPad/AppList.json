@@ -9,7 +9,7 @@
              "Autostart": 1,
              "InitScript": "messagebridge",
             "Args" : "",
-             "Description" : "Wireless Things Message Bridge\r\r"
+             "Description" : "WirelessThings Message Bridge\r\r"
         },
          {
              "id" : 1,
@@ -18,7 +18,7 @@
              "CWD" : "../ConfigurationWizard/",
              "Service": 0,
              "Args" : "",
-             "Description" : "Wireless Things Device Configuration Wizard\r\r"
+             "Description" : "WirelessThings Device Configuration Wizard\r\r"
              }
 
     ],

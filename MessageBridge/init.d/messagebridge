@@ -12,13 +12,13 @@
 # Required-Stop: $remotefs $syslog
 # Default-Start:  2 3 4 5
 # Default-Stop:   0 1 6
-# Short-Description: Wireless Things Message Bridge
-# Description:    Wireless Things Message Bridge to pass Language of Things trafic between serial and UDP interfaces
+# Short-Description: WirelessThings Message Bridge
+# Description:    WirelessThings Message Bridge to pass Language of Things trafic between serial and UDP interfaces
 ### END INIT INFO
 
 ###
 # This line will be auto updated with the path to your current install path
-# by Wireless Things Launchpad on clicking the Enable Autostart button
+# by WirelessThings Launchpad on clicking the Enable Autostart button
 cd /home/pi/MessageBridge
 ###
 

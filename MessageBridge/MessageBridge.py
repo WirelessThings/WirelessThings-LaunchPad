@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-""" Wireless Things Message Bridge
+""" WirelessThings Message Bridge
 
     Requires pySerial
 

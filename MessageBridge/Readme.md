@@ -1,5 +1,5 @@
 # MessageBridge.py
-Wireless Things Message Bridge for Language of Things message between Serial and UDP networks
+WirelessThings Message Bridge for Language of Things message between Serial and UDP networks
 
 ## Description
 MessageBridge.py provides a Message Bridge for Language of Things message between Serial and UDP networks
@@ -11,7 +11,7 @@ On the serial side it talks strick Language of Things On the UDP network it enco
 The Message Bridge can be run on any system with the following requirements
 * Python 2.7
 * pySerial
-* Wireless Things radio with firmware version of at least Serial V0.88 or USB V0.53
+* WirelessThings radio with firmware version of at least Serial V0.88 or USB V0.53
 
 ## Invoking
 Starting the Message Bridge can be done though several means as detailed below
@@ -23,7 +23,7 @@ or
 
     $ ./MessageBridge.py
 
-The Message Bridge can be started from the Wireless Things LaunchPad
+The Message Bridge can be started from the WirelessThings LaunchPad
 Select **01. Message Bridge** from the List of app's and click the Start button
 
 Double click, your OS may have a run action associated with python script files and double clicking will launch the Message Bridge. Some systems will just open the script in a text editor, if so use one of the methods above.
@@ -46,7 +46,7 @@ Start, Stop and Restart can all be used to control the service like so
     $ ./MessageBridge.py start
 
 
-It is also posible to control the Message Bridge using the Wireless Things LaunchPad which has buttons for Start, Stop and Restart
+It is also posible to control the Message Bridge using the WirelessThings LaunchPad which has buttons for Start, Stop and Restart
 
 ## Install as Daemon or Service for start on boot
 Currently this is not yet supported on Windows or OSX.  
@@ -59,7 +59,7 @@ For Linux we provide a init.d script that can be found in the ./init.d/ folder. 
 
 At next reboot the Message Bridge will now start automatically
 
-It is also posible to use the Wireless Things LaunchPad to install and remove this script using the Enable/Disable AutoStart button.
+It is also posible to use the WirelessThings LaunchPad to install and remove this script using the Enable/Disable AutoStart button.
 
 ## Command line options
 * -h --help  

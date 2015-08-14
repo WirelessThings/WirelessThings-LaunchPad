@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-""" Wireless Things Configuration Wizard
+""" WirelessThings Configuration Wizard
 
     Author: Matt Lloyd
     Copyright 2015 Ciseco Ltd.
@@ -87,13 +87,13 @@ import tkFont
 """
 
 
-INTRO = """Welcome to Wireless Things Device Configuration Wizard
+INTRO = """Welcome to WirelessThings Device Configuration Wizard
 
-Please wait while we try to reach a Wireless Things Message Bridge"""
+Please wait while we try to reach a WirelessThings Message Bridge"""
 
-INTRO1 = """Welcome to Wireless Things Device Configuration Wizard
+INTRO1 = """Welcome to WirelessThings Device Configuration Wizard
 
-One or more Wireless Things Message Bridges have been found running on this network.
+One or more WirelessThings Message Bridges have been found running on this network.
 
 Please select a Message Bridge to use from the list below"""
 
@@ -264,7 +264,7 @@ class ConfigurationWizard:
                                       )
                              )
 
-        self.master.title("Wireless Things Device Configuration Wizard v{}".format(self._version))
+        self.master.title("WirelessThings Device Configuration Wizard v{}".format(self._version))
         self.master.resizable(0,0)
 
         self._initTkVariables()

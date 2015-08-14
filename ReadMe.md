@@ -1,5 +1,5 @@
-# Wireless Things LaunchPad
-Wireless Things LaunchPad is a collection of python program for talking to and configuring Language of Things device
+# WirelessThings LaunchPad
+WirelessThings LaunchPad is a collection of python program for talking to and configuring Language of Things device
 
 ## Description
 
@@ -11,7 +11,7 @@ The LaunchPad and the Device Configuration Wizard only require the following
 The Message Bridge can be run on any system with the following requirements
 * Python 2.7
 * pySerial
-* Wireless Things radio with firmware version of at least Serial V0.88 or USB V0.53
+* WirelessThings radio with firmware version of at least Serial V0.88 or USB V0.53
 
 ## Invoking
 Starting the LaunchPad can be done though several means as detailed below
