@@ -470,6 +470,7 @@ class ConfigurationWizard:
                       "SNH" : [tk.StringVar(), tk.StringVar(), 'ReadOnlyHex'],
                       "ENC" : [tk.IntVar(), tk.IntVar(), 'ONOFF'],
                       "ENKEY" : [tk.StringVar(), tk.StringVar(), 'ENKey'],
+                      "BATT" : [tk.DoubleVar(), tk.DoubleVar(), 'Float'],
                       "RSSI" : [tk.IntVar(), tk.IntVar(), 'Int']
                      }
         self.entry['CHDEVID'][0].trace_variable('w', self._checkDevIDList)
@@ -1689,8 +1690,12 @@ class ConfigurationWizard:
                  {'command': "SNL"},
                  {'command': "SNH"},
                  {'command': "ENC"},
+                 {'command': "BATT"},
                  {'command': "RSSI"}
                  ]
+                 
+         # TODO: if APVER 2.1 ask DVI
+         
 
         if self.devices[self.device['index']]['SleepMode'] == "Cyclic":
             query.append({'command': "INTVL"})
