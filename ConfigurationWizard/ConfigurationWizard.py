@@ -150,6 +150,7 @@ class ConfigurationWizard:
     _configState = 0
 
     _validID = "ABCDEFGHIJKLMNOPQRSTUVWXYZ-#@?\\*"
+    _validIDMatch = re.compile("[^A-Z]")
     _validData = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !\"#$%&'()*+,-.:;<=>?@[\\\/]^_`{|}~"
     _periodUnits = {"T":"Milli seconds", "S":"Seconds", "M":"Minutes", "H":"Hours", "D":"Days"}
     
@@ -735,7 +736,7 @@ class ConfigurationWizard:
 
         # buttons
         tk.Button(self.dframe, text='Back', state=tk.ACTIVE,
-                  command=lambda: self._displaySimpleConfig(True),
+                  command=self._checkChangeDevIDValid,
                   ).grid(row=0, column=1, sticky=tk.W)
 
         # description and RSSI
@@ -808,7 +809,7 @@ class ConfigurationWizard:
 
         # buttons
         tk.Button(self.cframe, text='Back', state=tk.ACTIVE,
-                  command=lambda: self._displaySimpleConfig(True),
+                  command=self._checkChangeDevIDValid,
                   ).grid(row=0, column=1, sticky=tk.W)
         tk.Button(self.cframe, text='Encryption Settings',
                   command=self._displayAdvance
@@ -1053,6 +1054,42 @@ class ConfigurationWizard:
         tk.Button(self.eframe, text='Start Over', command=self._startOver
                   ).grid(row=4, column=2, columnspan=2, sticky=tk.E+tk.W)
     
+    def _displayProgress(self):
+        self.logger.debug("Displaying progress pop up")
+
+        # disable current Next Button
+        if self._currentFrame is not "pressFrame" and self._currentFrame is not "introFrame":
+            self.master.children[self._currentFrame].children['next'].config(state=tk.DISABLED)
+
+        if self._currentFrame != "pressFrame":
+            # display a popup progress bar window
+            position = self.master.geometry().split("+")
+
+            self.progressWindow = tk.Toplevel()
+            self.progressWindow.geometry("+{}+{}".format(
+                                                 int(position[1])+self._widthMain/4,
+                                                 int(position[2])+self._heightMain/4
+                                                         )
+                                         )
+
+            self.progressWindow.title("Working")
+
+            tk.Label(self.progressWindow,
+                     text="Communicating with device please wait").pack()
+
+            self.progressBar = ttk.Progressbar(self.progressWindow,
+                                               orient="horizontal", length=200,
+                                               mode="indeterminate")
+            self.progressBar.pack()
+            self.progressBar.start()
+        else:
+            # use the progress bar in the pressFrame
+            self.progressBar = ttk.Progressbar(self.pframe,
+                                               orient="horizontal", length=200,
+                                               mode="indeterminate")
+            self.progressBar.grid(row=7, column=1, columnspan=4)
+            self.progressBar.start()
+
     # MARK: - Display helpers
 
     def _checkMessageBridgeUpdate(self):
@@ -1201,6 +1238,26 @@ class ConfigurationWizard:
         for key, value in self.entry.items():
             value[1].set(value[0].get())
 
+    def _checkAdvance(self):
+        self.logger.debug("Checking advance input")
+        if len(self.entry['ENKEY'][0].get()) == 32 or len(self.entry['ENKEY'][0].get()) == 0:
+            self.advanceWindow.destroy()
+        else:
+            # let user know KEY needs to be 0 or 32
+            tkMessageBox.showerror("Encryption Key Length",
+                                   ("Encryption key needs to be 32 characters "
+                                    "long to set a new one or empty to leave unchanged"))
+    def _checkChangeDevIDValid(self):
+        self.logger.debug("Checking devID is valid befor returning to Simple config")
+        if len(self.entry['CHDEVID'][0].get()) == 2 and not self._validIDMatch.match(self.entry['CHDEVID'][0].get()):
+            self._displaySimpleConfig(True)
+        #else if len(self.entry['CHDEVID'][0].get()) == 0:
+            # reset CHDEVID to previous ID
+        else:
+            # let user know KEY needs to be 0 or 32
+            tkMessageBox.showerror("Invalid Device ID",
+                                   ("Please enter a valid two character device ID\r"
+                                    "A device ID can be anything from AA to ZZ"))
 
     # MARK: - Validation rules
 
@@ -1328,52 +1385,6 @@ class ConfigurationWizard:
 
         self._lastDCR.append(dcr)
         self._sendRequest(dcr)
-
-    def _displayProgress(self):
-        self.logger.debug("Displaying progress pop up")
-
-        # disable current Next Button
-        if self._currentFrame is not "pressFrame" and self._currentFrame is not "introFrame":
-            self.master.children[self._currentFrame].children['next'].config(state=tk.DISABLED)
-
-        if self._currentFrame != "pressFrame":
-            # display a popup progress bar window
-            position = self.master.geometry().split("+")
-
-            self.progressWindow = tk.Toplevel()
-            self.progressWindow.geometry("+{}+{}".format(
-                                                 int(position[1])+self._widthMain/4,
-                                                 int(position[2])+self._heightMain/4
-                                                         )
-                                         )
-
-            self.progressWindow.title("Working")
-
-            tk.Label(self.progressWindow,
-                     text="Communicating with device please wait").pack()
-
-            self.progressBar = ttk.Progressbar(self.progressWindow,
-                                               orient="horizontal", length=200,
-                                               mode="indeterminate")
-            self.progressBar.pack()
-            self.progressBar.start()
-        else:
-            # use the progress bar in the pressFrame
-            self.progressBar = ttk.Progressbar(self.pframe,
-                                               orient="horizontal", length=200,
-                                               mode="indeterminate")
-            self.progressBar.grid(row=7, column=1, columnspan=4)
-            self.progressBar.start()
-
-    def _checkAdvance(self):
-        self.logger.debug("Checking advance input")
-        if len(self.entry['ENKEY'][0].get()) == 32 or len(self.entry['ENKEY'][0].get()) == 0:
-            self.advanceWindow.destroy()
-        else:
-            # let user know KEY needs to be 0 or 32
-            tkMessageBox.showerror("Encryption Key Length",
-                                   ("Encryption key needs to be 32 characters"
-                                    "long to set a new one or empty to leave unchanged"))
 
     def _sendConfigRequest(self):
         self.logger.debug("Sending config request to device")
