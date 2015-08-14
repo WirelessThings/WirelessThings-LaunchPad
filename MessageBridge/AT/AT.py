@@ -183,27 +183,31 @@ class AT():
         starttime = time()
         buffer = ""
         char = ""
-        while (time() - starttime) < timeout and char != "\r":
+        while (time() - starttime) < timeout:
             char = self._serial.read()
+            if char == '\r':
+                break
             # self.logger.debug("AT: RX:{}".format(char))
             buffer += char
+
         ### receive the first line, if there's no info (or ERR), return False
         if buffer == "":
             self.logger.debug("AT: OK timed out")
-            return False        
-        elif "ERR\r" in buffer:
+            return False
+        elif buffer == "OK":
+            return False
+        elif buffer == "ERR":
             self.logger.debug("AT: Got ERR")
             return False
 
-        buffer.rsplit('\r') #doesn't need to send the '\r' char at the end
         #receive the second line (expecting 'OK\r') to make sure that the data received is valid
         if self.waitForOK():
             return buffer
-            
+
         return False
 
-        
-            
+
+
 if __name__ == "__main__":
     app = AT()
     app.setupSerial('/dev/tty.usbmodem000001', 9600)
