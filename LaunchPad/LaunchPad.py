@@ -677,10 +677,10 @@ class LaunchPad:
         """
             Check for a Message Bridge running on the network
 
-            Do we have a replay in the Que
+            Do we have a replay in the Queue
                 update messge
                 restart timmers
-            has our udp time out expierd
+            has our udp time out expired
                 update message
             is it time to check again
                 send out UDP
@@ -743,7 +743,7 @@ class LaunchPad:
                 elif jsonin['type'] == "DeviceConfigurationRequest":
                     pass
                 elif jsonin['type'] == "MessageBridge":
-                    # we have a MessageBridge json do stuff with it
+                    # we have a MessageBridge JSON do stuff with it
                     self.debugPrint("tUDPListen: JSON of type MessageBridge")
                     if jsonin['state'] == "Running" or jsonin['state'] == "RUNNING":
                         self.fMessageBridgeGood.set()
