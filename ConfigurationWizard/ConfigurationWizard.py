@@ -1523,7 +1523,7 @@ class ConfigurationWizard:
             if tkMessageBox.askyesno("Communications Timeout",
                                      ("Please check the device is in CONFIGME mode and \n"
                                       "Click yes to retry\n"
-                                      "No to return to pervious screen")
+                                      "No to return to previous screen")
                                      ):
                 # send query again
                 self._sendRequest(self._lastDCR[-1])
@@ -1537,7 +1537,7 @@ class ConfigurationWizard:
             if tkMessageBox.askyesno("Communications Timeout",
                                      ("Please check the device is in CONFIGME mode and \n"
                                       "Click yes to retry\n"
-                                      "No to return to pervious screen")
+                                      "No to return to previous screen")
                                      ):
                 # send query again
                 self._sendRequest(self._lastDCR[-1])
