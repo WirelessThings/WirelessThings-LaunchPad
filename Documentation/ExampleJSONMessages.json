@@ -99,6 +99,7 @@
         "id":3,
         "devType":"AAAB01",
         "keepAwake":1,
+        "setENC":1,             // optional, if included and set to 1 the server will apply its internal encrytpion settings to the device as part of this DCR
         "toQuery":[
                    {
                    "command":"CHDEVID",
