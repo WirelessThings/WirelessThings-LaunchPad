@@ -5,7 +5,7 @@
     listen for UDP broadcasts on port 50140
     and filters by give ID and network if passed on the command line
 
-    Uasge
+    usage
     $ python filterUDPListen.py
     or
     $ ./filterUDPListen.py

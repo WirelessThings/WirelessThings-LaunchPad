@@ -4,7 +4,7 @@
 
     Simple script to help reset a device back to factory settings
 
-    Uasge
+    usage
     $ python DCRDeviceReset.py -- HELLO
     or
     $ ./DCRDeviceReset.py MA TEMP

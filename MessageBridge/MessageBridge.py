@@ -77,11 +77,11 @@ else:
    DONE: Set ATLH1 on start
    Improve checking and retries for ATLH1
    make ATLH1 permanent on command line option
-   Read other AT settigns at launch and store in a memory config
+   Read other AT settings at launch and store in a memory config
 
 
    DONE: *nix Daemon behaviour
-   windows service dehaviour
+   windows service behaviour
 
    self update via web
         started via a MessageBridge message
@@ -878,7 +878,7 @@ is running then run in the current terminal
                 if at.sendATWaitForOK("ATLH1"):
                     if at.sendATWaitForOK("ATAC"):                        
                         if at.sendATWaitForOK("ATWR"):
-                            self.logger.debug("SerialCheckATLH: ATLH1 setted")
+                            self.logger.debug("SerialCheckATLH: ATLH1 set")
             # TODO: check/set out PANID and encryption settings as per config
             self._panID = at.sendATWaitForResponse("ATID")
             if not self._panID:
@@ -1130,7 +1130,7 @@ is running then run in the current terminal
                 # TODO: Test its actually json/catch errors
                 jsonin = json.loads(data)
 
-                # TODO: error checking, dict should have keys for netork
+                # TODO: error checking, dict should have keys for network
                 if (jsonin['network'] == self.config.get('Serial', 'network') or
                     jsonin['network'] == "ALL"):
                     # yep its for our network or "ALL"

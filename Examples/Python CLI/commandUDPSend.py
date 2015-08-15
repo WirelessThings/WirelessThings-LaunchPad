@@ -4,7 +4,7 @@
 
     Send WirelessMessage Json via UDP broadcasts on port 50141
 
-    Uasge
+    usage
     $ python commandUDPSend.py -- HELLO
     or
     $ ./commnadUDPSend.py MA TEMP
