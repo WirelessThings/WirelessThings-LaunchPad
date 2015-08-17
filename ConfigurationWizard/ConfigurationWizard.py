@@ -46,44 +46,25 @@ import tkFont
 """
     Big TODO list
 
-    DONE: JSON over UDP
-
-    DONE: UDP open sockets
-
-    DONE: JSON encode outgoing messages
-    DONE: JSON decode incoming messages
-
-    DONE: JSON debug window
     Pretty JSON format for window?
 
-    DONE: type: Message Bridge status check on start up
-        basic PING
-
-    DONE: use logger for debug output
-
-    DONE: timeouts wait windows base on timeout's sent with DCR
-
-    DONE: keepAwake via JSON's
-
-    DONE: check replies for state, PASS, FAIL_RETRY, FAIL_TIMEOUT
-
-    DONE: disable next button while waiting for query
-
-    read AT settings for PANID and ENCRYPTION from Message Bridge and offer as defaults to the user on a new device
-
-    get JSON device file from network
-
-    offer suggested settings based on json
-
-    DONE: UUID in DCR JSON's so only listen for my own replies
-             either another field or don't hard code stages via id
-
-    DONE: if more that one Message Bridge on the network offer DCR target dropdown
-
     fix self.die()
-
-    Check DEVID box is not empty before going back from change DEVID box
-
+    
+    MessageBrigde Name Clash detection, report to user (same network diffrent IP's)
+    
+    Handel APVER 2.1 and DVI command
+    
+    Make use of Batt reading and display in UI
+    
+    Give estimated Battery life based on period
+    
+    Catch Ctrl-C on console window
+    
+    Bertter handling of Unknown device settings
+    
+    Advance and encryption UI rework
+    
+    Any TODO's from below
 """
 
 
@@ -330,7 +311,7 @@ class ConfigurationWizard:
                 message = self.qUDPSend.get(timeout=1)     # block for up to 30 seconds
             except Queue.Empty:
                 # UDP Send que was empty
-                # extrem debug message
+                # extreme debug message
                 # self.logger.debug("tUDPSend: queue is empty")
                 pass
             else:
@@ -1388,7 +1369,6 @@ class ConfigurationWizard:
 
     def _sendConfigRequest(self):
         self.logger.debug("Sending config request to device")
-        # TODO: add a line here to disable NEXT button on cfame and advance
         query = []
         for command, value in self.entry.items():
             self.logger.debug("Checking {}: {} != {}".format(command, value[0].get(), value[1].get()))
@@ -1834,7 +1814,6 @@ class ConfigurationWizard:
 
     def _replyCheck(self):
         # look for a reply
-        # TODO: wait on UDP reply (how long)
         if self.fWaitingForReply.is_set():
             if self.qDCRReply.empty():
                 if time()-self._starttime > int(self._lastDCR[-1]['data']['timeout'])+10:
@@ -1917,7 +1896,7 @@ class ConfigurationWizard:
         self._serialDebugUpdate()
 
     def _serialDebugUpdate(self):
-        # TODO: nice formation for JSON's?
+        # TODO: nice formatting for JSON's?
         if not self.qJSONDebug.empty():
             txt = self.qJSONDebug.get()
             self.serialDebugText.config(state=tk.NORMAL)
@@ -1940,14 +1919,10 @@ class ConfigurationWizard:
     def _cleanUp(self):
         self.logger.debug("Clean up and exit")
         # if we were talking to a device we should send a CONFIGEND
-        # TODO: send JSON in stead
-
         self._stopKeepAwake()
 
         # cancel anything outstanding
         # disconnect resources
-        # TODO: close sockets
-        # self._lcm.disconnect_transport()
         self._writeConfig()
         try:
             self.tUDPSendStop.set()
@@ -2119,6 +2094,7 @@ class ConfigurationWizard:
             self.logger.critical("Could Not Load Language JSON File")
             sys.exit()
 
+# TODO: Fix die()
 #    def die(self):
 #        """For some reason we can not longer go forward
 #            Try cleaning up what we can and exit

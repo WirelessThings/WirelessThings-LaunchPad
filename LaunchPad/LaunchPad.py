@@ -43,16 +43,23 @@ import select
 from Tabs import *
 
 """
-   todo list:-
+    Big TODO list
 
-   Move advance list from json into py
+    Move advance list from json into py
 
-   switch to debug prints to logging
+    switch to debug prints to logging
 
-   TODO: catch permisions error on exec and set permission if needed
+    catch permisions error on exec and set permission if needed
 
-   TODO: updater should remove files and process renames as needed, (execute a script?)
+    Updates:
+        should remove files or process renames as needed, (form list)
+        execute post update external script (one time)
 
+    Catch Ctrl-C fomr console
+    
+    MessageBrigde Name Clash detection, report to user (same network diffrent IP's)
+
+    Any TODO's from below
 """
 
 class LaunchPad:

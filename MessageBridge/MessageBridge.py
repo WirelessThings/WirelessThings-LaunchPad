@@ -44,28 +44,16 @@ else:
     import lockfile
 
 """
-   Big TODO list
+    Big TODO list
 
-   DCR logic
-    DONE: first pass at processing a request in and out
-    DONE: check DTY
-    DONE: timeouts from config or JSON
-    TODO: Fix Processing EN{1-6} replies
-
-   DONE: better serial read logic
-
-   DONE: Catch Ctrl-C
-   DONE: Clean up on quit code
-   DONE: Clean up on die code
-
-   Thread state monitor
+    Thread state monitor
        gpio state display
        DONE: restart dead threads
        DONE: restart dead serial
        restart dead socket ? how to check
        need to find a way to test broken threads are getting restarted
 
-   "MessageBridge" messages
+    "MessageBridge" messages
         DONE: status
         reboot
         stop
@@ -73,26 +61,18 @@ else:
         report AT settings on request
         change AT settings on request
 
+    windows service behaviour
 
-   DONE: Set ATLH1 on start
-   Improve checking and retries for ATLH1
-   make ATLH1 permanent on command line option
-   Read other AT settings at launch and store in a memory config
-
-
-   DONE: *nix Daemon behaviour
-   windows service behaviour
-
-   self update via web
+    self update via web
         started via a MessageBridge message
 
-   Auto configure Encryption if set on MessageBridge and flag confirmed from GUI
-   Auto configure PANID
+    Wake message logic
+    configme enable/disable logic
 
-   Wake message logic
-   configme enable/disable logic
-
-
+    Implment a defualt and user config file
+    systemd init sctipt supprot
+    
+    Any TODO's from below
 """
 
 class MessageBridge():
@@ -647,7 +627,6 @@ is running then run in the current terminal
                             # use a copy in case we are adding ENC stuff
                             toQuery = list(self._currentDCR['data']['toQuery'])
                             if self._currentDCR['data'].has_key('setENC'):
-                                # TODO: need to perpend encryption key setup to the toQuery
                                 if self._encryption:
                                     self.logger.debug("tDCR: auto setting encryption")
                                     toQuery.insert(0, {"command":"ENC", "value":"ON"})
@@ -879,7 +858,6 @@ is running then run in the current terminal
                     if at.sendATWaitForOK("ATAC"):                        
                         if at.sendATWaitForOK("ATWR"):
                             self.logger.debug("SerialCheckATLH: ATLH1 set")
-            # TODO: check/set out PANID and encryption settings as per config
             self._panID = at.sendATWaitForResponse("ATID")
             if not self._panID:
                 self.logger.critical("SerialCheckATLH: Invalid PANID")
