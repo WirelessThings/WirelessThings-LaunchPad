@@ -1647,8 +1647,10 @@ class ConfigurationWizard:
                 else:
                     if self.entry['PANID'][0].get() != self._messgaeBridges[self._network]['data']['result']['PANID']:
                         self.device['settingsMissMatch'] = True
+                        self._settingMissMatchVar.set(1)
                     if self.entry['ENC'][0].get() != self._messgaeBridges[self._network]['data']['result']['encryptionSet']:
                         self.device['settingsMissMatch'] = True
+                        self._settingMissMatchVar.set(1)
 
                 # show config screen
                 self.logger.debug("Setting keepAwake, display config")
