@@ -4,21 +4,21 @@
     "ActionsType":[
                    {
                    "Name":"Polled",
-                   "Description":"Message is a command use to query or set a value"
+                   "Description":"This message is a command use to query or set a value"
                    },
                    {
                    "Name":"Announce",
-                   "Description":"Message may be sent by the device at any time to report a value"
+                   "Description":"This message may be sent by the device at any time to report a value"
                    },
                    {
                    "Name":"Both",
-                   "Description":"Message may be sent by the device at any time to report a value, or a used to query or set a value"
+                   "Description":"This message may be sent by the device at any time to report a value, or a used to query or set a value"
                    }
                   ],
     "Formats":[
                {
                "Name":"String",
-               "Description":"String of any valid LLAP characters"
+               "Description":"String of any valid Language of Things data characters"
                },
                {
                "Name":"Float",
@@ -26,27 +26,27 @@
                },
                {
                "Name":"Int",
-               "Description":"Whole Integer number"
+               "Description":"Whole number (integer)"
                },
                {
                "Name":"ONOFF",
-               "Description":"Boolean type either ON or OFF"
+               "Description":"Either ON or OFF (boolean)"
                },
                {
                "Name":"ONOFFTOG",
-               "Description":"Boolean type either ON or OFF, TOG switches the current value"
+               "Description":"Either ON, OFF or TOG. (TOG switches the current value between ON or OFF)"
                },
                {
                "Name":"ID",
-               "Description":"Two byte device ID of any valid ID characters"
+               "Description":"Two character device ID of any valid Language of Things ID characters"
                },
                {
                "Name":"Hex",
-               "Description":"Hex value"
+               "Description":"Hexadecimal value"
                },
                {
                "Name":"ReadOnlyHex",
-               "Description":"Hex value read only (Used by Serial Number)"
+               "Description":"Hexadecimal value that can only be read"
                },
                {
                "Name":"Period",
@@ -54,11 +54,11 @@
                },
                {
                "Name":"SleepMode",
-               "Description":"Sleep mode represented as one of the follow. Sleep Off = 0 \n AP_SLEEP_INTERRUPT = 8 \n AP_SLEEP_CYCLIC = 16 \n AP_SLEEP_ONESHOT = 32 "
+               "Description":"Sleep mode represented as one of the follow. Sleep Off = 0 \n Interrupt = 8 \n Cyclic = 16 \n Polled = 32"
                },
                {
                "Name":"ENKey",
-               "Description":"Hex string when sent to a radio, ACK in response"
+               "Description":"Hexadecimal string when sent to a radio, ACK in response"
                }
                ],
     "Reading Periods":[
@@ -117,48 +117,48 @@
                         {
                         "Command":"ACK",
                         "ProtocolFrom":1.0,
-                        "Description":"Sent as a general acknowledgment of an incoming announcement message."
+                        "Description":"Sent as a general acknowledegment of an incoming announcement message."
                         },
                         {
                         "Command":"APVER",
                         "ProtocolFrom":1.0,
                         "Format":"Float",
-                        "Description":"Request a devices LLAP protocol version \nResponse from the device is aXXAPVER9.99 where 9.99 is the version number. The current versions at present are 1.0 and 2.0"
+                        "Description":"Request Language of Things protocol version."
                         },
                         {
                         "Command":"DEVTYPE",
                         "ProtocolFrom":1.0,
                         "Format":"String",
-                        "Description":"Request the device type (LLAP 1.0 format)\n Response is a nine character device type e.g. aXXU00000001 Device types beginning with U are reserved for users to assign to their own prototype devices. All other device types will be kept on a register by CISECO Plc., that can be used to update hubs on a regular basis. In APVER 1.1 this will change to a eight character field e.g. aXXU0000001-"
+                        "Description":"Request the device type for Languages of Things protocol version 1.x devices.\n Response is a nine character device type e.g. aXXU00000001 Device types beginning with U are reserved for users to assign to their own prototype devices. All other device types will be kept on a register by CISECO Ltd and will be update on a regular basis. In Language of Things Protocol version 1.1 this was changed to a eight character field e.g. aXXU0000001-"
                         },
                         {
                         "Command":"DTY",
                         "ProtocolFrom":2.0,
                         "Format":"String",
-                        "Description":"Request the device type (LLAP 2.0 format)\n Response is a six character device type e.g. aXXDTYTHERM2"
+                        "Description":"Request the device type for Languages of Things protocol version 2.x devices.\n A registry of DTY's is held by CISECO Ltd and will be update on a regular basis."
                         },
                         {
                         "Command":"DEVNAME",
                         "ProtocolFrom":1.0,
                         "Format":"String",
-                        "Description":"Request the manufacturer device name \nResponse is a nine character “friendly” name."
+                        "Description":"Request the manufacturer device name for Languages of Things protocol version 1.x devices.\nResponse is a nine character “friendly” name."
                         },
                         {
                         "Command":"DNM",
                         "ProtocolFrom":2.0,
                         "Format":"String",
-                        "Description":"Request the manufacturer device name (LLAP 2.0 format)\n "
+                        "Description":"Request the manufacturer device name for Languages of Things protocol version 2.x devices\n "
                         },
                         {
                         "Command":"DMI",
                         "ProtocolFrom":2.0,
                         "Format":"String",
-                        "Description":"Request the device manufacturer ID (LLAP 2.0 format)\n aXXDMI000001 <> CISECO"
+                        "Description":"Request the device manufacturer ID\n 000001 = CISECO"
                         },
                         {
                         "Command":"DVI",
                         "ProtocolFrom":2.1,
-                        "Format":"Stting",
+                        "Format":"String",
                         "Description":"Request the device variant information."
                         },
                         {
@@ -170,19 +170,24 @@
                         "Command":"SER",
                         "ProtocolFrom":1.0,
                         "Format":"String",
-                        "Description":"Request the manufacturer serial number (LLAP 1.0) \n Also used to set serial number, can only be done once after sending $ER command"
+                        "Description":"Request the serial number of Languages of Things protocol version 1.x devices.\n Also used to set serial number, can only be done once after sending $ER command"
+                        },
+                        {
+                        "Command":"$ER",
+                        "ProtocolFrom":1.0,
+                        "Description":"Initiate Serial number update (as retrieved and set via the SER command). Can be only used once. For Languages of Things protocol version 1.x devices"
                         },
                         {
                         "Command":"SNH",
                         "ProtocolFrom":2.0,
                         "Format":"ReadOnlyHex",
-                        "Description":"Request the manufacturer serial number HIGH Bytes (LLAP 2.0)"
+                        "Description":"Request the manufacturer serial number HIGH Bytes"
                         },
                         {
                         "Command":"SNL",
                         "ProtocolFrom":2.0,
                         "Format":"ReadOnlyHex",
-                        "Description":"Request the manufacturer serial number LOW Bytes (LLAP 2.0)"
+                        "Description":"Request the manufacturer serial number LOW Bytes"
                         },
                         {
                         "Command":"ENC",
@@ -200,65 +205,60 @@
                         "Command":"EN2",
                         "ProtocolFrom":2.0,
                         "Format":"ENKey",
-                        "Description":"Set 2nd set of three bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
+                        "Description":"Set 2nd set of three bytes of the Encryption Key. Unlike other commands the reply will be an EN2ACK"
                         },
                         {
                         "Command":"EN3",
                         "ProtocolFrom":2.0,
                         "Format":"ENKey",
-                        "Description":"Set 3rd set of three bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
+                        "Description":"Set 3rd set of three bytes of the Encryption Key. Unlike other commands the reply will be an EN3ACK"
                         },
                         {
                         "Command":"EN4",
                         "ProtocolFrom":2.0,
                         "Format":"ENKey",
-                        "Description":"Set 4th set of three bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
+                        "Description":"Set 4th set of three bytes of the Encryption Key. Unlike other commands the reply will be an EN4ACK"
                         },
                         {
                         "Command":"EN5",
                         "ProtocolFrom":2.0,
                         "Format":"ENKey",
-                        "Description":"Set 5th set of three bytes of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
+                        "Description":"Set 5th set of three bytes of the Encryption Key. Unlike other commands the reply will be an EN5ACK"
                         },
                         {
                         "Command":"EN6",
                         "ProtocolFrom":2.0,
                         "Format":"ENKey",
-                        "Description":"Set last byte of the Encryption Key. Unlike other commands the reply will be an EN1ACK"
-                        },
-                        {
-                        "Command":"$ER",
-                        "ProtocolFrom":1.0,
-                        "Description":"Initiate Serial number update, can be only used once."
+                        "Description":"Set last byte of the Encryption Key. Unlike other commands the reply will be an EN6ACK"
                         },
                         {
                         "Command":"FVER",
                         "ProtocolFrom":1.0,
                         "Format":"Float",
-                        "Description":"Request the manufacturer firmware version \n Response is aXXFVER9.99- e.g. aXXFVER0.32-"
+                        "Description":"Request the manufacturer firmware version"
                         },
                         {
                         "Command":"CHDEVID",
                         "ProtocolFrom":1.0,
                         "Format":"ID",
-                        "Description":"Request that the device change its device ID"
+                        "Description":"Request the current device ID or set a new one"
                         },
                         {
                         "Command":"PANID",
                         "ProtocolFrom":1.0,
                         "Format":"Hex",
-                        "Description":"Requests that the device change its PANID (the id of the channel the device listens to). PANID is a four character hexadecimal number on Ciseco wireless networks. All devices within the same PANID can communicate with each other. The change will only take place when the device is reset or powered on/off."
+                        "Description":"Requests the current PANID or set a new one (the id of the channel the device listens to). PANID is a four character hexadecimal number on Ciseco wireless networks. All devices within the same PANID can communicate with each other. The change will only take place when the device is reset or powered on/off."
                         },
                         {
                         "Command":"REBOOT",
                         "ProtocolFrom":1.0,
-                        "Description":"Request that the device reboots itself, This saves the current config to flash"
+                        "Description":"Request that the device reboots itself, This saves the current device configuration to non volatile memory."
                         },
                         {
                         "Command":"RETRIES",
                         "ProtocolFrom":1.0,
                         "Format":"Int",
-                        "Description":"Set the amount of messages to retry to get an ACK from the hub \n Set the amount of retries that uninitiated “sends” should try before giving up, default is 5 (number can be 00-99) this is set by RR"
+                        "Description":"Set the amount of retries for 'Announcement' messages, default is 5 (number can be 00-99). After an Announcement messages sent the radio listens for 50 milliseconds. If an ACK message is received the device will go back to sleep, otherwise the message the device tries again."
                         },
                         {
                         "Command":"BATT",
@@ -270,17 +270,17 @@
                         "Command":"SLEEP",
                         "ProtocolFrom":1.0,
                         "Format":"Period",
-                        "Description":"Requests the device go into low power mode (only applies to sleeping devices) \n aXXSLEEP999P \n Request that the device sleep for 999 “periods”, the response echoes the command, the device will then send the notification aXXSLEEPING- when going to sleep, and the announcement aXXAWAKE---- when the device reawakens. Periods can be S(seconds), M(minutes), H(hours), D(days) T(milliseconds) \n aXXSLEEP---- (only applies to interrupt sleeping devices) . Sleep until an interrupt is received. Only the Button firmware behaves like this at present. \n Every (default 10) times it will send aXXAWAKE---- aXXBATTv.vv- wait for 100mS incase there is a command for the unit and then send aXXSLEEPING-. This is configurable by using aXXWAKECnnn- where nnn is the count of transmits before it will wake and send the battery reading."
+                        "Description":"Requests the device for a period of time. After which the device will return to an AWAKE state\n For Interrupt sleeping devices a command with no period aXXSLEEP---- will cause the device to sleep permanently until woken by an external interrupt e.g. A button press"
                         },
                         {
                         "Command":"SAVE",
                         "ProtocolFrom":1.2,
-                        "Description":"Save the current config to flash."
+                        "Description":"Save the current device configuration to non volatile memory."
                         },
                         {
                         "Command":"LLAPRESET",
                         "ProtocolFrom":1.2,
-                        "Description":"Reset all values that can be changed via LLAP to the default values. The values are not saved to the config, aXXSAVE----- or aXXREBOOT--- will do that."
+                        "Description":"Reset all device configurations values that can be changed via Language of Things messages to the default values. The values are not saved to the config, SAVE or REBOOT commands will be needed to make the changes permanent."
                         },
                         {
                         "Command":"CONFIGEND",
@@ -296,7 +296,7 @@
                         "Command":"SLEEPM",
                         "ProtocolFrom":1.2,
                         "Format":"SleepMode",
-                        "Description":"Set and return the sleep mode. (LLAP 2.0). AP_SLEEP_INTERRUPT = 8 \n AP_SLEEP_CYCLIC = 16 \n AP_SLEEP_ONESHOT = 32 "
+                        "Description":"Set and return the sleep mode. Represented as one of the following.\n Sleep Off = 0 \n Interrupt = 8 \n Cyclic = 16 \n Polled = 32 "
                         },
                         {
                         "Command":"RSSI",
@@ -310,12 +310,12 @@
                        "Command":"INTVL",
                        "ProtocolFrom":1.0,
                        "Format":"Period",
-                       "Description":"Sets the sleep interval between 'activities'"
+                       "Description":"Sets the sleep interval between reading periods"
                        },
                        {
                        "Command":"CYCLE",
                        "ProtocolFrom":1.0,
-                       "Description":"Start cyclic mode (only applies to cyclic sleeping devices) \nRequest that the device starts a cyclic sleep – the device should sleep for the sleep interval, awaken and send any reading. The device will then go back to sleep. Every (default 10) times it will send aXXAWAKE---- aXXBATTv.vv- wait for 100mS incase there is a command for the unit and then send aXXSLEEPING-. This is configurable by using aXXWAKECnnn- where nnn is the count of transmits before it will wake and send the battery reading."
+                       "Description":"Start cyclic sleeping mode (only applies to cyclic sleeping devices)"
                        },
                        {
                        "Command":"WAKE",
@@ -339,41 +339,41 @@
                      "Command":"ERROR",
                      "ProtocolFrom":1.0,
                      "Format":"Int",
-                     "Description":"This is to notify that something unexpected happened at the device and that should be investigated. The nnnn can be used by the manufacturer to denote what type of error occurred"
+                     "Description":"This is to notify that something unexpected happened at the device and that should be investigated. The nnnn can be used by the manufacturer to denote what type of error occurred."
                      },
                      {
                      "Command":"SLEEPING",
                      "ProtocolFrom":1.0,
-                     "Description":"Device is going to sleep (only applies to devices that support sleep)"
+                     "Description":"Device is going to sleep (only applies to devices that support sleep)."
                      },
                      {
                      "Command":"AWAKE",
                      "ProtocolFrom":1.0,
-                     "Description":"Device is now awake, for a brief period, can be kept awake via a WAKE command"
+                     "Description":"Device is now awake and listening for commands, for 100 milliseconds. A device can be kept awake by sending a WAKE command."
                      },
                      {
                      "Command":"BATTLOW",
                      "ProtocolFrom":1.0,
-                     "Description":"Device battery is low (only applies to battery powered devices)"
+                     "Description":"Device battery is low (only applies to battery powered devices)."
                      },
                      {
                      "Command":"CONFIGME",
                      "ProtocolFrom":2.0,
-                     "Description":"A device is in configme mode"
+                     "Description":"A device is in configuration mode."
                      }
                      ],
     "Sleep Modes":[
                    {
                    "Mode":"Cyclic",
-                   "Description":""
+                   "Description":"Cyclic sleeping devices sleep for a period of time, then wake up, send a reading and go back to sleep, starting the cycle over again. The length of the sleep period is set via the INTVL command. After a number of wakes (as set by WAKEC) it will also send an AWAKE message and a BATT reading and then listen for 100 milliseconds, if no message is received the device sends a SLEEPING message and returns to sleep."
                    },
                    {
                    "Mode":"Interrupt",
-                   "Description":"Sleep until an pin interrupt is received. Used by Button and switch devices"
+                   "Description":"Interrupt sleeping device will sleep until an external interrupt is received. e.g. A button press"
                    },
                    {
                    "Mode":"Polled",
-                   "Description":""
+                   "Description":"Polled sleeping device can be told to sleep for a period of time (SlEEP command), after which they will return to an awake state."
                    }
                    ],
     "Power Classes":{
