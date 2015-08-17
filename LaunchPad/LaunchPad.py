@@ -170,7 +170,7 @@ class LaunchPad:
         # go download version file
         try:
             request = urllib2.urlopen(self.config.get('Update', 'updateurl') +
-                                      self.config.get('Update', 'versionfile'))
+                                      self.config.get('Update', 'serverversionfile'))
             self.newVersion = request.read()
 
         except urllib2.HTTPError, e:
