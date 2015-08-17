@@ -1,9 +1,29 @@
 WirelessThings LaunchPad from Ciseco
+For full detaisl of code changes please see the git commit history
+
+0.14:
+    ConfigurationWizard: now downlaods latest Devices.json from the net at launch
+    MessageBridge: Better handeling of AT command mode
+    MessageBridge: Now reads PANID and Encryption setting from the attached radio
+    ConfigurationWizard: Handle unknown device DTY
+    ConfigurationWizard: Check CHDEVID length and match when leaving editable CHDEVID screens
+    LanguageofThings: APVER 2.1 command added and add ProtocolFrom field to commands
+    Devices: updated to latest
+    LaunchPad: Fixed the selection on the Listbox at start
+    AT: waitForResponse return fixed
+    MessageBrige: Now logs Language of Things message to rotating CSV log files
+    encryptionSetup: new helper tool to configure radio network PANID and encryption settings
+    Documentation: Raspbery Pi User Guide added
+    LaunchPad: Update download server
 
 0.13:
     Licensed under the Apache License, Version 2.0
     Big rename
-
+    With 0.13 there are sevral breaking chnages the most revelent for anyone running pervoius version is the changes to the JSON over UDP message "type" field
+    LLAP    > WirelessMessage
+    LCR     > DeviceConfigurationRequest  
+    Server  > MessageBridge
+    
 0.12:
     UDPUI, Server, JSON: Change case on Server.state
     UDPUI: incoming Server JSON error check
