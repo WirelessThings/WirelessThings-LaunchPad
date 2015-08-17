@@ -228,7 +228,7 @@ class encryptionSetup():
                 elif encryption == "0": #convert the received encryption to bool
                     self.logger.debug("applySettings: Failed to turn on encryption")
                     return False
-                self.encryption = True
+                self._encryption = bool(int(encryption))
 
             if self._at.sendATWaitForOK("ATEK{}".format(self._encryptionKey)):
                 encryptionKey = self._at.sendATWaitForResponse("ATEK")
