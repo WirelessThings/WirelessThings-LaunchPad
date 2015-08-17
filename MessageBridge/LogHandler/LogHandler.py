@@ -22,6 +22,8 @@
 
 from logging.handlers import *
 
+_MIDNIGHT = 24 * 60 * 60  # number of seconds in a day
+
 class CSVTimedRotatingFileHandler(BaseRotatingHandler):
     """
     Handler for logging to a file, rotating the log file at certain timed
@@ -103,6 +105,7 @@ class CSVTimedRotatingFileHandler(BaseRotatingHandler):
                 t = time.gmtime(currentTime)
             else:
                 t = time.localtime(currentTime)
+
             currentHour = t[3]
             currentMinute = t[4]
             currentSecond = t[5]
