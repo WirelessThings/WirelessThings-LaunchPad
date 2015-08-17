@@ -470,7 +470,7 @@ is running then run in the current terminal
             self.csvLogger = logging.getLogger('CSV Log')
             # maybe add the current date to the first filename log?
             filename = self.config.get('CSVLog', 'directory') + self.config.get('CSVLog', 'csv_file_name')
-            self._tr = LogHandler.CSVTimedRotatingFileHandler(filename, when='D', interval=1,
+            self._tr = LogHandler.CSVTimedRotatingFileHandler(filename, when='midnight', interval=1,
                                                                     backupCount=self.config.getint('CSVLog', 'days_to_keep'))
             formatter = logging.Formatter('%(message)s')
             self._tr.setFormatter(formatter)
