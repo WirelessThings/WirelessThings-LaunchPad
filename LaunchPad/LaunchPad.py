@@ -40,6 +40,7 @@ from distutils import dir_util
 import stat
 import socket
 import select
+import logging
 from Tabs import *
 
 """
@@ -47,7 +48,7 @@ from Tabs import *
 
     Move advance list from json into py
 
-    switch to debug prints to logging
+    DONE switch to debug prints to logging
 
     catch permisions error on exec and set permission if needed
 
@@ -55,8 +56,8 @@ from Tabs import *
         should remove files or process renames as needed, (form list)
         execute post update external script (one time)
 
-    Catch Ctrl-C fomr console
-    
+    Catch Ctrl-C from console
+
     MessageBrigde Name Clash detection, report to user (same network diffrent IP's)
 
     Any TODO's from below
@@ -89,6 +90,7 @@ class LaunchPad:
             self._path = sys.prefix
         else: # otherwise this is a regular python script
             self._path = os.path.dirname(os.path.realpath(__file__))
+
         self.debug = False # until we read config
         self.debugArg = False # or get command line
         self.configFileDefault = "LaunchPad_defaults.cfg"
@@ -104,10 +106,45 @@ class LaunchPad:
         self.updateAvailable = False
 
         self._running = False
+        # setup initial Logging
+        logging.getLogger().setLevel(logging.NOTSET)
+        self.logger = logging.getLogger('LaunchPad')
+        self._ch = logging.StreamHandler()
+        self._ch.setLevel(logging.WARN)    # this should be WARN by default
+        self._formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        self._ch.setFormatter(self._formatter)
+        self.logger.addHandler(self._ch)
+
+    # MARK: - Logging
+    def _initLogging(self):
+        """ now we have the config file loaded and the command line args setup
+            setup the loggers
+            """
+        self.logger.info("Setting up Loggers. Console output may stop here")
+
+        # disable logging if no options are enabled
+        if (self.debugArg == False and
+            self.debug == False):
+            self.logger.debug("Disabling loggers")
+            # disable debug output
+            self.logger.setLevel(100)
+            return
+        # set console level
+        if (self.debugArg or self.debug):
+            self.logger.debug("Setting Console debug level")
+            logLevel = self.config.get('Debug', 'console_level')
+
+            numeric_level = getattr(logging, logLevel.upper(), None)
+            if not isinstance(numeric_level, int):
+                raise ValueError('Invalid console log level: %s' % loglevel)
+            self._ch.setLevel(numeric_level)
+        else:
+            self._ch.setLevel(100)
 
     def on_execute(self):
         self.checkArgs()
         self.readConfig()
+        self._initLogging()
         self.loadApps()
 
         if self.args.noupdate:
@@ -123,7 +160,7 @@ class LaunchPad:
         # restart after update
         args = sys.argv[:]
 
-        self.debugPrint('Re-spawning %s' % ' '.join(args))
+        self.logger.info('Re-spawning %s' % ' '.join(args))
         args.append('-u')   # no need to check for update again
         args.insert(0, sys.executable)
         if sys.platform == 'win32':
@@ -132,7 +169,7 @@ class LaunchPad:
         os.execv(sys.executable, args)
 
     def endLaunchPad(self):
-        self.debugPrint("End LaunchPad")
+        self.logger.info("End LaunchPad")
         position = self.master.geometry().split("+")
         self.config.set('LaunchPad', 'window_width_offset', position[1])
         self.config.set('LaunchPad', 'window_height_offset', position[2])
@@ -143,7 +180,7 @@ class LaunchPad:
         self._running = False
 
     def cleanUp(self):
-        self.debugPrint("Clean up and exit")
+        self.logger.info("Clean up and exit")
         # disconnect resources
         # kill child's??
         for c in self.proc:
@@ -151,12 +188,8 @@ class LaunchPad:
                 c.terminate()
         self.writeConfig()
 
-    def debugPrint(self, msg):
-        if self.debugArg or self.debug:
-            print(msg)
-
     def checkArgs(self):
-        self.debugPrint("Parse Args")
+        self.logger.info("Parse Args")
         parser = argparse.ArgumentParser(description=self._name)
         parser.add_argument('-u', '--noupdate',
                             help='disable checking for update',
@@ -173,7 +206,7 @@ class LaunchPad:
             self.debugArg = False
 
     def checkForUpdate(self):
-        self.debugPrint("Checking for update")
+        self.logger.info("Checking for update")
         # go download version file
         try:
             request = urllib2.urlopen(self.config.get('Update', 'updateurl') +
@@ -181,38 +214,38 @@ class LaunchPad:
             self.newVersion = request.read()
 
         except urllib2.HTTPError, e:
-            self.debugPrint('Unable to get latest version info - HTTPError = ' +
+            self.logger.error('Unable to get latest version info - HTTPError = ' +
                             str(e.code))
             self.newVersion = False
 
         except urllib2.URLError, e:
-            self.debugPrint('Unable to get latest version info - URLError = ' +
+            self.logger.error('Unable to get latest version info - URLError = ' +
                             str(e.reason))
             self.newVersion = False
 
         except httplib.HTTPException, e:
-            self.debugPrint('Unable to get latest version info - HTTPException')
+            self.logger.error('Unable to get latest version info - HTTPException')
             self.newVersion = False
 
         except Exception, e:
             import traceback
-            self.debugPrint('Unable to get latest version info - Exception = ' +
+            self.logger.error('Unable to get latest version info - Exception = ' +
                             traceback.format_exc())
             self.newVersion = False
 
         if self.newVersion:
-            self.debugPrint(
+            self.logger.debug(
                 "Latest Version: {}, Current Version: {}".format(
                               self.newVersion, self.currentVersion)
                             )
             if float(self.currentVersion) < float(self.newVersion):
-                self.debugPrint("New Version Available")
+                self.logger.info("New Version Available")
                 self.updateAvailable = True
         else:
-            self.debugPrint("Could not check for new Version")
+            self.logger.error("Could not check for new Version")
 
     def offerUpdate(self):
-        self.debugPrint("Ask to update")
+        self.logger.info("Ask to update")
         if tkMessageBox.askyesno("{} Update Available".format(self._name),
                                  ("There is an update for {} available would "
                                   "you like to download it?".format(self._name))
@@ -227,22 +260,22 @@ class LaunchPad:
                 meta = u.info()
                 self.file_size = int(meta.getheaders("Content-Length")[0])
             except urllib2.HTTPError, e:
-                self.debugPrint('Unable to get download file size - HTTPError = ' +
+                self.logger.error('Unable to get download file size - HTTPError = ' +
                                 str(e.code))
                 self.updateFailed = "Unable to get download file size"
 
             except urllib2.URLError, e:
-                self.debugPrint('Unable to get download file size- URLError = ' +
+                self.logger.error('Unable to get download file size- URLError = ' +
                                 str(e.reason))
                 self.updateFailed = "Unable to get download file size"
 
             except httplib.HTTPException, e:
-                self.debugPrint('Unable to get download file size- HTTPException')
+                self.logger.error('Unable to get download file size- HTTPException')
                 self.updateFailed = "Unable to get download file size"
 
             except Exception, e:
                 import traceback
-                self.debugPrint('Unable to get download file size - Exception = ' +
+                self.logger.error('Unable to get download file size - Exception = ' +
                                 traceback.format_exc())
                 self.updateFailed = "Unable to get download file size"
 
@@ -276,7 +309,7 @@ class LaunchPad:
                 self.progressUpdate()
 
     def progressUpdate(self):
-        self.debugPrint("Download Progress Update")
+        self.logger.info("Download Progress Update")
         value = self.progressQueue.get()
         self.progressBar.set(value)
         self.progressQueue.task_done()
@@ -292,12 +325,12 @@ class LaunchPad:
                                           'updatefile').format(self.newVersion))
 
     def downloadUpdate(self):
-        self.debugPrint("Downloading Update Zip")
+        self.logger.info("Downloading Update Zip")
 
         url = (self.config.get('Update', 'updateurl') +
                self.config.get('Update', 'updatefile').format(self.newVersion))
 
-        self.debugPrint(url)
+        self.logger.info(url)
         # mk dir Download
         if not os.path.exists(self.config.get('Update', 'downloaddir')):
             os.makedirs(self.config.get('Update', 'downloaddir'))
@@ -306,14 +339,14 @@ class LaunchPad:
                      self.config.get('Update', 'updatefile'
                                      ).format(self.newVersion))
 
-        self.debugPrint(localFile)
+        self.logger.info(localFile)
 
         try:
             u = urllib2.urlopen(url)
             f = open(localFile, 'wb')
             meta = u.info()
             file_size = int(meta.getheaders("Content-Length")[0])
-            self.debugPrint("Downloading: {0} Bytes: {1}".format(url,
+            self.logger.info("Downloading: {0} Bytes: {1}".format(url,
                                                                  file_size))
 
             file_size_dl = 0
@@ -328,50 +361,50 @@ class LaunchPad:
                 p = float(file_size_dl) / file_size
                 status = r"{0}  [{1:.2%}]".format(file_size_dl, p)
                 status = status + chr(8)*(len(status)+1)
-                self.debugPrint(status)
+                self.logger.info(status)
                 self.progressQueue.put(file_size_dl)
 
             f.close()
         except urllib2.HTTPError, e:
-            self.debugPrint('Unable to get download file - HTTPError = ' +
+            self.logger.error('Unable to get download file - HTTPError = ' +
                             str(e.code))
             self.updateFailed = "Unable to get download file"
 
         except urllib2.URLError, e:
-            self.debugPrint('Unable to get download file - URLError = ' +
+            self.logger.error('Unable to get download file - URLError = ' +
                             str(e.reason))
             self.updateFailed = "Unable to get download file"
 
         except httplib.HTTPException, e:
-            self.debugPrint('Unable to get download file - HTTPException')
+            self.logger.error('Unable to get download file - HTTPException')
             self.updateFailed = "Unable to get download file"
 
         except Exception, e:
             import traceback
-            self.debugPrint('Unable to get download file - Exception = ' +
+            self.logger.error('Unable to get download file - Exception = ' +
                             traceback.format_exc())
             self.updateFailed = "Unable to get download file"
 
     def manualZipUpdate(self):
-        self.debugPrint("Location Zip for Update")
+        self.logger.error("Location Zip for Update")
         self.updateFailed = False
 
         filename = tkFileDialog.askopenfilename(title="Please select the {} Update zip".format(self._name),
                                                 filetypes = [("Zip Files",
                                                               "*.zip")])
-        self.debugPrint("Given file name of {}".format(filename))
+        self.logger.debug("Given file name of {}".format(filename))
         # need to check we have a valid zip file name else updateFailed
         if filename == '':
             # cancelled so do nothing
             self.updateFailed = True
-            self.debugPrint("Update cancelled")
+            self.logger.info("Update cancelled")
         elif filename.endswith('.zip'):
             # do the update
             self.doUpdate(filename)
 
 
     def doUpdate(self, file):
-        self.debugPrint("Doing Update with file: {}".format(file))
+        self.logger.debug("Doing Update with file: {}".format(file))
 
         self.zfobj = zipfile.ZipFile(file)
         self.extractDir = "../"
@@ -406,7 +439,7 @@ class LaunchPad:
         self.zipProgressUpdate()
 
     def zipProgressUpdate(self):
-        self.debugPrint("Zip Progress Update")
+        self.logger.info("Zip Progress Update")
 
         value = self.progressQueue.get()
         self.progressBar.set(value)
@@ -431,10 +464,10 @@ class LaunchPad:
             if dirname.startswith("__MACOSX") or filename == ".DS_Store":
                 pass
             else:
-                self.debugPrint("Decompressing " + filename + " on " + dirname)
+                self.logger.debug("Decompressing " + filename + " on " + dirname)
                 self.zfobj.extract(name, self.extractDir)
                 if name.endswith(".py"):
-                    self.debugPrint("Setting execute bits")
+                    self.logger.debug("Setting execute bits")
                     st = os.stat(self.extractDir + name)
                     os.chmod(self.extractDir + name,
                              (st.st_mode | stat.S_IXUSR | stat.S_IXGRP)
@@ -442,7 +475,7 @@ class LaunchPad:
                 sleep(0.1)
 
     def updateAllAutoStarts(self):
-        self.debugPrint("Updating all installed Autostart Services")
+        self.logger.info("Updating all installed Autostart Services")
         """
             for each app in list that has auto start 1
                 check status
@@ -455,7 +488,7 @@ class LaunchPad:
                     self.autostart(app['id'], 'enable', True)
 
     def restartAllServices(self):
-        self.debugPrint("Restarting all running services")
+        self.logger.info("Restarting all running services")
         """
             for each app in list that has service 1
                 check status
@@ -468,7 +501,7 @@ class LaunchPad:
                     self.launch(app['id'], 'restart', True)
 
     def runLaunchPad(self):
-        self.debugPrint("Running LaunchPad")
+        self.logger.info("Running LaunchPad")
         self.master = tk.Tk()
         self.master.protocol("WM_DELETE_WINDOW", self.endLaunchPad)
         self.master.geometry(
@@ -500,7 +533,7 @@ class LaunchPad:
         self.master.mainloop()
 
     def initTabBar(self):
-        self.debugPrint("Setting up TabBar")
+        self.logger.info("Setting up TabBar")
         # tab button frame
         self.tBarFrame = TabBar(self.tabFrame, "Main", fname='tabBar')
         self.tBarFrame.config(relief=tk.RAISED, pady=4)
@@ -511,7 +544,7 @@ class LaunchPad:
         #tk.Label(self.tBarFrame, text=self.currentVersion).pack(side=tk.RIGHT)
 
     def initMain(self):
-        self.debugPrint("Setting up Main Tab")
+        self.logger.info("Setting up Main Tab")
         iframe = Tab(self.tabFrame, "Main", fname='launchPad')
         iframe.config(relief=tk.RAISED, borderwidth=2, width=self.widthMain,
                       height=self.heightTab)
@@ -607,7 +640,7 @@ class LaunchPad:
             self.launchFrame.children['launch'].config(state=tk.DISABLED)
 
     def initAdvanced(self):
-        self.debugPrint("Setting up Advance Tab")
+        self.logger.info("Setting up Advance Tab")
 
         aframe = Tab(self.tabFrame, "Advanced", fname='advanced')
         aframe.config(relief=tk.RAISED, borderwidth=2, width=self.widthMain,
@@ -658,7 +691,7 @@ class LaunchPad:
         self.onAdvanceSelect(None)
 
     def initStatusBar(self):
-        self.debugPrint("Setting up status bar and network thread")
+        self.logger.info("Setting up status bar and network thread")
         self._serviceStatus = tk.StringVar()
         self._serviceStatus.set(self._serviceStatusText['checking'])
         self.statusBar = tk.Label(self.master, textvariable=self._serviceStatus, bd=1, relief=tk.SUNKEN, anchor=tk.W)
@@ -672,7 +705,7 @@ class LaunchPad:
         try:
             self.tUDPListen.start()
         except:
-            self.debugPrint("Failed to Start the UDP listen thread")
+            self.logger.error("Failed to Start the UDP listen thread")
 
         self._initUDPSendThread()
         self.fMessageBridgeGood = threading.Event()
@@ -717,12 +750,12 @@ class LaunchPad:
     def _UDPListenThread(self):
         """ UDP Listen Thread
         """
-        self.debugPrint("tUDPListen: UDP listen thread started")
+        self.logger.debug("tUDPListen: UDP listen thread started")
 
         try:
             UDPListenSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         except socket.error:
-            self.debugPrint("tUDPListen: Failed to create socket, Exiting")
+            self.logger.error("tUDPListen: Failed to create socket, Exiting")
 
         UDPListenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         UDPListenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -732,16 +765,16 @@ class LaunchPad:
         try:
             UDPListenSocket.bind(('', int(self.config.get('UDP', 'listen_port'))))
         except socket.error:
-            self.debugPrint("tUDPListen: Failed to bind port, Exiting")
+            self.logger.error("tUDPListen: Failed to bind port, Exiting")
 
         UDPListenSocket.setblocking(0)
 
-        self.debugPrint("tUDPListen: listening")
+        self.logger.debug("tUDPListen: listening")
         while not self.tUDPListenStop.is_set():
             datawaiting = select.select([UDPListenSocket], [], [], self._UDPListenTimeout)
             if datawaiting[0]:
                 (data, address) = UDPListenSocket.recvfrom(2048)
-                self.debugPrint("tUDPListen: Received JSON: {} From: {}".format(data, address))
+                self.logger.debug("tUDPListen: Received JSON: {} From: {}".format(data, address))
                 jsonin = json.loads(data)
 
                 if jsonin['type'] == "WirelessMessage":
@@ -750,21 +783,21 @@ class LaunchPad:
                     pass
                 elif jsonin['type'] == "MessageBridge":
                     # we have a MessageBridge JSON do stuff with it
-                    self.debugPrint("tUDPListen: JSON of type MessageBridge")
+                    self.logger.debug("tUDPListen: JSON of type MessageBridge")
                     if jsonin['state'] == "Running" or jsonin['state'] == "RUNNING":
                         self.fMessageBridgeGood.set()
 
-        self.debugPrint("tUDPListen: Thread stopping")
+        self.logger.debug("tUDPListen: Thread stopping")
         try:
             UDPListenSocket.close()
         except socket.error:
-            self.debugPrint("tUDPListen: Failed to close socket")
+            self.logger.error("tUDPListen: Failed to close socket")
         return
 
     def _initUDPSendThread(self):
         """ Start the UDP output thread
             """
-        self.debugPrint("UDP Send Thread init")
+        self.logger.debug("UDP Send Thread init")
 
         self.qUDPSend = Queue.Queue()
 
@@ -776,17 +809,17 @@ class LaunchPad:
         try:
             self.tUDPSend.start()
         except:
-            self.debugPrint("Failed to Start the UDP send thread")
+            self.logger.error("Failed to Start the UDP send thread")
 
     def _UDPSendThread(self):
         """ UDP Send thread
         """
-        self.debugPrint("tUDPSend: Send thread started")
+        self.logger.debug("tUDPSend: Send thread started")
         # setup the UDP send socket
         try:
             UDPSendSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         except socket.error, msg:
-            self.debugPrint("tUDPSend: Failed to create socket. Error code : {} Message : {}".format(msg[0], msg[1]))
+            self.logger.error("tUDPSend: Failed to create socket. Error code : {} Message : {}".format(msg[0], msg[1]))
             # TODO: tUDPSend needs to stop here
             # TODO: need to send message to user saying could not open socket
             return
@@ -802,30 +835,30 @@ class LaunchPad:
             except Queue.Empty:
                 # UDP Send que was empty
                 # extrem debug message
-                # self.debugPrint("tUDPSend: queue is empty")
+                # self.logger.error("tUDPSend: queue is empty")
                 pass
             else:
-                self.debugPrint("tUDPSend: Got json to send: {}".format(message))
+                self.logger.debug("tUDPSend: Got json to send: {}".format(message))
                 try:
                     UDPSendSocket.sendto(message, ('<broadcast>', sendPort))
-                    self.debugPrint("tUDPSend: Put message out via UDP")
+                    self.logger.debug("tUDPSend: Put message out via UDP")
                 except socket.error, msg:
-                    self.debugPrint("tUDPSend: Failed to send via UDP. Error code : {} Message: {}".format(msg[0], msg[1]))
+                    self.logger.error("tUDPSend: Failed to send via UDP. Error code : {} Message: {}".format(msg[0], msg[1]))
                 else:
                     pass
                 # tidy up
 
                 self.qUDPSend.task_done()
 
-        self.debugPrint("tUDPSend: Thread stopping")
+        self.logger.debug("tUDPSend: Thread stopping")
         try:
             UDPSendSocket.close()
         except socket.error:
-            self.debugPrint("tUDPSend: Failed to close socket")
+            self.logger.error("tUDPSend: Failed to close socket")
         return
 
     def onAppSelect(self, *args):
-        self.debugPrint("App select update")
+        self.logger.debug("App select update")
 
         # which app is selected
         app = int(self.appSelect.curselection()[0])
@@ -847,8 +880,8 @@ class LaunchPad:
             self.launchFrame.pack()
 
     def onAdvanceSelect(self, *args):
-        self.debugPrint("Advance select update")
-        #self.debugPrint(args)
+        self.logger.debug("Advance select update")
+        #self.logger.debug(args)
         app = int(self.advanceSelect.curselection()[0])
         self.advanceText.config(text=self.advanceList[app]['Description'])
 
@@ -897,7 +930,7 @@ class LaunchPad:
 
         appCommand.append("status")
 
-        self.debugPrint("Querying {}".format(appCommand))
+        self.logger.debug("Querying {}".format(appCommand))
         output = subprocess.check_output(appCommand,
                                          cwd=self.appList[app]['CWD'])
         if output.find("PID") is not -1:
@@ -907,7 +940,7 @@ class LaunchPad:
         return running
 
     def checkAutoStart(self, app):
-        self.debugPrint("Checking autostart for app: {}".format(app))
+        self.logger.debug("Checking autostart for app: {}".format(app))
         installed = None
         if sys.platform == 'win32':
             pass
@@ -934,7 +967,7 @@ class LaunchPad:
         self.serviceButton.config(state=tk.DISABLED)
 
     def autostart(self, app, command, NoUIUpdate=False):
-        self.debugPrint("Configer autostart for app: {}".format(app))
+        self.logger.info("Configer autostart for app: {}".format(app))
         if sys.platform == 'win32':
             pass
         elif sys.platform == 'darwin':
@@ -942,7 +975,7 @@ class LaunchPad:
             pass
         else:
             if command == 'enable':
-                self.debugPrint("Setting up init.d script for app: {}".format(app))
+                self.logger.debug("Setting up init.d script for app: {}".format(app))
                 self.disableSSRButtons()
                 if self.password is None:
                     self.master.wait_window(PasswordDialog(self))
@@ -994,7 +1027,7 @@ class LaunchPad:
                     self.master.after(500, lambda: self.updateSSRButtons(app))
 
             elif command == 'disable':
-                self.debugPrint("Removing init.d script for app: {}".format(app))
+                self.logger.debug("Removing init.d script for app: {}".format(app))
                 self.disableSSRButtons()
                 if self.password is None:
                     self.master.wait_window(PasswordDialog(self))
@@ -1021,7 +1054,7 @@ class LaunchPad:
 
 
     def updateRCd(self, app, command):
-        self.debugPrint("Calling updateRC.d for app: {} with: {}".format(app, command))
+        self.logger.info("Calling updateRC.d for app: {} with: {}".format(app, command))
         updateRCCommand = ['sudo','-p','','-S',
                            'update-rc.d',
                            self.appList[app]['InitScript']
@@ -1046,7 +1079,7 @@ class LaunchPad:
         if command is not 'launch':
             appCommand.append(command)
 
-        self.debugPrint("Launching {}".format(appCommand))
+        self.logger.debug("Launching {}".format(appCommand))
         self.proc.append(subprocess.Popen(appCommand,
                                           cwd=self.appList[app]['CWD']))
 
@@ -1063,10 +1096,10 @@ class LaunchPad:
             if items[0] == 0:
                 self.manualZipUpdate()
         else:
-            self.debugPrint("Nothing Selected to Launch")
+            self.logger.debug("Nothing Selected to Launch")
 
     def readConfig(self):
-        self.debugPrint("Reading Config")
+        self.logger.info("Reading Config")
 
         self.config = ConfigParser.SafeConfigParser()
 
@@ -1074,17 +1107,18 @@ class LaunchPad:
         try:
             self.config.readfp(open(self.configFileDefault))
         except:
-            self.debugPrint("Could Not Load Default Settings File")
+            self.logger.debug("Could Not Load Default Settings File")
 
         # read the user config file
         if not self.config.read(self.configFile):
-            self.debugPrint("Could Not Load User Config, One Will be Created on Exit")
+            self.logger.debug("Could Not Load User Config, One Will be Created on Exit")
 
         if not self.config.sections():
-            self.debugPrint("No Config Loaded, Quitting")
+            self.logger.error("No Config Loaded, Quitting")
             sys.exit()
 
-        self.debug = self.config.getboolean('Shared', 'debug')
+        #self.debug = self.config.getboolean('Shared', 'debug')
+        self.debug = self.config.getboolean('Debug', 'console_debug')
 
         try:
             f = open(self.config.get('Update', 'versionfile'))
@@ -1094,12 +1128,12 @@ class LaunchPad:
             pass
 
     def writeConfig(self):
-        self.debugPrint("Writing Config")
+        self.logger.debug("Writing Config")
         with open(self.configFile, 'wb') as configfile:
             self.config.write(configfile)
 
     def loadApps(self):
-        self.debugPrint("Loading App List")
+        self.logger.debug("Loading App List")
         try:
             with open(self.appFile, 'r') as f:
                 read_data = f.read()
@@ -1108,7 +1142,7 @@ class LaunchPad:
             self.appList = json.loads(read_data)['Apps']
             self.advanceList = json.loads(read_data)['Advanced']
         except IOError:
-            self.debugPrint("Could Not Load AppList File")
+            self.logger.error("Could Not Load AppList File")
             self.appList = [
                             {'id': 0,
                             'Name': 'Error',
