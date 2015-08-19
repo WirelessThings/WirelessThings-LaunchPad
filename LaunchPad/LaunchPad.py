@@ -50,7 +50,7 @@ from Tabs import *
 
     DONE switch to debug prints to logging
 
-    catch permisions error on exec and set permission if needed
+    DONE catch permisions error on exec and set permission if needed
 
     DONE Updates:
         check update, should give user error message
@@ -1096,7 +1096,6 @@ class LaunchPad:
         proc.stdin.close()
         proc.wait()
 
-
     def launch(self, app, command, NoUIUpdate=False):
         appCommand = ["./{}".format(self.appList[app]['FileName'])]
         if not self.appList[app]['Args'] == "":
@@ -1107,6 +1106,12 @@ class LaunchPad:
 
         if command is not 'launch':
             appCommand.append(command)
+
+        self.logger.debug("Verifing the apps exec permissions")
+        filePath = self.appList[app]['CWD']+self.appList[app]['FileName']
+        st = os.stat(filePath)
+        if not ((st.st_mode & stat.S_IXUSR) and (st.st_mode & stat.S_IXGRP)):
+            os.chmod(filePath, (st.st_mode | stat.S_IXUSR | stat.S_IXGRP))
 
         self.logger.debug("Launching {}".format(appCommand))
         self.proc.append(subprocess.Popen(appCommand,
