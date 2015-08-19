@@ -160,12 +160,10 @@ class LaunchPad:
 
         self._running = True
 
-        self.runLaunchPad()
+        #if returns False, the cleanUp has already done in the runLaunchPad
+        if self.runLaunchPad():
+            self.cleanUp()
 
-        self.cleanUp()
-
-        self.endLaunchPad()
-        
     def restart(self):
         # restart after update
         args = sys.argv[:]
@@ -556,9 +554,12 @@ class LaunchPad:
 
         except KeyboardInterrupt:
             self.logger.info("Keyboard Interrupt - Exiting")
-            #self.cleanUp()
-            #self.endLaunchPad()
+            self.cleanUp()
+            self.endLaunchPad()
+            return False
+
         self.logger.debug("Exiting")
+        return True
 
     def initTabBar(self):
         self.logger.info("Setting up TabBar")
