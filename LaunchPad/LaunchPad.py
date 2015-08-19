@@ -56,7 +56,9 @@ from Tabs import *
         should remove files or process renames as needed, (form list)
         execute post update external script (one time)
 
-    Catch Ctrl-C from console
+    DONE Catch Ctrl-C from console
+
+    Check the geometry position
 
     MessageBrigde Name Clash detection, report to user (same network diffrent IP's)
 
@@ -161,6 +163,8 @@ class LaunchPad:
 
         self.cleanUp()
 
+        self.endLaunchPad()
+        
     def restart(self):
         # restart after update
         args = sys.argv[:]
@@ -510,36 +514,44 @@ class LaunchPad:
                     self.launch(app['id'], 'restart', True)
 
     def runLaunchPad(self):
-        self.logger.info("Running LaunchPad")
-        self.master = tk.Tk()
-        self.master.protocol("WM_DELETE_WINDOW", self.endLaunchPad)
-        self.master.geometry(
-             "{}x{}+{}+{}".format(self.widthMain,
-                                  self.heightMain+self.heightStatusBar,
-                                  self.config.get('LaunchPad',
-                                                  'window_width_offset'),
-                                  self.config.get('LaunchPad',
-                                                  'window_height_offset')
-                                  )
-                             )
+        try :
+            self.logger.info("Running LaunchPad")
+            self.master = tk.Tk()
+            self.master.protocol("WM_DELETE_WINDOW", self.endLaunchPad)
+            self.master.geometry(
+                 "{}x{}+{}+{}".format(self.widthMain,
+                                      self.heightMain+self.heightStatusBar,
+                                      self.config.get('LaunchPad',
+                                                      'window_width_offset'),
+                                      self.config.get('LaunchPad',
+                                                      'window_height_offset')
+                                      )
+                                 )
 
-        self.master.title("WirelessThings LaunchPad v{}".format(self.currentVersion))
-        #self.master.resizable(0,0)
+            self.master.title("WirelessThings LaunchPad v{}".format(self.currentVersion))
+            #self.master.resizable(0,0)
 
-        self.tabFrame = tk.Frame(self.master, name='tabFrame')
-        self.tabFrame.pack(pady=2)
+            self.tabFrame = tk.Frame(self.master, name='tabFrame')
+            self.tabFrame.pack(pady=2)
 
-        self.initTabBar()
-        self.initMain()
-        self.initAdvanced()
-        self.initStatusBar()
+            self.initTabBar()
+            self.initMain()
+            self.initAdvanced()
+            self.initStatusBar()
 
-        self.tBarFrame.show()
+            self.tBarFrame.show()
 
-        if self.updateAvailable:
-            self.master.after(500, self.offerUpdate)
 
-        self.master.mainloop()
+            if self.updateAvailable:
+                self.master.after(500, self.offerUpdate)
+
+            self.master.mainloop()
+
+        except KeyboardInterrupt:
+            self.logger.info("Keyboard Interrupt - Exiting")
+            #self.cleanUp()
+            #self.endLaunchPad()
+        self.logger.debug("Exiting")
 
     def initTabBar(self):
         self.logger.info("Setting up TabBar")
