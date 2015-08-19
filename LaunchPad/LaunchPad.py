@@ -107,6 +107,11 @@ class LaunchPad:
 
     def on_execute(self):
         self.checkArgs()
+
+        if self.args.clean:
+            # run the clean script
+            subprocess.call("../Tools/clean.py")
+
         self.readConfig()
         self.loadApps()
 
@@ -125,6 +130,7 @@ class LaunchPad:
 
         self.debugPrint('Re-spawning %s' % ' '.join(args))
         args.append('-u')   # no need to check for update again
+        args.append('-c')   # execute the clean script
         args.insert(0, sys.executable)
         if sys.platform == 'win32':
             args = ['"%s"' % arg for arg in args]
@@ -163,6 +169,9 @@ class LaunchPad:
                             action='store_false')
         parser.add_argument('-d', '--debug',
                             help='Extra Debug Output, overrides LaunchPad.cfg setting',
+                            action='store_true')
+        parser.add_argument('-c', '--clean',
+                            help='Executes the clean script to remove old version files',
                             action='store_true')
 
         self.args = parser.parse_args()
