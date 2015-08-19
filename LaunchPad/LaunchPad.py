@@ -52,7 +52,8 @@ from Tabs import *
 
     catch permisions error on exec and set permission if needed
 
-    Updates:
+    DONE Updates:
+        check update, should give user error message
         should remove files or process renames as needed, (form list)
         execute post update external script (one time)
 
@@ -221,12 +222,14 @@ class LaunchPad:
     def checkForUpdate(self):
         self.logger.info("Checking for update")
         # go download version file
+        self.updateCheckFailed = False
         try:
             request = urllib2.urlopen(self.config.get('Update', 'updateurl') +
                                       self.config.get('Update', 'serverversionfile'))
             self.newVersion = request.read()
-
+            #need a verification to make sure that is the correct page? like count chars on the received file?
         except urllib2.HTTPError, e:
+
             self.logger.error('Unable to get latest version info - HTTPError = ' +
                             str(e.code))
             self.newVersion = False
@@ -255,7 +258,8 @@ class LaunchPad:
                 self.logger.info("New Version Available")
                 self.updateAvailable = True
         else:
-            self.logger.error("Could not check for new Version")
+            self.updateCheckFailed = True
+
 
     def offerUpdate(self):
         self.logger.info("Ask to update")
@@ -541,6 +545,9 @@ class LaunchPad:
 
             self.tBarFrame.show()
 
+            if self.updateCheckFailed:
+                tkMessageBox.showerror("Update Check Failed", "Could not check for new Version")
+                self.logger.error("Could not check for new Version")
 
             if self.updateAvailable:
                 self.master.after(500, self.offerUpdate)
