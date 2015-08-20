@@ -125,8 +125,8 @@ class ConfigurationWizard:
     _lastDCR = []
     _keepAwake = 0
     _currentFrame = None
-    _messgaeBridges = {}
-    _messgaeBridgeButtons = {}
+    _messageBridges = {}
+    _messageBridgeButtons = {}
     _messageBridgeQueryJSON = json.dumps({"type": "MessageBridge", "network": "ALL"})
     _configState = 0
 
@@ -165,7 +165,7 @@ class ConfigurationWizard:
         # DCR Reply Q, Incoming JSON's from the Message Bridge
         self.qDCRReply = Queue.Queue()
         # flag to show a MessageBridge msg has been received
-        self.fMessgaeBridgeUpdate = threading.Event()
+        self.fMessageBridgeUpdate = threading.Event()
         self.fWaitingForReply = threading.Event()
 
     # MARK: - Logging
@@ -748,7 +748,7 @@ class ConfigurationWizard:
         self._devIDListbox = tk.Listbox(self.dframe, selectmode=tk.SINGLE)
         try:
             # try to split get a device store list from our know Message Bridge
-            ds = self._messgaeBridges[self._network]['data']['result']['deviceStore']
+            ds = self._messageBridges[self._network]['data']['result']['deviceStore']
         except:
             pass
         else:
@@ -1075,11 +1075,11 @@ class ConfigurationWizard:
 
     def _checkMessageBridgeUpdate(self):
 		# self.logger.debug("Checking Message Bridge reply flag")
-        if self.fMessgaeBridgeUpdate.is_set():
+        if self.fMessageBridgeUpdate.is_set():
             # flag set, re-draw buttons
             self._updateMessageBridgeList()
             # clear flag and schedule next check
-            self.fMessgaeBridgeUpdate.clear()
+            self.fMessageBridgeUpdate.clear()
 
 
         if self._checkMessageBridgeCount == 5:
@@ -1087,7 +1087,7 @@ class ConfigurationWizard:
             self.qUDPSend.put(self._messageBridgeQueryJSON)
         elif self._checkMessageBridgeCount == 10:
             # let user know we are still looking but have not found anything yet
-            if len(self._messgaeBridges) == 0:
+            if len(self._messageBridges) == 0:
                 pass
 
             # send out another query and reset count
@@ -1102,21 +1102,21 @@ class ConfigurationWizard:
     def _updateMessageBridgeList(self):
         self.logger.debug("Updating Message Bridge list buttons")
         self.iframe.children['introText'].config(text=INTRO1)
-        for network, messageBridge in self._messgaeBridges.items():
+        for network, messageBridge in self._messageBridges.items():
             # if we don't all-ready have a button create a new one
-            if network not in self._messgaeBridgeButtons.keys():
-                self._messgaeBridgeButtons[network] = tk.Button(self.iframe,
+            if network not in self._messageBridgeButtons.keys():
+                self._messageBridgeButtons[network] = tk.Button(self.iframe,
                                                          name="n{}".format(network),
                                                          text=network,
                                                          command=lambda n=network:self._displayPressButton(n),
                                                          state=tk.ACTIVE if messageBridge['state'] == "Running" or messageBridge['state'] == "RUNNING" else tk.DISABLED
                                                          )
-                self._messgaeBridgeButtons[network].grid(row=5+len(self._messgaeBridgeButtons),
+                self._messageBridgeButtons[network].grid(row=5+len(self._messageBridgeButtons),
                                                   column=1,
                                                   columnspan=4, sticky=tk.E+tk.W)
             else:
               # need to update button state
-              self._messgaeBridgeButtons[network].config(state=tk.ACTIVE if messageBridge['state'] == "Running" or messageBridge['state'] == "RUNNING" else tk.DISABLED
+              self._messageBridgeButtons[network].config(state=tk.ACTIVE if messageBridge['state'] == "Running" or messageBridge['state'] == "RUNNING" else tk.DISABLED
                                                   )
 
     def _updateIntervalOnScaleChange(self, *args):
@@ -1181,7 +1181,7 @@ class ConfigurationWizard:
     def _getNextFreeID(self):
         try:
             for id in itertools.product(string.ascii_uppercase, repeat=2):
-                if ''.join(id) not in sorted(self._messgaeBridges[self._network]['data']['result']['deviceStore'].keys()):
+                if ''.join(id) not in sorted(self._messageBridges[self._network]['data']['result']['deviceStore'].keys()):
                     return ''.join(id)
         except:
             return "??"
@@ -1190,8 +1190,8 @@ class ConfigurationWizard:
         try:
             if not self.device['newDevice']:
                     if self._settingMissMatchVar.get() == 1:
-                        self.entry['PANID'][0].set(self._messgaeBridges[self._network]['data']['result']['PANID'])
-                        if self._messgaeBridges[self._network]['data']['result']['encryptionSet']:
+                        self.entry['PANID'][0].set(self._messageBridges[self._network]['data']['result']['PANID'])
+                        if self._messageBridges[self._network]['data']['result']['encryptionSet']:
                             self.device['setENC'] = True
                         else:
                             self.device['setENC'] = False
@@ -1208,7 +1208,7 @@ class ConfigurationWizard:
     def _checkDevIDList(self, *args):
         if self._currentFrame == "chdevidFrame":
             try:
-                if self.entry['CHDEVID'][0].get() in self._messgaeBridges[self._network]['data']['result']['deviceStore'].keys():
+                if self.entry['CHDEVID'][0].get() in self._messageBridges[self._network]['data']['result']['deviceStore'].keys():
                     self._devIDWarning.set(WARNINGTEXT)
                 else:
                     self._devIDWarning.set("")
@@ -1625,10 +1625,10 @@ class ConfigurationWizard:
                 if self.device['newDevice']:
                     self._newDeviceAutoSetup()
                 else:
-                    if self.entry['PANID'][0].get() != self._messgaeBridges[self._network]['data']['result']['PANID']:
+                    if self.entry['PANID'][0].get() != self._messageBridges[self._network]['data']['result']['PANID']:
                         self.device['settingsMissMatch'] = True
                         self._settingMissMatchVar.set(1)
-                    if self.entry['ENC'][0].get() != self._messgaeBridges[self._network]['data']['result']['encryptionSet']:
+                    if self.entry['ENC'][0].get() != self._messageBridges[self._network]['data']['result']['encryptionSet']:
                         self.device['settingsMissMatch'] = True
                         self._settingMissMatchVar.set(1)
 
@@ -1729,10 +1729,10 @@ class ConfigurationWizard:
             # give it a new deviceID
             self.entry['CHDEVID'][0].set(self._getNextFreeID())
             try:
-                if self.entry['PANID'][0].get() != self._messgaeBridges[self._network]['data']['result']['PANID']:
-                    self.entry['PANID'][0].set(self._messgaeBridges[self._network]['data']['result']['PANID'])
-                if self.entry['ENC'][0].get() != self._messgaeBridges[self._network]['data']['result']['encryptionSet']:
-                    if self._messgaeBridges[self._network]['data']['result']['encryptionSet']:
+                if self.entry['PANID'][0].get() != self._messageBridges[self._network]['data']['result']['PANID']:
+                    self.entry['PANID'][0].set(self._messageBridges[self._network]['data']['result']['PANID'])
+                if self.entry['ENC'][0].get() != self._messageBridges[self._network]['data']['result']['encryptionSet']:
+                    if self._messageBridges[self._network]['data']['result']['encryptionSet']:
                         self.device['setENC'] = True
                     else:
                         self.device['setENC'] = False
@@ -1761,31 +1761,31 @@ class ConfigurationWizard:
     def _updateMessageBridgeDetailsFromJSON(self, jsonin):
         # update Message Bridge entry in our list
         # TODO: this needs to be a intelligent merge not just overwrite
-        if jsonin['network'] in self._messgaeBridges.keys():
+        if jsonin['network'] in self._messageBridges.keys():
             network = jsonin['network']
-            self._messgaeBridges[network]['state'] = jsonin.get('state', "Unknown")
-            self._messgaeBridges[network]['timestamp'] = jsonin['timestamp']
+            self._messageBridges[network]['state'] = jsonin.get('state', "Unknown")
+            self._messageBridges[network]['timestamp'] = jsonin['timestamp']
             if jsonin.has_key('data'):
-                if not self._messgaeBridges[network].has_key('data'):
-                    self._messgaeBridges[network]['data'] = jsonin['data']
+                if not self._messageBridges[network].has_key('data'):
+                    self._messageBridges[network]['data'] = jsonin['data']
                 else:
                     if jsonin.has_key('id'):
-                        self._messgaeBridges[network]['data']['id'] = jsonin['data']['id']
+                        self._messageBridges[network]['data']['id'] = jsonin['data']['id']
                     if jsonin.has_key('result'):
                         results = jsonin['data']['result']
-                        if not self._messgaeBridges[network]['data'].has_key('result'):
-                            self._messgaeBridges[network]['data']['result'] = results
+                        if not self._messageBridges[network]['data'].has_key('result'):
+                            self._messageBridges[network]['data']['result'] = results
                         else:
                             if results.has_key('PAINID'):
-                                self._messgaeBridges[network]['data']['result']['PANID'] = results['PANID']
+                                self._messageBridges[network]['data']['result']['PANID'] = results['PANID']
                             if results.has_key('encryptionState'):
-                                self._messgaeBridges[network]['data']['result']['encryptionSet'] = results['encryptionSet']
+                                self._messageBridges[network]['data']['result']['encryptionSet'] = results['encryptionSet']
                             if results.has_key('deviceStore'):
-                                self._messgaeBridges[network]['data']['result']['deviceStore'] = results['deviceStore']
+                                self._messageBridges[network]['data']['result']['deviceStore'] = results['deviceStore']
         else:
             # new entry store the whole packet
-            self._messgaeBridges[jsonin['network']] = jsonin
-        self.fMessgaeBridgeUpdate.set()
+            self._messageBridges[jsonin['network']] = jsonin
+        self.fMessageBridgeUpdate.set()
 
 
     def _processNoReply(self):
