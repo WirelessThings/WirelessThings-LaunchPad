@@ -29,6 +29,7 @@ ConfigurationWizard.cfg
 Download/
 Launchpad.cfg
 Dump
-py2exe/build
-py2exe/*.zip
+Tools/py2exe/build
+Tools/py2exe/*.zip
 *.local.*
+MessageBridge/CSVLogs/*.csv
