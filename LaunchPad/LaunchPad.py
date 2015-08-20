@@ -119,7 +119,7 @@ class LaunchPad:
         self.logger.addHandler(self._ch)
 
     # MARK: - Logging
-    def _initLogging(self):
+    def initLogging(self):
         """ now we have the config file loaded and the command line args setup
             setup the loggers
             """
@@ -146,13 +146,18 @@ class LaunchPad:
 
     def on_execute(self):
         self.checkArgs()
-
-        if self.args.clean:
-            # run the clean script
-            subprocess.call("../Tools/clean.py")
-
         self.readConfig()
-        self._initLogging()
+        self.initLogging()
+        # check if the program has just been updated
+        oldVersion = self.config.get('Update', 'postupdate')
+        if oldVersion:
+            subprocess.Popen(["./{}.py".format(oldVersion)], cwd="../Tools/update/")
+            # read the config again cause the post update script may be change some config
+            self.readConfig()
+            self.config.set('Update', 'postupdate', False)
+            self.writeConfig()
+            self.restart()
+
         self.loadApps()
 
         if self.args.noupdate:
@@ -170,7 +175,6 @@ class LaunchPad:
 
         self.logger.info('Re-spawning %s' % ' '.join(args))
         args.append('-u')   # no need to check for update again
-        args.append('-c')   # execute the clean script
         args.insert(0, sys.executable)
         if sys.platform == 'win32':
             args = ['"%s"' % arg for arg in args]
@@ -205,9 +209,6 @@ class LaunchPad:
                             action='store_false')
         parser.add_argument('-d', '--debug',
                             help='Extra Debug Output, overrides LaunchPad.cfg setting',
-                            action='store_true')
-        parser.add_argument('-c', '--clean',
-                            help='Executes the clean script to remove old version files',
                             action='store_true')
 
         self.args = parser.parse_args()
@@ -468,6 +469,9 @@ class LaunchPad:
             self.updateAllAutoStarts()
             self.restartAllServices()
             self.progressWindow.destroy()
+            # set update flag in config
+            self.config.set('Update', 'postupdate', self.currentVersion)
+            self.writeConfig()
             self.restart()
 
     def zipExtract(self):
@@ -1115,7 +1119,7 @@ class LaunchPad:
             appCommand.append(self.appList[app]['Args'])
 
         if self.debugArg:
-                appCommand.append("-d")
+            appCommand.append("-d")
 
         if command is not 'launch':
             appCommand.append(command)
