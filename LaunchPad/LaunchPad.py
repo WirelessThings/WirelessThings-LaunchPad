@@ -59,7 +59,7 @@ from Tabs import *
 
     DONE Catch Ctrl-C from console
 
-    Check the geometry position
+    DONE Check the screen geometry position
 
     MessageBrigde Name Clash detection, report to user (same network diffrent IP's)
 
@@ -520,15 +520,28 @@ class LaunchPad:
             self.logger.info("Running LaunchPad")
             self.master = tk.Tk()
             self.master.protocol("WM_DELETE_WINDOW", self.endLaunchPad)
+
+            # check if the offset in the config file can be applied to this screen
+            # Note: due to limitation of the tk, we can't be able to find the use of
+            # multiple monitors on Windows.
+            configWidth = self.config.getint('LaunchPad','window_width_offset')
+            configHeight = self.config.getint('LaunchPad','window_height_offset')
+            monitorWidth = self.master.winfo_screenwidth()
+            monitorHeight = self.master.winfo_screenheight()
+            #if the offset stored is not applicable, center the screen
+            if configWidth > monitorWidth or configHeight > monitorHeight:
+                    width_offset = (monitorWidth - self.widthMain)/2
+                    height_offset = (monitorHeight - self.heightMain+self.heightStatusBar)/2
+            else:
+                #uses config
+                width_offset = configWidth
+                height_offset = configHeight
+
             self.master.geometry(
                  "{}x{}+{}+{}".format(self.widthMain,
                                       self.heightMain+self.heightStatusBar,
-                                      self.config.get('LaunchPad',
-                                                      'window_width_offset'),
-                                      self.config.get('LaunchPad',
-                                                      'window_height_offset')
-                                      )
-                                 )
+                                      width_offset,
+                                      height_offset))
 
             self.master.title("WirelessThings LaunchPad v{}".format(self.currentVersion))
             #self.master.resizable(0,0)
