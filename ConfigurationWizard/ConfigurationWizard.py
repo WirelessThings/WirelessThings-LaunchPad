@@ -1977,7 +1977,7 @@ class ConfigurationWizard:
 
         try:
             self.args = parser.parse_args()
-        except:
+        except IOError:
             self.logger.critical("Failed to open the JSON device file given on the command line")
             sys.exit()
 
