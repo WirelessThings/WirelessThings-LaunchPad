@@ -1123,8 +1123,11 @@ class LaunchPad:
         self.logger.debug("Verifing the apps exec permissions")
         filePath = self.appList[app]['CWD']+self.appList[app]['FileName']
         st = os.stat(filePath)
-        if not ((st.st_mode & stat.S_IXUSR) and (st.st_mode & stat.S_IXGRP)):
-            os.chmod(filePath, (st.st_mode | stat.S_IXUSR | stat.S_IXGRP))
+        if sys.platform == "win32": #if Windows, pass for now
+            pass
+        else:
+            if not ((st.st_mode & stat.S_IXUSR) and (st.st_mode & stat.S_IXGRP)):
+                os.chmod(filePath, (st.st_mode | stat.S_IXUSR | stat.S_IXGRP))
 
         self.logger.debug("Launching {}".format(appCommand))
         self.proc.append(subprocess.Popen(appCommand,
