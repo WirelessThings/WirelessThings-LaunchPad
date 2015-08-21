@@ -49,9 +49,9 @@ import tkFont
     Pretty JSON format for window?
 
     fix self.die()
-    
-    MessageBrigde Name Clash detection, report to user (same network diffrent IP's)
-    
+
+    DONE MessageBridge Name Clash detection, report to user (same network diffrent IP's)
+
     Handel APVER 2.1 and DVI command
     
     Make use of Batt reading and display in UI
@@ -406,7 +406,7 @@ class ConfigurationWizard:
 
                 elif jsonin['type'] == "MessageBridge":
                     self.logger.debug("tUDPListen: JSON of type MessageBridge")
-                    self._updateMessageBridgeDetailsFromJSON(jsonin)
+                    self._updateMessageBridgeDetailsFromJSON(jsonin, address[0])
 
         self.logger.info("tUDPListen: Thread stopping")
         try:
@@ -1758,32 +1758,42 @@ class ConfigurationWizard:
                       }
         self._sendRequest(messageBridgeQuery)
 
-    def _updateMessageBridgeDetailsFromJSON(self, jsonin):
+    def _updateMessageBridgeDetailsFromJSON(self, jsonin, address):
         # update Message Bridge entry in our list
         # TODO: this needs to be a intelligent merge not just overwrite
         if jsonin['network'] in self._messageBridges.keys():
             network = jsonin['network']
-            self._messageBridges[network]['state'] = jsonin.get('state', "Unknown")
-            self._messageBridges[network]['timestamp'] = jsonin['timestamp']
-            if jsonin.has_key('data'):
-                if not self._messageBridges[network].has_key('data'):
-                    self._messageBridges[network]['data'] = jsonin['data']
+            if not self._messageBridges[network]['conflict']: #if already in conflict, nothing more to do with the message
+                if self._messageBridges[network]['address'] != address:
+                    tkMessageBox.showerror("Network Error",
+                            "Found network {} twice on ip: {} and ip: {}".format(network,
+                            self._messageBridges[network]['address'], address))
+                    self._messageBridges[network]['state'] = "CONFLICT" #this will disable the button
+                    self._messageBridges[network]['conflict'] = True
                 else:
-                    if jsonin.has_key('id'):
-                        self._messageBridges[network]['data']['id'] = jsonin['data']['id']
-                    if jsonin.has_key('result'):
-                        results = jsonin['data']['result']
-                        if not self._messageBridges[network]['data'].has_key('result'):
-                            self._messageBridges[network]['data']['result'] = results
+                    self._messageBridges[network]['state'] = jsonin.get('state', "Unknown")
+                    self._messageBridges[network]['timestamp'] = jsonin['timestamp']
+                    if jsonin.has_key('data'):
+                        if not self._messageBridges[network].has_key('data'):
+                            self._messageBridges[network]['data'] = jsonin['data']
                         else:
-                            if results.has_key('PAINID'):
-                                self._messageBridges[network]['data']['result']['PANID'] = results['PANID']
-                            if results.has_key('encryptionState'):
-                                self._messageBridges[network]['data']['result']['encryptionSet'] = results['encryptionSet']
-                            if results.has_key('deviceStore'):
-                                self._messageBridges[network]['data']['result']['deviceStore'] = results['deviceStore']
+                            if jsonin.has_key('id'):
+                                self._messageBridges[network]['data']['id'] = jsonin['data']['id']
+                            if jsonin.has_key('result'):
+                                results = jsonin['data']['result']
+                                if not self._messageBridges[network]['data'].has_key('result'):
+                                    self._messageBridges[network]['data']['result'] = results
+                                else:
+                                    if results.has_key('PANID'):
+                                        self._messageBridges[network]['data']['result']['PANID'] = results['PANID']
+                                    if results.has_key('encryptionState'):
+                                        self._messageBridges[network]['data']['result']['encryptionSet'] = results['encryptionSet']
+                                    if results.has_key('deviceStore'):
+                                        self._messageBridges[network]['data']['result']['deviceStore'] = results['deviceStore']
         else:
             # new entry store the whole packet
+            jsonin['conflict'] = False
+            jsonin['address'] = address
             self._messageBridges[jsonin['network']] = jsonin
         self.fMessageBridgeUpdate.set()
 
