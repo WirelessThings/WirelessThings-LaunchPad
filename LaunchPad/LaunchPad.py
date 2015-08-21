@@ -50,15 +50,18 @@ from Tabs import *
 
     DONE switch to debug prints to logging
 
-    catch permisions error on exec and set permission if needed
+    DONE catch permisions error on exec and set permission if needed
 
-    Updates:
+    DONE Updates:
+        check update, should give user error message
         should remove files or process renames as needed, (form list)
         execute post update external script (one time)
 
-    Catch Ctrl-C from console
+    DONE Catch Ctrl-C from console
 
-    MessageBrigde Name Clash detection, report to user (same network diffrent IP's)
+    DONE Check the screen geometry position
+
+    DONE MessageBridge Name Clash detection, report to user (same network diffrent IP's)
 
     Any TODO's from below
 """
@@ -72,7 +75,8 @@ class LaunchPad:
     _serviceStatusText = {
                           'checking': "Checking network for a running Message Bridge",
                           'found': "Message Bridge running on network",
-                          'timeout': "Message Bridge not found on network"
+                          'timeout': "Message Bridge not found on network",
+                          'conflict': "There's more than one Message Bridge using the NSSID "
                          }
     password = None
     _UDPListenTimeout = 1   # timeout for UDP listen
@@ -81,6 +85,7 @@ class LaunchPad:
     _networkUDPTimeout = 5
     _networkUDPTimer = 0
     _checking = False
+    _messageBridges = {}
     _messageBridgeQueryJSON = json.dumps({"type": "MessageBridge", "network": "ALL"})
 
 
@@ -116,7 +121,7 @@ class LaunchPad:
         self.logger.addHandler(self._ch)
 
     # MARK: - Logging
-    def _initLogging(self):
+    def initLogging(self):
         """ now we have the config file loaded and the command line args setup
             setup the loggers
             """
@@ -144,7 +149,21 @@ class LaunchPad:
     def on_execute(self):
         self.checkArgs()
         self.readConfig()
-        self._initLogging()
+        self.initLogging()
+        # check if the program has just been updated
+        try:
+            oldVersion = self.config.getfloat('Update', 'postupdate')
+        except:
+            oldVersion = False
+
+        if oldVersion:
+            subprocess.Popen(["./{}.py".format(oldVersion)], cwd="../Tools/update/")
+            # read the config again cause the post update script may be change some config
+            self.readConfig()
+            self.config.set('Update', 'postupdate', False)
+            self.writeConfig()
+            self.restart()
+
         self.loadApps()
 
         if self.args.noupdate:
@@ -152,9 +171,9 @@ class LaunchPad:
 
         self._running = True
 
-        self.runLaunchPad()
-
-        self.cleanUp()
+        #if returns False, the cleanUp has already done in the runLaunchPad
+        if self.runLaunchPad():
+            self.cleanUp()
 
     def restart(self):
         # restart after update
@@ -208,12 +227,14 @@ class LaunchPad:
     def checkForUpdate(self):
         self.logger.info("Checking for update")
         # go download version file
+        self.updateCheckFailed = False
         try:
             request = urllib2.urlopen(self.config.get('Update', 'updateurl') +
                                       self.config.get('Update', 'serverversionfile'))
             self.newVersion = request.read()
-
+            #need a verification to make sure that is the correct page? like count chars on the received file?
         except urllib2.HTTPError, e:
+
             self.logger.error('Unable to get latest version info - HTTPError = ' +
                             str(e.code))
             self.newVersion = False
@@ -242,7 +263,8 @@ class LaunchPad:
                 self.logger.info("New Version Available")
                 self.updateAvailable = True
         else:
-            self.logger.error("Could not check for new Version")
+            self.updateCheckFailed = True
+
 
     def offerUpdate(self):
         self.logger.info("Ask to update")
@@ -453,6 +475,9 @@ class LaunchPad:
             self.updateAllAutoStarts()
             self.restartAllServices()
             self.progressWindow.destroy()
+            # set update flag in config
+            self.config.set('Update', 'postupdate', self.currentVersion)
+            self.writeConfig()
             self.restart()
 
     def zipExtract(self):
@@ -501,36 +526,63 @@ class LaunchPad:
                     self.launch(app['id'], 'restart', True)
 
     def runLaunchPad(self):
-        self.logger.info("Running LaunchPad")
-        self.master = tk.Tk()
-        self.master.protocol("WM_DELETE_WINDOW", self.endLaunchPad)
-        self.master.geometry(
-             "{}x{}+{}+{}".format(self.widthMain,
-                                  self.heightMain+self.heightStatusBar,
-                                  self.config.get('LaunchPad',
-                                                  'window_width_offset'),
-                                  self.config.get('LaunchPad',
-                                                  'window_height_offset')
-                                  )
-                             )
+        try :
+            self.logger.info("Running LaunchPad")
+            self.master = tk.Tk()
+            self.master.protocol("WM_DELETE_WINDOW", self.endLaunchPad)
 
-        self.master.title("WirelessThings LaunchPad v{}".format(self.currentVersion))
-        #self.master.resizable(0,0)
+            # check if the offset in the config file can be applied to this screen
+            # Note: due to limitation of the tk, we can't be able to find the use of
+            # multiple monitors on Windows.
+            configWidth = self.config.getint('LaunchPad','window_width_offset')
+            configHeight = self.config.getint('LaunchPad','window_height_offset')
+            monitorWidth = self.master.winfo_screenwidth()
+            monitorHeight = self.master.winfo_screenheight()
+            #if the offset stored is not applicable, center the screen
+            if configWidth > monitorWidth or configHeight > monitorHeight:
+                    width_offset = (monitorWidth - self.widthMain)/2
+                    height_offset = (monitorHeight - self.heightMain+self.heightStatusBar)/2
+            else:
+                #uses config
+                width_offset = configWidth
+                height_offset = configHeight
 
-        self.tabFrame = tk.Frame(self.master, name='tabFrame')
-        self.tabFrame.pack(pady=2)
+            self.master.geometry(
+                 "{}x{}+{}+{}".format(self.widthMain,
+                                      self.heightMain+self.heightStatusBar,
+                                      width_offset,
+                                      height_offset))
 
-        self.initTabBar()
-        self.initMain()
-        self.initAdvanced()
-        self.initStatusBar()
+            self.master.title("WirelessThings LaunchPad v{}".format(self.currentVersion))
+            #self.master.resizable(0,0)
 
-        self.tBarFrame.show()
+            self.tabFrame = tk.Frame(self.master, name='tabFrame')
+            self.tabFrame.pack(pady=2)
 
-        if self.updateAvailable:
-            self.master.after(500, self.offerUpdate)
+            self.initTabBar()
+            self.initMain()
+            self.initAdvanced()
+            self.initStatusBar()
 
-        self.master.mainloop()
+            self.tBarFrame.show()
+
+            if self.updateCheckFailed:
+                tkMessageBox.showerror("Update Check Failed", "Could not check for new Version")
+                self.logger.error("Could not check for new Version")
+
+            if self.updateAvailable:
+                self.master.after(500, self.offerUpdate)
+
+            self.master.mainloop()
+
+        except KeyboardInterrupt:
+            self.logger.info("Keyboard Interrupt - Exiting")
+            self.cleanUp()
+            self.endLaunchPad()
+            return False
+
+        self.logger.debug("Exiting")
+        return True
 
     def initTabBar(self):
         self.logger.info("Setting up TabBar")
@@ -709,6 +761,7 @@ class LaunchPad:
 
         self._initUDPSendThread()
         self.fMessageBridgeGood = threading.Event()
+        self.fMessageBridgeConflict = threading.Event()
 
         self.master.after(100, self.checkNetwork)
 
@@ -727,7 +780,13 @@ class LaunchPad:
             checkagain in 1s
 
         """
-        if self.fMessageBridgeGood.is_set():
+        if self.fMessageBridgeConflict.is_set():
+            self._serviceStatus.set(self._serviceStatusText['conflict']+self.conflictNetwork)
+            self.fMessageBridgeConflict.clear()
+            self.fMessageBridgeGood.clear()
+            self._checking = False
+            self._networkRecheckTimer = time()
+        elif self.fMessageBridgeGood.is_set():
             self._serviceStatus.set(self._serviceStatusText['found'])
             self.fMessageBridgeGood.clear()
             self._checking = False
@@ -784,8 +843,7 @@ class LaunchPad:
                 elif jsonin['type'] == "MessageBridge":
                     # we have a MessageBridge JSON do stuff with it
                     self.logger.debug("tUDPListen: JSON of type MessageBridge")
-                    if jsonin['state'] == "Running" or jsonin['state'] == "RUNNING":
-                        self.fMessageBridgeGood.set()
+                    self._updateMessageBridgeDetailsFromJSON(jsonin, address[0])
 
         self.logger.debug("tUDPListen: Thread stopping")
         try:
@@ -793,6 +851,25 @@ class LaunchPad:
         except socket.error:
             self.logger.error("tUDPListen: Failed to close socket")
         return
+
+    def _updateMessageBridgeDetailsFromJSON(self, jsonin, address):
+        # update Message Bridge entry in our list
+        # TODO: this needs to be a intelligent merge not just overwrite
+        if jsonin['network'] in self._messageBridges.keys():
+            network = jsonin['network']
+            if self._messageBridges[network]['address'] != address:
+                self._messageBridges[network]['state'] = "CONFLICT"
+                self.conflictNetwork = network
+        else:
+            # new entry store the whole packet
+            jsonin['address'] = address
+            self._messageBridges[jsonin['network']] = jsonin
+
+        if self._messageBridges[jsonin['network']]['state'].upper() == "CONFLICT":
+            self.fMessageBridgeConflict.set()
+        elif self._messageBridges[jsonin['network']]['state'].upper() == "RUNNING":
+            self.fMessageBridgeGood.set()
+
 
     def _initUDPSendThread(self):
         """ Start the UDP output thread
@@ -1067,17 +1144,29 @@ class LaunchPad:
         proc.stdin.close()
         proc.wait()
 
-
     def launch(self, app, command, NoUIUpdate=False):
         appCommand = ["./{}".format(self.appList[app]['FileName'])]
+
+        if command in ['stop', 'restart']:
+            self._messageBridges = {}
+
         if not self.appList[app]['Args'] == "":
             appCommand.append(self.appList[app]['Args'])
 
         if self.debugArg:
-                appCommand.append("-d")
+            appCommand.append("-d")
 
         if command is not 'launch':
             appCommand.append(command)
+
+        self.logger.debug("Verifing the apps exec permissions")
+        filePath = self.appList[app]['CWD']+self.appList[app]['FileName']
+        st = os.stat(filePath)
+        if sys.platform == "win32": #if Windows, pass for now
+            pass
+        else:
+            if not ((st.st_mode & stat.S_IXUSR) and (st.st_mode & stat.S_IXGRP)):
+                os.chmod(filePath, (st.st_mode | stat.S_IXUSR | stat.S_IXGRP))
 
         self.logger.debug("Launching {}".format(appCommand))
         self.proc.append(subprocess.Popen(appCommand,
