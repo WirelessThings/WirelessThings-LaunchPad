@@ -55,9 +55,9 @@ import tkFont
     Make use of Batt reading and display in UI
     
     Give estimated Battery life based on period
-    
-    Catch Ctrl-C on console window
-    
+
+    DONE Catch Ctrl-C on console window
+
     Bertter handling of Unknown device settings
     
     Advance and encryption UI rework
@@ -212,7 +212,7 @@ class ConfigurationWizard:
             self.logger.info("File Logging started")
 
     # MARK: - Entry point
-    def on_excute(self):
+    def on_execute(self):
         """
             entry point for running
         """
@@ -228,44 +228,49 @@ class ConfigurationWizard:
         # run the GUI's
         self._runConfigMe()
         self._cleanUp()
+        self._endConfigMe()
 
     def _runConfigMe(self):
         self.logger.debug("Running Main GUI")
-        self.master = tk.Tk()
-        self.master.protocol("WM_DELETE_WINDOW", self._endConfigMe)
-        self.master.geometry(
-                 "{}x{}+{}+{}".format(self._widthMain,
-                                      self._heightMain,
-                                      self.config.get('ConfigurationWizard',
-                                                      'window_width_offset'),
-                                      self.config.get('ConfigurationWizard',
-                                                      'window_height_offset')
-                                      )
-                             )
+        try:
+            self.master = tk.Tk()
+            self.master.protocol("WM_DELETE_WINDOW", self._endConfigMe)
+            self.master.geometry(
+                     "{}x{}+{}+{}".format(self._widthMain,
+                                          self._heightMain,
+                                          self.config.get('ConfigurationWizard',
+                                                          'window_width_offset'),
+                                          self.config.get('ConfigurationWizard',
+                                                          'window_height_offset')
+                                          )
+                                 )
 
-        self.master.title("WirelessThings Device Configuration Wizard v{}".format(self._version))
-        self.master.resizable(0,0)
+            self.master.title("WirelessThings Device Configuration Wizard v{}".format(self._version))
+            self.master.resizable(0,0)
 
-        self._initTkVariables()
-        self._initValidationRules()
+            self._initTkVariables()
+            self._initValidationRules()
 
-        if self.args.debug or self.config.getboolean('Debug', 'gui_json'):
-            self._jsonWindowDebug()
+            if self.args.debug or self.config.getboolean('Debug', 'gui_json'):
+                self._jsonWindowDebug()
 
-        self._initUDPListenThread()
-        self._initUDPSendThread()
+            self._initUDPListenThread()
+            self._initUDPSendThread()
 
-        # TODO: are UDP threads running
-        if (not self.tUDPListen.isAlive() and not self.tUDPSend.isAlive()):
-            self.logger.warn("UDP Threads not running")
-            # TODO: do we have an error form the UDP to show?
-        else:
-            # dispatch a Message Bridge status request
-            self.qUDPSend.put(self._messageBridgeQueryJSON)
+            # TODO: are UDP threads running
+            if (not self.tUDPListen.isAlive() and not self.tUDPSend.isAlive()):
+                self.logger.warn("UDP Threads not running")
+                # TODO: do we have an error form the UDP to show?
+            else:
+                # dispatch a Message Bridge status request
+                self.qUDPSend.put(self._messageBridgeQueryJSON)
 
-            self._displayIntro()
+                self._displayIntro()
 
-            self.master.mainloop()
+                self.master.mainloop()
+
+        except KeyboardInterrupt:
+            self.logger.info("Keyboard Interrupt - Exiting")
 
     # MARK: - UDP Send
     def _initUDPSendThread(self):
@@ -1927,12 +1932,14 @@ class ConfigurationWizard:
 
         self.master.after(2, self._serialDebugUpdate)
 
+
     # MARK: - Clean up stuff
     def _endConfigMe(self):
         self.logger.debug("End Client")
         position = self.master.geometry().split("+")
         self.config.set('ConfigurationWizard', 'window_width_offset', position[1])
         self.config.set('ConfigurationWizard', 'window_height_offset', position[2])
+        self._writeConfig()
         self.master.destroy()
         self._running = False
 
@@ -1943,7 +1950,6 @@ class ConfigurationWizard:
 
         # cancel anything outstanding
         # disconnect resources
-        self._writeConfig()
         try:
             self.tUDPSendStop.set()
             self.tUDPSend.join()
@@ -2127,4 +2133,4 @@ class ConfigurationWizard:
 
 if __name__ == "__main__":
     app = ConfigurationWizard()
-    app.on_excute()
+    app.on_execute()
