@@ -851,17 +851,24 @@ is running then run in the current terminal
 
         at = AT.AT(self._serial, self.logger, self.tSerialStop)
 
-        if at.enterATMode():            
-            #ask for the ATLH            
-            if at.sendATWaitForResponse("ATLH") != "1": #if the ATLH returns diff from 1, we force the 1 status            
-                if at.sendATWaitForOK("ATLH1"):
-                    if at.sendATWaitForOK("ATAC"):                        
-                        if at.sendATWaitForOK("ATWR"):
-                            self.logger.debug("SerialCheckATLH: ATLH1 set")
+        if at.enterATMode():
+            #ask for the ATLH
+            atlh = at.sendATWaitForResponse("ATLH")
+            if atlh:
+                if atlh != "1": #if the ATLH returns diff from 1, we force the 1 status
+                    if at.sendATWaitForOK("ATLH1"):
+                        if at.sendATWaitForOK("ATAC"):
+                            if at.sendATWaitForOK("ATWR"):
+                                self.logger.debug("SerialCheckATLH: ATLH1 set")
+            else:
+                self.logger.critical("SerialCheckATLH: ATLH returned False, check radio firmware version")
+                self._cleanUp()
+                return False
+
             self._panID = at.sendATWaitForResponse("ATID")
             if not self._panID:
                 self.logger.critical("SerialCheckATLH: Invalid PANID")
-                self._cleanUp()                
+                self._cleanUp()
                 return False
                 
             self._encryption = at.sendATWaitForResponse("ATEE")
