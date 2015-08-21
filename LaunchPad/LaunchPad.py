@@ -149,7 +149,11 @@ class LaunchPad:
         self.readConfig()
         self.initLogging()
         # check if the program has just been updated
-        oldVersion = self.config.get('Update', 'postupdate')
+        try:
+            oldVersion = self.config.getfloat('Update', 'postupdate')
+        except:
+            oldVersion = False
+
         if oldVersion:
             subprocess.Popen(["./{}.py".format(oldVersion)], cwd="../Tools/update/")
             # read the config again cause the post update script may be change some config
