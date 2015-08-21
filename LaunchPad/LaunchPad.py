@@ -61,7 +61,7 @@ from Tabs import *
 
     DONE Check the screen geometry position
 
-    MessageBrigde Name Clash detection, report to user (same network diffrent IP's)
+    DONE MessageBridge Name Clash detection, report to user (same network diffrent IP's)
 
     Any TODO's from below
 """
@@ -75,7 +75,8 @@ class LaunchPad:
     _serviceStatusText = {
                           'checking': "Checking network for a running Message Bridge",
                           'found': "Message Bridge running on network",
-                          'timeout': "Message Bridge not found on network"
+                          'timeout': "Message Bridge not found on network",
+                          'conflict': "There's more than one Message Bridge using the NSSID "
                          }
     password = None
     _UDPListenTimeout = 1   # timeout for UDP listen
@@ -84,6 +85,7 @@ class LaunchPad:
     _networkUDPTimeout = 5
     _networkUDPTimer = 0
     _checking = False
+    _messageBridges = {}
     _messageBridgeQueryJSON = json.dumps({"type": "MessageBridge", "network": "ALL"})
 
 
@@ -759,6 +761,7 @@ class LaunchPad:
 
         self._initUDPSendThread()
         self.fMessageBridgeGood = threading.Event()
+        self.fMessageBridgeConflict = threading.Event()
 
         self.master.after(100, self.checkNetwork)
 
@@ -777,7 +780,13 @@ class LaunchPad:
             checkagain in 1s
 
         """
-        if self.fMessageBridgeGood.is_set():
+        if self.fMessageBridgeConflict.is_set():
+            self._serviceStatus.set(self._serviceStatusText['conflict']+self.conflictNetwork)
+            self.fMessageBridgeConflict.clear()
+            self.fMessageBridgeGood.clear()
+            self._checking = False
+            self._networkRecheckTimer = time()
+        elif self.fMessageBridgeGood.is_set():
             self._serviceStatus.set(self._serviceStatusText['found'])
             self.fMessageBridgeGood.clear()
             self._checking = False
@@ -834,8 +843,7 @@ class LaunchPad:
                 elif jsonin['type'] == "MessageBridge":
                     # we have a MessageBridge JSON do stuff with it
                     self.logger.debug("tUDPListen: JSON of type MessageBridge")
-                    if jsonin['state'] == "Running" or jsonin['state'] == "RUNNING":
-                        self.fMessageBridgeGood.set()
+                    self._updateMessageBridgeDetailsFromJSON(jsonin, address[0])
 
         self.logger.debug("tUDPListen: Thread stopping")
         try:
@@ -843,6 +851,25 @@ class LaunchPad:
         except socket.error:
             self.logger.error("tUDPListen: Failed to close socket")
         return
+
+    def _updateMessageBridgeDetailsFromJSON(self, jsonin, address):
+        # update Message Bridge entry in our list
+        # TODO: this needs to be a intelligent merge not just overwrite
+        if jsonin['network'] in self._messageBridges.keys():
+            network = jsonin['network']
+            if self._messageBridges[network]['address'] != address:
+                self._messageBridges[network]['state'] = "CONFLICT"
+                self.conflictNetwork = network
+        else:
+            # new entry store the whole packet
+            jsonin['address'] = address
+            self._messageBridges[jsonin['network']] = jsonin
+
+        if self._messageBridges[jsonin['network']]['state'].upper() == "CONFLICT":
+            self.fMessageBridgeConflict.set()
+        elif self._messageBridges[jsonin['network']]['state'].upper() == "RUNNING":
+            self.fMessageBridgeGood.set()
+
 
     def _initUDPSendThread(self):
         """ Start the UDP output thread
@@ -1119,6 +1146,10 @@ class LaunchPad:
 
     def launch(self, app, command, NoUIUpdate=False):
         appCommand = ["./{}".format(self.appList[app]['FileName'])]
+
+        if command in ['stop', 'restart']:
+            self._messageBridges = {}
+
         if not self.appList[app]['Args'] == "":
             appCommand.append(self.appList[app]['Args'])
 
