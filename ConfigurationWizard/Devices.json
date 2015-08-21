@@ -1,9 +1,9 @@
 {
-    "Version":150817,
+    "Version":150821,
     "Devices":[
                {
                "DTY":"AAAB01",
-               "Name":"Temperature Sensor SB-CA",
+               "Name":"Temperature Sensor",
                "Description":"This Temperature Sensor device sends periodic readings in degrees centigrade. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade",
                "LongDescription":"Using a thermistor this wireless temperature sensor will tell you the ambient temperature of its environment. The device sends periodic encrypted temperature readings to other WirelessThings devices. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade. The internal coin cell battery is capable of running for well in excess of 10 years (based on 1 reading per hour).",
                "SleepMode":"Cyclic",
@@ -49,7 +49,7 @@
                },
                {
                "DTY":"AAAB02",
-               "Name":"Temperature Sensor SB-CA",
+               "Name":"Temperature Sensor",
                "Description":"This Temperature Sensor device sends periodic readings in degrees centigrade. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade",
                "LongDescription":"Using a thermistor this wireless temperature sensor will tell you the ambient temperature of its environment. The device sends periodic encrypted temperature readings to other WirelessThings devices. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade. The internal coin cell battery is capable of running for well in excess of 10 years (based on 1 reading per hour).",
                "SleepMode":"Cyclic",
@@ -89,7 +89,7 @@
                },
                {
                "DTY":"AAAB03",
-               "Name":"Temperature Sensor SB-CA",
+               "Name":"Temperature Sensor",
                "Description":"This Temperature Sensor device sends periodic readings in degrees centigrade. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade",
                "LongDescription":"Using a thermistor this wireless temperature sensor will tell you the ambient temperature of its environment. The device sends periodic encrypted temperature readings to other WirelessThings devices. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade. The internal coin cell battery is capable of running for well in excess of 10 years (based on 1 reading per hour).",
                "SleepMode":"Cyclic",
