@@ -52,8 +52,6 @@ import tkFont
     
     MessageBrigde Name Clash detection, report to user (same network diffrent IP's)
     
-    Handel APVER 2.1 and DVI command
-    
     Make use of Batt reading and display in UI
     
     Give estimated Battery life based on period
@@ -453,6 +451,7 @@ class ConfigurationWizard:
                       "ENC" : [tk.IntVar(), tk.IntVar(), 'ONOFF'],
                       "ENKEY" : [tk.StringVar(), tk.StringVar(), 'ENKey'],
                       "BATT" : [tk.DoubleVar(), tk.DoubleVar(), 'Float'],
+                      "DVI" : [tk.StringVar(), tk.StringVar(), 'String'],
                       "RSSI" : [tk.IntVar(), tk.IntVar(), 'Int']
                      }
         self.entry['CHDEVID'][0].trace_variable('w', self._checkDevIDList)
@@ -519,7 +518,7 @@ class ConfigurationWizard:
         r = 0
         # device name and rssi (topbar)
         tk.Label(self.sframe,
-                 text="{}".format(self.devices[self.device['index']]['Name'])
+                 text="{} {}".format(self.devices[self.device['index']]['Name'], self._decodeDVIForDisplay())
                  ).grid(row=r, column=0, columnspan=6)
         tk.Label(self.sframe,
                  text="RSSI: -{}".format(self.entry['RSSI'][0].get()),
@@ -709,7 +708,7 @@ class ConfigurationWizard:
 
         # device name and rssi (topbar)
         tk.Label(self.dframe,
-                 text="{}".format(self.devices[self.device['index']]['Name'])
+                 text="{} {}".format(self.devices[self.device['index']]['Name'], self._decodeDVIForDisplay())
                  ).grid(row=0, column=0, columnspan=6)
         tk.Label(self.dframe,
                  text="RSSI: -{}".format(self.entry['RSSI'][0].get()),
@@ -782,7 +781,7 @@ class ConfigurationWizard:
 
         # device name and rssi (topbar)
         tk.Label(self.cframe,
-                 text="{}".format(self.devices[self.device['index']]['Name'])
+                 text="{} {}".format(self.devices[self.device['index']]['Name'], self._decodeDVIForDisplay())
                  ).grid(row=0, column=0, columnspan=6)
         tk.Label(self.cframe,
                  text="RSSI: -{}".format(self.entry['RSSI'][0].get()),
@@ -1240,6 +1239,14 @@ class ConfigurationWizard:
                                    ("Please enter a valid two character device ID\r"
                                     "A device ID can be anything from AA to ZZ"))
 
+    def _decodeDVIForDisplay(self):
+        if self.device['APVER'] >= 2.1:
+            if self.entry['DVI'][1].get() == "ERR":
+                return ""
+            return "{}-{}".format(self.entry['DVI'][1].get()[0:2], self.entry['DVI'][1].get()[2:4])
+        else:
+            return ""
+
     # MARK: - Validation rules
 
     # valid percent substitutions (from the Tk entry man page)
@@ -1561,6 +1568,7 @@ class ConfigurationWizard:
                             self.device = {'index': n,
                                            'DTY': self.devices[n]['DTY'],   # copy form JSON not reply
                                            'devID': reply['replies']['CHDEVID']['reply'],
+                                           'APVER': float(reply['replies']['APVER']['reply']),
                                            'newDevice': False,
                                            'setENC': False,
                                            'settingsMissMatch': False,
@@ -1579,7 +1587,7 @@ class ConfigurationWizard:
                             self._startOver()
 
                 else:
-                    # apver mismatch, show error screen
+                    # TODO: apver mismatch, show error screen
                     pass
             elif self._configState == 2:
                 # this was an information request
@@ -1689,7 +1697,9 @@ class ConfigurationWizard:
                  {'command': "RSSI"}
                  ]
                  
-         # TODO: if APVER 2.1 ask DVI
+        # If APVER 2.1 ask DVI
+        if self.device['APVER'] >= 2.1:
+            query.append({'command': "DVI"})
          
 
         if self.devices[self.device['index']]['SleepMode'] == "Cyclic":
