@@ -1214,17 +1214,19 @@ is running then run in the current terminal
     def _chunkstring(self, string, length):
         return (string[0+i:length+i] for i in range(0, len(string), length))
 
-    # TODO: catch errors and add logging
+    # catch errors and add logging
     def _makePidlockfile(self, path, acquire_timeout):
         """ Make a PIDLockFile instance with the given filesystem path. """
         if not isinstance(path, basestring):
             error = ValueError("Not a filesystem path: %(path)r" % vars())
+            self.logger.critical("makePidlockFile: Not a filesystem path: %(path)r" % vars())
             raise error
         if not os.path.isabs(path):
             error = ValueError("Not an absolute path: %(path)r" % vars())
+            self.logger.critical("makePidlockFile: Not an absolute path: %(path)r" % vars())
             raise error
         lockfile = pidlockfile.TimeoutPIDLockFile(path, acquire_timeout)
-
+        self.logger.debug("makePidlockFile: PIDLockFile created")
         return lockfile
 
     def _isPidfileStale(self, pidfile):
