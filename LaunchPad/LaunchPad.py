@@ -903,8 +903,8 @@ class LaunchPad:
             UDPSendSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         except socket.error, msg:
             self.logger.error("tUDPSend: Failed to create socket. Error code : {} Message : {}".format(msg[0], msg[1]))
-            # TODO: tUDPSend needs to stop here
-            # TODO: need to send message to user saying could not open socket
+            # tUDPSend needs to stop here
+            # need to send message to user saying could not open socket
             return
 
         UDPSendSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
