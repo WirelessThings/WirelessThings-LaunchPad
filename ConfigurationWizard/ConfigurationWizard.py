@@ -48,8 +48,8 @@ import tkFont
 
     Pretty JSON format for window?
 
-    fix self.die()
-    
+    DONE fix self.die()
+
     DONE MessageBridge Name Clash detection, report to user (same network diffrent IP's)
     
     Make use of Batt reading and display in UI
@@ -228,7 +228,7 @@ class ConfigurationWizard:
         # run the GUI's
         self._runConfigMe()
         self._cleanUp()
-        self._endConfigMe()
+
 
     def _runConfigMe(self):
         self.logger.debug("Running Main GUI")
@@ -271,6 +271,7 @@ class ConfigurationWizard:
 
         except KeyboardInterrupt:
             self.logger.info("Keyboard Interrupt - Exiting")
+            self._endConfigMe()
 
     # MARK: - UDP Send
     def _initUDPSendThread(self):
@@ -1936,18 +1937,18 @@ class ConfigurationWizard:
     # MARK: - Clean up stuff
     def _endConfigMe(self):
         self.logger.debug("End Client")
-        position = self.master.geometry().split("+")
-        self.config.set('ConfigurationWizard', 'window_width_offset', position[1])
-        self.config.set('ConfigurationWizard', 'window_height_offset', position[2])
-        self._writeConfig()
-        self.master.destroy()
+        if hasattr(self,'master'):
+            position = self.master.geometry().split("+")
+            self.config.set('ConfigurationWizard', 'window_width_offset', position[1])
+            self.config.set('ConfigurationWizard', 'window_height_offset', position[2])
+            self.master.destroy()
         self._running = False
 
     def _cleanUp(self):
         self.logger.debug("Clean up and exit")
         # if we were talking to a device we should send a CONFIGEND
         self._stopKeepAwake()
-
+        self._writeConfig()
         # cancel anything outstanding
         # disconnect resources
         try:
@@ -2120,16 +2121,14 @@ class ConfigurationWizard:
             self.logger.critical("Could Not Load Language JSON File")
             sys.exit()
 
-# TODO: Fix die()
-#    def die(self):
+    def die(self):
 #        """For some reason we can not longer go forward
 #            Try cleaning up what we can and exit
 #        """
-#        self.logger.critical("DIE")
-##        self._endConfigMe()
-#        self._cleanUp()
-#
-#        sys.exit(1)
+        self.logger.critical("DIE")
+        self._endConfigMe()
+        self._cleanUp()
+        sys.exit(1)
 
 if __name__ == "__main__":
     app = ConfigurationWizard()
