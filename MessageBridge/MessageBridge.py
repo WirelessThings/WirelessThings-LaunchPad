@@ -1104,8 +1104,12 @@ is running then run in the current terminal
                 (data, address) = UDPListenSocket.recvfrom(8192)
                 self.logger.debug("tUDPListen: Received JSON: {} From: {}".format(data, address))
 
-                # TODO: Test its actually json/catch errors
-                jsonin = json.loads(data)
+                # Test its actually json/catch errors
+                try :
+                    jsonin = json.loads(data)
+                except ValueError:
+                    self.logger.debug("tUDPListen: Invalid JSON received")
+                    continue
 
                 # TODO: error checking, dict should have keys for network
                 if (jsonin['network'] == self.config.get('Serial', 'network') or
