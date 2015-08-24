@@ -800,7 +800,7 @@ is running then run in the current terminal
 
                 # check the ATLH settings
                 if not self._SerialCheckATLH():
-                    self.debug.critical("tSerial: Error on Check ATLH")
+                    self.logger.critical("tSerial: Error on Check ATLH")
                     self.die()
 
                 # main serial processing loop
