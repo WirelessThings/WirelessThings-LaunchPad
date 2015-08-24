@@ -257,9 +257,14 @@ class ConfigurationWizard:
             self._initUDPListenThread()
             self._initUDPSendThread()
 
+            self.tUDPListenStarted.wait()
+            self.tUDPSendStarted.wait()
+
             # TODO: are UDP threads running
             if (not self.tUDPListen.isAlive() and not self.tUDPSend.isAlive()):
                 self.logger.warn("UDP Threads not running")
+                tkMessageBox.showerror("UDP Socket Failed", "UDP Socket could not be open")
+                return
                 # TODO: do we have an error form the UDP to show?
             else:
                 # dispatch a Message Bridge status request
@@ -282,8 +287,9 @@ class ConfigurationWizard:
         self.qUDPSend = Queue.Queue()
 
         self.tUDPSendStop = threading.Event()
+        self.tUDPSendStarted = threading.Event()
 
-        self.tUDPSend = threading.Thread(target=self._UDPSendTread)
+        self.tUDPSend = threading.Thread(target=self._UDPSendThread)
         self.tUDPSend.daemon = False
 
         try:
@@ -291,7 +297,7 @@ class ConfigurationWizard:
         except:
             self.logger.exception("Failed to Start the UDP send thread")
 
-    def _UDPSendTread(self):
+    def _UDPSendThread(self):
         """ UDP Send thread
         """
         self.logger.info("tUDPSend: Send thread started")
@@ -300,15 +306,14 @@ class ConfigurationWizard:
             UDPSendSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         except socket.error, msg:
             self.logger.critical("tUDPSend: Failed to create socket. Error code : {} Message : {}".format(msg[0], msg[1]))
-            # TODO: tUDPSend needs to stop here
-            # TODO: need to send message to user saying could not open socket
-            self.die()
             return
 
         UDPSendSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         UDPSendSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         sendPort = int(self.config.get('UDP', 'send_port'))
+
+        self.tUDPSendStarted.set()
 
         while not self.tUDPSendStop.is_set():
             try:
@@ -347,6 +352,7 @@ class ConfigurationWizard:
         self.logger.info("UDP Listen Thread init")
 
         self.tUDPListenStop = threading.Event()
+        self.tUDPListenStarted = threading.Event()
 
         self.tUDPListen = threading.Thread(target=self._UDPListenThread)
         self.tUDPListen.deamon = False
@@ -365,8 +371,6 @@ class ConfigurationWizard:
             UDPListenSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         except socket.error:
             self.logger.exception("tUDPListen: Failed to create socket, stopping")
-            # TODO: need to send message to user saying could not create socket object
-            self.die()
             return
 
         UDPListenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -378,10 +382,10 @@ class ConfigurationWizard:
             UDPListenSocket.bind(('', int(self.config.get('UDP', 'listen_port'))))
         except socket.error:
             self.logger.exception("tUDPListen: Failed to bind port")
-            # TODO: need to send message to user saying could not open socket
-            self.die()
             return
         UDPListenSocket.setblocking(0)
+
+        self.tUDPListenStarted.set()
 
         self.logger.info("tUDPListen: listening")
         while not self.tUDPListenStop.is_set():
