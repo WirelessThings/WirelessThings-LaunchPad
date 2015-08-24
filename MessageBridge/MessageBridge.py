@@ -182,15 +182,7 @@ is running then run in the current terminal
             self.logger.debug("Exiting")
             return
         self.run()
-
-
-        if not self._background:
-            if not sys.platform == 'win32':
-                try:
-                    self.logger.info("Removing Lock file")
-                    self._pidFile.release()
-                except:
-                    pass
+        self._cleanUp()
 
     def _checkArgs(self):
         """Parse the command line options
@@ -413,7 +405,7 @@ is running then run in the current terminal
         except KeyboardInterrupt:
             self.logger.info("Keyboard Interrupt - Exiting")
             self._cleanUp()
-            sys.exit()
+
         self.logger.debug("Exiting")
 
     def _readConfig(self):
