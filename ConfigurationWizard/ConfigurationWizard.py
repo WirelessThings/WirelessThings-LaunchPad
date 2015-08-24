@@ -394,8 +394,12 @@ class ConfigurationWizard:
                 (data, address) = UDPListenSocket.recvfrom(8192)
                 self.logger.debug("tUDPListen: Received JSON: {} From: {}".format(data, address))
 
-                # TODO: Test its actually json/catch errors
-                jsonin = json.loads(data)
+                # Test its actually json/catch errors
+                try:
+                    jsonin = json.loads(data)
+                except ValueError:
+                    self.logger.debug("tUDPListen: Invalid JSON received")
+                    continue
 
                 self.qJSONDebug.put([data, "RX"])
                 # TODO: Check for keys before trying to use them
@@ -1550,7 +1554,7 @@ class ConfigurationWizard:
                 if self._currentFrame == "pressFrame":
                     self._startOver()
         elif reply['state'] == "FAIL_RETRY":
-            # TODO: handle failed due to retry
+            # handle failed due to retry
             self.logger.debug("DeviceConfigurationRequest retry error")
             # display pop up ask user to check configme mode and try again
             if tkMessageBox.askyesno("Communications Timeout",
@@ -1588,7 +1592,7 @@ class ConfigurationWizard:
                             self._askCurrentConfig()
                     if not matched:
                         self.logger.debug("Failed to find DTY in Devices JSON")
-                        # TODO: let the user know we couldn't match the device type
+                        # let the user know we couldn't match the device type
                         tkMessageBox.showerror("Unknown device",
                                      ("The device is of an unknown type\n"
                                       "")
