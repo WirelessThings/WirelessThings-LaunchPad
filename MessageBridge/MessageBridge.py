@@ -69,9 +69,9 @@ else:
     Wake message logic
     configme enable/disable logic
 
-    Implment a defualt and user config file
-    systemd init sctipt supprot
-    
+    Implment a default and user config file
+    systemd init script support
+
     Any TODO's from below
 """
 
@@ -532,7 +532,7 @@ is running then run in the current terminal
         self._startUDPSend()
 
     def _startUDPSend(self):
-        self.tUDPSend = threading.Thread(name='tUDPSendThread', target=self._UDPSendTread)
+        self.tUDPSend = threading.Thread(name='tUDPSendThread', target=self._UDPSendThread)
         self.tUDPSend.daemon = False
         try:
             self.tUDPSend.start()
@@ -725,7 +725,7 @@ is running then run in the current terminal
             # and clear DCR and SentAll flag
             self._currentDCR = False
 
-    def _UDPSendTread(self):
+    def _UDPSendThread(self):
         """ UDP Send thread
         """
         self.logger.info("tUDPSend: Send thread started")
