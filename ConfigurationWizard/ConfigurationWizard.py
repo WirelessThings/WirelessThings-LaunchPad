@@ -58,8 +58,8 @@ import tkFont
 
     DONE Catch Ctrl-C on console window
 
-    Bertter handling of Unknown device settings
-    
+    Better handling of Unknown device settings
+
     Advance and encryption UI rework
     
     Any TODO's from below
@@ -1571,7 +1571,15 @@ class ConfigurationWizard:
             # process reply
             if self._configState == 1:
                 # this was a query type request
-                if float(reply['replies']['APVER']['reply']) >= 2.0:
+                # check for a valid APVER received
+                try :
+                    apver = float(reply['replies']['APVER']['reply'])
+                except ValueError:
+                    self.logger.debug("processReply: APVER invalid. Sending request again")
+                    self._queryType() #send the type query again
+                    return
+
+                if apver >= 2.0:
                     # valid apver
                     # so check what replied
                     matched = False
@@ -1582,7 +1590,7 @@ class ConfigurationWizard:
                             self.device = {'index': n,
                                            'DTY': self.devices[n]['DTY'],   # copy form JSON not reply
                                            'devID': reply['replies']['CHDEVID']['reply'],
-                                           'APVER': float(reply['replies']['APVER']['reply']),
+                                           'APVER': apver,
                                            'newDevice': False,
                                            'setENC': False,
                                            'settingsMissMatch': False,
