@@ -2091,9 +2091,9 @@ class ConfigurationWizard:
             self.logger.error('Unable to get latest device JSON - Exception = ' +
                             traceback.format_exc())
             self.newJSON = False
-                
+
         if self.newJSON:
-            self.logger.debug("Got new devices file saveing to disk")
+            self.logger.debug("Got new devices file saving to disk")
             with open(self.config.get('ConfigurationWizard', 'devFile'), 'w') as f:
                 f.write(self.newJSON)
             f.close()
