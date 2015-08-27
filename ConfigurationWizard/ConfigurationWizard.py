@@ -48,18 +48,18 @@ import tkFont
 
     Pretty JSON format for window?
 
-    fix self.die()
-    
+    DONE fix self.die()
+
     DONE MessageBridge Name Clash detection, report to user (same network diffrent IP's)
     
     Make use of Batt reading and display in UI
     
     Give estimated Battery life based on period
-    
-    Catch Ctrl-C on console window
-    
-    Bertter handling of Unknown device settings
-    
+
+    DONE Catch Ctrl-C on console window
+
+    Better handling of Unknown device settings
+
     Advance and encryption UI rework
     
     Any TODO's from below
@@ -212,7 +212,7 @@ class ConfigurationWizard:
             self.logger.info("File Logging started")
 
     # MARK: - Entry point
-    def on_excute(self):
+    def on_execute(self):
         """
             entry point for running
         """
@@ -229,43 +229,54 @@ class ConfigurationWizard:
         self._runConfigMe()
         self._cleanUp()
 
+
     def _runConfigMe(self):
         self.logger.debug("Running Main GUI")
-        self.master = tk.Tk()
-        self.master.protocol("WM_DELETE_WINDOW", self._endConfigMe)
-        self.master.geometry(
-                 "{}x{}+{}+{}".format(self._widthMain,
-                                      self._heightMain,
-                                      self.config.get('ConfigurationWizard',
-                                                      'window_width_offset'),
-                                      self.config.get('ConfigurationWizard',
-                                                      'window_height_offset')
-                                      )
-                             )
+        try:
+            self.master = tk.Tk()
+            self.master.protocol("WM_DELETE_WINDOW", self._endConfigMe)
+            self.master.geometry(
+                     "{}x{}+{}+{}".format(self._widthMain,
+                                          self._heightMain,
+                                          self.config.get('ConfigurationWizard',
+                                                          'window_width_offset'),
+                                          self.config.get('ConfigurationWizard',
+                                                          'window_height_offset')
+                                          )
+                                 )
 
-        self.master.title("WirelessThings Device Configuration Wizard v{}".format(self._version))
-        self.master.resizable(0,0)
+            self.master.title("WirelessThings Device Configuration Wizard v{}".format(self._version))
+            self.master.resizable(0,0)
 
-        self._initTkVariables()
-        self._initValidationRules()
+            self._initTkVariables()
+            self._initValidationRules()
 
-        if self.args.debug or self.config.getboolean('Debug', 'gui_json'):
-            self._jsonWindowDebug()
+            if self.args.debug or self.config.getboolean('Debug', 'gui_json'):
+                self._jsonWindowDebug()
 
-        self._initUDPListenThread()
-        self._initUDPSendThread()
+            self._initUDPListenThread()
+            self._initUDPSendThread()
 
-        # TODO: are UDP threads running
-        if (not self.tUDPListen.isAlive() and not self.tUDPSend.isAlive()):
-            self.logger.warn("UDP Threads not running")
-            # TODO: do we have an error form the UDP to show?
-        else:
-            # dispatch a Message Bridge status request
-            self.qUDPSend.put(self._messageBridgeQueryJSON)
+            self.tUDPListenStarted.wait()
+            self.tUDPSendStarted.wait()
 
-            self._displayIntro()
+            # TODO: are UDP threads running
+            if (not self.tUDPListen.isAlive() and not self.tUDPSend.isAlive()):
+                self.logger.warn("UDP Threads not running")
+                tkMessageBox.showerror("UDP Socket Failed", "UDP Socket could not be open")
+                return
+                # TODO: do we have an error form the UDP to show?
+            else:
+                # dispatch a Message Bridge status request
+                self.qUDPSend.put(self._messageBridgeQueryJSON)
 
-            self.master.mainloop()
+                self._displayIntro()
+
+                self.master.mainloop()
+
+        except KeyboardInterrupt:
+            self.logger.info("Keyboard Interrupt - Exiting")
+            self._endConfigMe()
 
     # MARK: - UDP Send
     def _initUDPSendThread(self):
@@ -276,8 +287,9 @@ class ConfigurationWizard:
         self.qUDPSend = Queue.Queue()
 
         self.tUDPSendStop = threading.Event()
+        self.tUDPSendStarted = threading.Event()
 
-        self.tUDPSend = threading.Thread(target=self._UDPSendTread)
+        self.tUDPSend = threading.Thread(target=self._UDPSendThread)
         self.tUDPSend.daemon = False
 
         try:
@@ -285,7 +297,7 @@ class ConfigurationWizard:
         except:
             self.logger.exception("Failed to Start the UDP send thread")
 
-    def _UDPSendTread(self):
+    def _UDPSendThread(self):
         """ UDP Send thread
         """
         self.logger.info("tUDPSend: Send thread started")
@@ -294,15 +306,14 @@ class ConfigurationWizard:
             UDPSendSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         except socket.error, msg:
             self.logger.critical("tUDPSend: Failed to create socket. Error code : {} Message : {}".format(msg[0], msg[1]))
-            # TODO: tUDPSend needs to stop here
-            # TODO: need to send message to user saying could not open socket
-            self.die()
             return
 
         UDPSendSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         UDPSendSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         sendPort = int(self.config.get('UDP', 'send_port'))
+
+        self.tUDPSendStarted.set()
 
         while not self.tUDPSendStop.is_set():
             try:
@@ -341,6 +352,7 @@ class ConfigurationWizard:
         self.logger.info("UDP Listen Thread init")
 
         self.tUDPListenStop = threading.Event()
+        self.tUDPListenStarted = threading.Event()
 
         self.tUDPListen = threading.Thread(target=self._UDPListenThread)
         self.tUDPListen.deamon = False
@@ -359,8 +371,6 @@ class ConfigurationWizard:
             UDPListenSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         except socket.error:
             self.logger.exception("tUDPListen: Failed to create socket, stopping")
-            # TODO: need to send message to user saying could not create socket object
-            self.die()
             return
 
         UDPListenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -372,10 +382,10 @@ class ConfigurationWizard:
             UDPListenSocket.bind(('', int(self.config.get('UDP', 'listen_port'))))
         except socket.error:
             self.logger.exception("tUDPListen: Failed to bind port")
-            # TODO: need to send message to user saying could not open socket
-            self.die()
             return
         UDPListenSocket.setblocking(0)
+
+        self.tUDPListenStarted.set()
 
         self.logger.info("tUDPListen: listening")
         while not self.tUDPListenStop.is_set():
@@ -384,8 +394,12 @@ class ConfigurationWizard:
                 (data, address) = UDPListenSocket.recvfrom(8192)
                 self.logger.debug("tUDPListen: Received JSON: {} From: {}".format(data, address))
 
-                # TODO: Test its actually json/catch errors
-                jsonin = json.loads(data)
+                # Test its actually json/catch errors
+                try:
+                    jsonin = json.loads(data)
+                except ValueError:
+                    self.logger.debug("tUDPListen: Invalid JSON received")
+                    continue
 
                 self.qJSONDebug.put([data, "RX"])
                 # TODO: Check for keys before trying to use them
@@ -1540,7 +1554,7 @@ class ConfigurationWizard:
                 if self._currentFrame == "pressFrame":
                     self._startOver()
         elif reply['state'] == "FAIL_RETRY":
-            # TODO: handle failed due to retry
+            # handle failed due to retry
             self.logger.debug("DeviceConfigurationRequest retry error")
             # display pop up ask user to check configme mode and try again
             if tkMessageBox.askyesno("Communications Timeout",
@@ -1557,7 +1571,15 @@ class ConfigurationWizard:
             # process reply
             if self._configState == 1:
                 # this was a query type request
-                if float(reply['replies']['APVER']['reply']) >= 2.0:
+                # check for a valid APVER received
+                try :
+                    apver = float(reply['replies']['APVER']['reply'])
+                except ValueError:
+                    self.logger.debug("processReply: APVER invalid. Sending request again")
+                    self._queryType() #send the type query again
+                    return
+
+                if apver >= 2.0:
                     # valid apver
                     # so check what replied
                     matched = False
@@ -1568,7 +1590,7 @@ class ConfigurationWizard:
                             self.device = {'index': n,
                                            'DTY': self.devices[n]['DTY'],   # copy form JSON not reply
                                            'devID': reply['replies']['CHDEVID']['reply'],
-                                           'APVER': float(reply['replies']['APVER']['reply']),
+                                           'APVER': apver,
                                            'newDevice': False,
                                            'setENC': False,
                                            'settingsMissMatch': False,
@@ -1578,7 +1600,7 @@ class ConfigurationWizard:
                             self._askCurrentConfig()
                     if not matched:
                         self.logger.debug("Failed to find DTY in Devices JSON")
-                        # TODO: let the user know we couldn't match the device type
+                        # let the user know we couldn't match the device type
                         tkMessageBox.showerror("Unknown device",
                                      ("The device is of an unknown type\n"
                                       "")
@@ -1927,23 +1949,24 @@ class ConfigurationWizard:
 
         self.master.after(2, self._serialDebugUpdate)
 
+
     # MARK: - Clean up stuff
     def _endConfigMe(self):
         self.logger.debug("End Client")
-        position = self.master.geometry().split("+")
-        self.config.set('ConfigurationWizard', 'window_width_offset', position[1])
-        self.config.set('ConfigurationWizard', 'window_height_offset', position[2])
-        self.master.destroy()
+        if hasattr(self,'master'):
+            position = self.master.geometry().split("+")
+            self.config.set('ConfigurationWizard', 'window_width_offset', position[1])
+            self.config.set('ConfigurationWizard', 'window_height_offset', position[2])
+            self.master.destroy()
         self._running = False
 
     def _cleanUp(self):
         self.logger.debug("Clean up and exit")
         # if we were talking to a device we should send a CONFIGEND
         self._stopKeepAwake()
-
+        self._writeConfig()
         # cancel anything outstanding
         # disconnect resources
-        self._writeConfig()
         try:
             self.tUDPSendStop.set()
             self.tUDPSend.join()
@@ -2068,9 +2091,9 @@ class ConfigurationWizard:
             self.logger.error('Unable to get latest device JSON - Exception = ' +
                             traceback.format_exc())
             self.newJSON = False
-                
+
         if self.newJSON:
-            self.logger.debug("Got new devices file saveing to disk")
+            self.logger.debug("Got new devices file saving to disk")
             with open(self.config.get('ConfigurationWizard', 'devFile'), 'w') as f:
                 f.write(self.newJSON)
             f.close()
@@ -2114,17 +2137,15 @@ class ConfigurationWizard:
             self.logger.critical("Could Not Load Language JSON File")
             sys.exit()
 
-# TODO: Fix die()
-#    def die(self):
+    def die(self):
 #        """For some reason we can not longer go forward
 #            Try cleaning up what we can and exit
 #        """
-#        self.logger.critical("DIE")
-##        self._endConfigMe()
-#        self._cleanUp()
-#
-#        sys.exit(1)
+        self.logger.critical("DIE")
+        self._endConfigMe()
+        self._cleanUp()
+        sys.exit(1)
 
 if __name__ == "__main__":
     app = ConfigurationWizard()
-    app.on_excute()
+    app.on_execute()

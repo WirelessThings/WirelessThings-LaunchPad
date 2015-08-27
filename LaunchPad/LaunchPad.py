@@ -171,9 +171,8 @@ class LaunchPad:
 
         self._running = True
 
-        #if returns False, the cleanUp has already done in the runLaunchPad
-        if self.runLaunchPad():
-            self.cleanUp()
+        self.runLaunchPad()
+        self.cleanUp()
 
     def restart(self):
         # restart after update
@@ -189,13 +188,11 @@ class LaunchPad:
 
     def endLaunchPad(self):
         self.logger.info("End LaunchPad")
-        position = self.master.geometry().split("+")
-        self.config.set('LaunchPad', 'window_width_offset', position[1])
-        self.config.set('LaunchPad', 'window_height_offset', position[2])
-        self.master.destroy()
-        # stop UDP Threads
-        self.tUDPSendStop.set()
-        self.tUDPListenStop.set()
+        if hasattr(self,'master'):
+            position = self.master.geometry().split("+")
+            self.config.set('LaunchPad', 'window_width_offset', position[1])
+            self.config.set('LaunchPad', 'window_height_offset', position[2])
+            self.master.destroy()
         self._running = False
 
     def cleanUp(self):
@@ -206,6 +203,17 @@ class LaunchPad:
             if c.poll() == None:
                 c.terminate()
         self.writeConfig()
+        # stop UDP Threads
+        try:
+            self.tUDPSendStop.set()
+            self.tUDPSend.join()
+        except:
+            pass
+        try:
+            self.tUDPListenStop.set()
+            self.tUDPListen.join()
+        except:
+            pass
 
     def checkArgs(self):
         self.logger.info("Parse Args")
@@ -528,6 +536,7 @@ class LaunchPad:
     def runLaunchPad(self):
         try :
             self.logger.info("Running LaunchPad")
+
             self.master = tk.Tk()
             self.master.protocol("WM_DELETE_WINDOW", self.endLaunchPad)
 
@@ -577,12 +586,9 @@ class LaunchPad:
 
         except KeyboardInterrupt:
             self.logger.info("Keyboard Interrupt - Exiting")
-            self.cleanUp()
             self.endLaunchPad()
-            return False
 
         self.logger.debug("Exiting")
-        return True
 
     def initTabBar(self):
         self.logger.info("Setting up TabBar")
@@ -897,8 +903,8 @@ class LaunchPad:
             UDPSendSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         except socket.error, msg:
             self.logger.error("tUDPSend: Failed to create socket. Error code : {} Message : {}".format(msg[0], msg[1]))
-            # TODO: tUDPSend needs to stop here
-            # TODO: need to send message to user saying could not open socket
+            # tUDPSend needs to stop here
+            # need to send message to user saying could not open socket
             return
 
         UDPSendSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)

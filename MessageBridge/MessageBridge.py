@@ -69,9 +69,9 @@ else:
     Wake message logic
     configme enable/disable logic
 
-    Implment a defualt and user config file
-    systemd init sctipt supprot
-    
+    Implment a default and user config file
+    systemd init script support
+
     Any TODO's from below
 """
 
@@ -182,15 +182,7 @@ is running then run in the current terminal
             self.logger.debug("Exiting")
             return
         self.run()
-
-
-        if not self._background:
-            if not sys.platform == 'win32':
-                try:
-                    self.logger.info("Removing Lock file")
-                    self._pidFile.release()
-                except:
-                    pass
+        self._cleanUp()
 
     def _checkArgs(self):
         """Parse the command line options
@@ -413,7 +405,7 @@ is running then run in the current terminal
         except KeyboardInterrupt:
             self.logger.info("Keyboard Interrupt - Exiting")
             self._cleanUp()
-            sys.exit()
+
         self.logger.debug("Exiting")
 
     def _readConfig(self):
@@ -540,7 +532,7 @@ is running then run in the current terminal
         self._startUDPSend()
 
     def _startUDPSend(self):
-        self.tUDPSend = threading.Thread(name='tUDPSendThread', target=self._UDPSendTread)
+        self.tUDPSend = threading.Thread(name='tUDPSendThread', target=self._UDPSendThread)
         self.tUDPSend.daemon = False
         try:
             self.tUDPSend.start()
@@ -733,7 +725,7 @@ is running then run in the current terminal
             # and clear DCR and SentAll flag
             self._currentDCR = False
 
-    def _UDPSendTread(self):
+    def _UDPSendThread(self):
         """ UDP Send thread
         """
         self.logger.info("tUDPSend: Send thread started")
@@ -800,7 +792,7 @@ is running then run in the current terminal
 
                 # check the ATLH settings
                 if not self._SerialCheckATLH():
-                    self.debug.critical("tSerial: Error on Check ATLH")
+                    self.logger.critical("tSerial: Error on Check ATLH")
                     self.die()
 
                 # main serial processing loop
@@ -1112,8 +1104,12 @@ is running then run in the current terminal
                 (data, address) = UDPListenSocket.recvfrom(8192)
                 self.logger.debug("tUDPListen: Received JSON: {} From: {}".format(data, address))
 
-                # TODO: Test its actually json/catch errors
-                jsonin = json.loads(data)
+                # Test its actually json/catch errors
+                try :
+                    jsonin = json.loads(data)
+                except ValueError:
+                    self.logger.debug("tUDPListen: Invalid JSON received")
+                    continue
 
                 # TODO: error checking, dict should have keys for network
                 if (jsonin['network'] == self.config.get('Serial', 'network') or
@@ -1218,17 +1214,19 @@ is running then run in the current terminal
     def _chunkstring(self, string, length):
         return (string[0+i:length+i] for i in range(0, len(string), length))
 
-    # TODO: catch errors and add logging
+    # catch errors and add logging
     def _makePidlockfile(self, path, acquire_timeout):
         """ Make a PIDLockFile instance with the given filesystem path. """
         if not isinstance(path, basestring):
             error = ValueError("Not a filesystem path: %(path)r" % vars())
+            self.logger.critical("makePidlockFile: Not a filesystem path: %(path)r" % vars())
             raise error
         if not os.path.isabs(path):
             error = ValueError("Not an absolute path: %(path)r" % vars())
+            self.logger.critical("makePidlockFile: Not an absolute path: %(path)r" % vars())
             raise error
         lockfile = pidlockfile.TimeoutPIDLockFile(path, acquire_timeout)
-
+        self.logger.debug("makePidlockFile: PIDLockFile created")
         return lockfile
 
     def _isPidfileStale(self, pidfile):
