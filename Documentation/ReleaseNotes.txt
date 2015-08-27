@@ -1,6 +1,16 @@
 WirelessThings LaunchPad from Ciseco
 For full detaisl of code changes please see the git commit history
 
+0.15:
+    LaunchPad: change the debugPrint to use the logger functions
+    DCW: If APVER 2.1 query DVI and display
+    LaunchPad: Catch Ctrl+C from console
+    LaunchPad: Check the screen geometry to always use the main monitor to open the application
+    LaunchPad: Add new post update routine
+    ConfigurationWizard & MessageBridge: MessageBridge Name Clash shows a message to user and disable the button
+    MessageBridge: Improve the ATLH1 tests
+    Lots of typos and minor TODOs cleaned up
+
 0.14:
     ConfigurationWizard: now downlaods latest Devices.json from the net at launch
     MessageBridge: Better handeling of AT command mode
