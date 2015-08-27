@@ -69,7 +69,7 @@ else:
     Wake message logic
     configme enable/disable logic
 
-    Implment a default and user config file
+    DONE Implement a default and user config file
     systemd init script support
 
     Any TODO's from below
@@ -91,6 +91,7 @@ class MessageBridge():
 
     """
 
+    _configFileDefault = "./MessageBridge_defaults.cfg"
     _configFile = "./MessageBridge.cfg"
     _pidFile = None
     _pidFilePath = "./MessageBridge.pid"
@@ -413,16 +414,28 @@ is running then run in the current terminal
         """
         self.logger.info("Reading config files")
         self.config = ConfigParser.SafeConfigParser()
-
         # load defaults
         try:
-            self.config.readfp(open(self._configFile))
+            self.config.readfp(open(self._configFileDefault))
         except:
-            self.logger.error("Could Not Load Settings File")
+            self.logger.debug("Could Not Load Default Settings File")
+
+        if not self.config.read(self._configFile):
+            self.logger.debug("Could Not Load User Config, One Will be Created on Exit")
+
+        #try:
+        #    self.config.read(open(self._configFile))
+        #except:
+        #    self.logger.error("Could Not Load Settings File")
 
         if not self.config.sections():
             self.logger.critical("No Config Loaded, Exiting")
             self.die()
+
+    def _writeConfig(self):
+        self.logger.debug("Writing Config")
+        with open(self._configFile, 'wb') as _configFile:
+            self.config.write(_configFile)
 
     def _reloadProgramConfig(self):
         """ Reload the config file from disk
@@ -1255,6 +1268,8 @@ is running then run in the current terminal
         """
         # first stop the main thread from try to restart stuff
         self.tMainStop.set()
+        # writes the config file
+        self._writeConfig()
         # now stop the other threads
         try:
             self.tUDPListenStop.set()
