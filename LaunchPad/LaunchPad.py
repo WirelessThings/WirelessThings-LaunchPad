@@ -1059,7 +1059,7 @@ class LaunchPad:
                 # modify init.d script path before copying file
                 for lines in fileinput.FileInput(src, inplace=1): ## edit file in place
                     if lines.startswith("cd "):
-                        sys.stdout.write("cd {}/{}\r".format(self._path,
+                        sys.stdout.write("cd {}/{}\n".format(self._path,
                                                              self.appList[app]['CWD']))
                     else:
                         sys.stdout.write(lines)
