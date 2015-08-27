@@ -47,14 +47,10 @@ else:
     Big TODO list
 
     Thread state monitor
-       gpio state display
-       DONE: restart dead threads
-       DONE: restart dead serial
        restart dead socket ? how to check
        need to find a way to test broken threads are getting restarted
 
-    "MessageBridge" messages
-        DONE: status
+    "MessageBridge" messages that might be worth adding in the future
         reboot
         stop
         config changes (local ENC and PANID)

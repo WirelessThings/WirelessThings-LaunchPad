@@ -47,22 +47,7 @@ from Tabs import *
     Big TODO list
 
     Move advance list from json into py
-
-    DONE switch to debug prints to logging
-
-    DONE catch permisions error on exec and set permission if needed
-
-    DONE Updates:
-        check update, should give user error message
-        should remove files or process renames as needed, (form list)
-        execute post update external script (one time)
-
-    DONE Catch Ctrl-C from console
-
-    DONE Check the screen geometry position
-
-    DONE MessageBridge Name Clash detection, report to user (same network diffrent IP's)
-
+    
     Any TODO's from below
 """
 

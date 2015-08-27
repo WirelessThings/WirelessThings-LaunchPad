@@ -46,17 +46,10 @@ import tkFont
 """
     Big TODO list
 
-    Pretty JSON format for window?
 
-    DONE fix self.die()
-
-    DONE MessageBridge Name Clash detection, report to user (same network diffrent IP's)
-    
     Make use of Batt reading and display in UI
     
     Give estimated Battery life based on period
-
-    DONE Catch Ctrl-C on console window
 
     Better handling of Unknown device settings
 
@@ -1510,7 +1503,7 @@ class ConfigurationWizard:
         """
         self.logger.debug("Query type")
         self._checkMessageBridge = False
-        # TODO: add a line here to disable NEXT button on pfame
+        
         query = [
                  {'command': "DTY"},
                  {'command': "APVER"},
@@ -1540,7 +1533,7 @@ class ConfigurationWizard:
                                                                   reply['replies']))
         # check if reply is valid
         if reply['state'] == "FAIL_TIMEOUT":
-            # TODO: handle failed due to timeout
+            # handle failed due to timeout
             self.logger.debug("DeviceConfigurationRequest timeout")
             # display pop up ask user to check configme mode and try again
             if tkMessageBox.askyesno("Communications Timeout",
@@ -1664,12 +1657,11 @@ class ConfigurationWizard:
 
                 # show config screen
                 self.logger.debug("Setting keepAwake, display config")
-                # TODO: set keepAwake via UDP DCR
                 self._keepAwake = 1
                 self._displaySimpleConfig()
             elif self._configState == 3:
                 # this was a config request
-                # TODO: check replies were good and let user know device is now ready
+                # check replies were good and let user know device is now ready
                 enkeyCount = 0
                 enkeyMatch = 0
                 en = re.compile('^EN[1-6]')
@@ -1702,7 +1694,6 @@ class ConfigurationWizard:
                 else:
                     # TODO: LLAPRESET didn't work ERROR
                     pass
-        # TODO: clean up
 
     def _askCurrentConfig(self):
         # assuming we know what it is ask for the current config
@@ -1792,7 +1783,6 @@ class ConfigurationWizard:
 
     def _updateMessageBridgeDetailsFromJSON(self, jsonin, address):
         # update Message Bridge entry in our list
-        # TODO: this needs to be a intelligent merge not just overwrite
         if jsonin['network'] in self._messageBridges.keys():
             network = jsonin['network']
             if not self._messageBridges[network]['conflict']: #if already in conflict, nothing more to do with the message
