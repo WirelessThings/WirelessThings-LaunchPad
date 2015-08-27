@@ -98,7 +98,7 @@ class MessageBridge():
     _serialTimeout = 1     # serial port time out setting
     _UDPListenTimeout = 5   # timeout for UDP listen
 
-    _version = 0.14
+    _version = 0.15
 
     _currentDCR = False
     devType = None
