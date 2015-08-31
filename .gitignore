@@ -27,6 +27,7 @@ Thumbs.db
 
 ConfigurationWizard.cfg
 Download/
+MessageBridge.cfg
 Launchpad.cfg
 Dump
 Tools/py2exe/build
