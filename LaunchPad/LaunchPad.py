@@ -226,6 +226,7 @@ class LaunchPad:
                                       self.config.get('Update', 'serverversionfile'))
             self.newVersion = request.read()
             #need a verification to make sure that is the correct page? like count chars on the received file?
+            self.netVersion = self.newVersion.rstrip()
         except urllib2.HTTPError, e:
 
             self.logger.error('Unable to get latest version info - HTTPError = ' +
@@ -268,10 +269,12 @@ class LaunchPad:
             self.updateFailed = False
             # grab zip size for progress bar length
             try:
-                u = urllib2.urlopen(self.config.get('Update', 'updateurl') +
-                                    self.config.get('Update',
-                                                    'updatefile'
-                                                    ).format(self.newVersion))
+                url = self.config.get('Update', 'updateurl') +
+                    self.config.get('Update',
+                                    'updatefile'
+                                    ).format(self.newVersion)
+                self.logger.info(" Attepmting to get file size for: {}".format(url))
+                u = urllib2.urlopen(url)
                 meta = u.info()
                 self.file_size = int(meta.getheaders("Content-Length")[0])
             except urllib2.HTTPError, e:
@@ -357,6 +360,7 @@ class LaunchPad:
         self.logger.info(localFile)
 
         try:
+            self.logger.info("Downloading file: {}".format(url))
             u = urllib2.urlopen(url)
             f = open(localFile, 'wb')
             meta = u.info()
@@ -1197,8 +1201,11 @@ class LaunchPad:
             self.logger.error("No Config Loaded, Quitting")
             sys.exit()
 
-        #self.debug = self.config.getboolean('Shared', 'debug')
         self.debug = self.config.getboolean('Debug', 'console_debug')
+        
+        # TODO: move to update file in 0.16
+        self.config.remove_section('Shared')
+        self.config.set('Update', 'updatefile', 'WirelessThings-LaunchPad_{}.zip')
 
         try:
             f = open(self.config.get('Update', 'versionfile'))
