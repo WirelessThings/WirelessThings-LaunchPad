@@ -651,8 +651,8 @@ class ConfigurationWizard:
         infoText = None
         infoFormat = None
 
-        if subject == "Description":
-            infoText = self.devices[self.device['index']]['Description']
+        if subject == "LongDescription":
+            infoText = self.devices[self.device['index']]['LongDescription']
         elif subject == "Interval":
             infoText = INTERVALTEXT
         elif subject == "MissMatch":
