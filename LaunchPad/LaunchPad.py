@@ -143,7 +143,7 @@ class LaunchPad:
 
         if oldVersion:
             subprocess.Popen(["./{}.py".format(oldVersion)], cwd="../Tools/update/")
-            # read the config again cause the post update script may be change some config
+            # reload the config cause the post update script may be change some config
             self.readConfig()
             self.config.set('Update', 'postupdate', False)
             self.writeConfig()
