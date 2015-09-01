@@ -226,7 +226,7 @@ class LaunchPad:
                                       self.config.get('Update', 'serverversionfile'))
             self.newVersion = request.read()
             #need a verification to make sure that is the correct page? like count chars on the received file?
-            self.netVersion = self.newVersion.rstrip()
+            self.newVersion = self.newVersion.rstrip()
         except urllib2.HTTPError, e:
 
             self.logger.error('Unable to get latest version info - HTTPError = ' +
@@ -269,10 +269,8 @@ class LaunchPad:
             self.updateFailed = False
             # grab zip size for progress bar length
             try:
-                url = self.config.get('Update', 'updateurl') +
-                    self.config.get('Update',
-                                    'updatefile'
-                                    ).format(self.newVersion)
+                url = self.config.get('Update', 'updateurl') + self.config.get('Update',
+                                    'updatefile').format(self.newVersion)
                 self.logger.info(" Attepmting to get file size for: {}".format(url))
                 u = urllib2.urlopen(url)
                 meta = u.info()
