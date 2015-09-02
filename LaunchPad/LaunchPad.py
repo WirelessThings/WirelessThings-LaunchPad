@@ -836,7 +836,11 @@ class LaunchPad:
             if datawaiting[0]:
                 (data, address) = UDPListenSocket.recvfrom(2048)
                 self.logger.debug("tUDPListen: Received JSON: {} From: {}".format(data, address))
-                jsonin = json.loads(data)
+                try :
+                    jsonin = json.loads(data)
+                except ValueError:
+                    self.logger.debug("tUDPListen: Invalid JSON received")
+                    continue
 
                 if jsonin['type'] == "WirelessMessage":
                     pass
