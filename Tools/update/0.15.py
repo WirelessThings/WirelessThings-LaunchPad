@@ -34,7 +34,7 @@ class PostUpdate():
 
     def on_execute(self):
         self.checkExistingConfigFile("ConfigurationWizard")
-        self.checkExistingConfigFile("MessageBrigde")
+        self.checkExistingConfigFile("MessageBridge")
         self.checkExistingConfigFile("LaunchPad")
 
 if __name__ == "__main__":
