@@ -34,3 +34,4 @@ Tools/py2exe/build
 Tools/py2exe/*.zip
 *.local.*
 MessageBridge/CSVLogs/*.csv
+0.15.py
