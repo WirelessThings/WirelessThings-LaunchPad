@@ -407,10 +407,17 @@ class LaunchPad:
     def manualZipUpdate(self):
         self.logger.error("Location Zip for Update")
         self.updateFailed = False
-
-        filename = tkFileDialog.askopenfilename(title="Please select the {} Update zip".format(self._name),
-                                                filetypes = [("Zip Files",
-                                                              "*.zip")])
+        # if Download dir already exists, make it default to manualZipUpdate
+        if os.path.exists(self.config.get('Update', 'downloaddir')):
+            filename = tkFileDialog.askopenfilename(title="Please select the {} Update zip".format(self._name),
+                                                    initialdir=self.config.get('Update', 'downloaddir'),
+                                                    filetypes = [("Zip Files",
+                                                                  "*.zip")])
+        else: # otherwise, use the root folder
+            filename = tkFileDialog.askopenfilename(title="Please select the {} Update zip".format(self._name),
+                                                    initialdir="../",
+                                                    filetypes = [("Zip Files",
+                                                                  "*.zip")])
         self.logger.debug("Given file name of {}".format(filename))
         # need to check we have a valid zip file name else updateFailed
         if filename == '':
