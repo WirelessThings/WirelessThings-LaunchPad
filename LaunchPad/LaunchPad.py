@@ -1267,6 +1267,9 @@ class PasswordDialog(tk.Toplevel):
         self.button["text"] = "Submit"
         self.button["command"] = self.StorePass
         self.button.pack()
+        self.update() #make sure the window is already visible
+        self.grab_set_global()
+
 
     def StorePassEvent(self, event):
         self.StorePass()
