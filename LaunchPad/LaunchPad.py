@@ -42,6 +42,7 @@ import socket
 import select
 import logging
 from Tabs import *
+import ScrolledText
 
 """
     Big TODO list
@@ -224,11 +225,12 @@ class LaunchPad:
         # go download version file
         self.updateCheckFailed = False
         try:
-            request = urllib2.urlopen(self.config.get('Update', 'updateurl') +
-                                      self.config.get('Update', 'serverversionfile'))
-            self.newVersion = request.read()
-            #need a verification to make sure that is the correct page? like count chars on the received file?
-            self.newVersion = self.newVersion.rstrip()
+            latest = self.downloadJSONNotes("latest")
+            if not latest:
+                self.newVersion = False
+            else:
+                self.newVersion = latest["Versions"][0]
+
         except urllib2.HTTPError, e:
 
             self.logger.error('Unable to get latest version info - HTTPError = ' +
@@ -258,73 +260,163 @@ class LaunchPad:
             if float(self.currentVersion) < float(self.newVersion):
                 self.logger.info("New Version Available")
                 self.updateAvailable = True
+                self.latestVersionJSON = latest
         else:
             self.updateCheckFailed = True
 
 
-    def offerUpdate(self):
-        self.logger.info("Ask to update")
-        if tkMessageBox.askyesno("{} Update Available".format(self._name),
-                                 ("There is an update for {} available would "
-                                  "you like to download it?".format(self._name))
-                                 ):
-            self.updateFailed = False
-            # grab zip size for progress bar length
-            try:
-                url = self.config.get('Update', 'updateurl') + self.config.get('Update',
-                                    'updatefile').format(self.newVersion)
-                self.logger.info("Attepmting to get file size for: {}".format(url))
-                u = urllib2.urlopen(url)
-                meta = u.info()
-                self.file_size = int(meta.getheaders("Content-Length")[0])
-            except urllib2.HTTPError, e:
-                self.logger.error('Unable to get download file size - HTTPError = ' +
-                                str(e.code))
-                self.updateFailed = "Unable to get download file size"
+    def startOfferUpdateWindow(self):
+        self.logger.info("Start Offer Update Window")
+        position = self.master.geometry().split("+")
 
-            except urllib2.URLError, e:
-                self.logger.error('Unable to get download file size- URLError = ' +
-                                str(e.reason))
-                self.updateFailed = "Unable to get download file size"
+        self.offerUpdateWindow = tk.Toplevel()
+        self.offerUpdateWindow.geometry("+{}+{}".format(
+                                                    int(position[1])+self.widthMain/6,
+                                                    int(position[2])+self.heightMain/6
+                                                    )
+                                        )
 
-            except httplib.HTTPException, e:
-                self.logger.error('Unable to get download file size- HTTPException')
-                self.updateFailed = "Unable to get download file size"
+        self.offerUpdateWindow.title("Update Available")
+        self.offerUpdateWindow.resizable(0, 0)
 
-            except Exception, e:
-                import traceback
-                self.logger.error('Unable to get download file size - Exception = ' +
-                                traceback.format_exc())
-                self.updateFailed = "Unable to get download file size"
+        self.updateframe = tk.Frame(self.offerUpdateWindow, name='updateFrame', relief=tk.RAISED,
+                               borderwidth=2, width=self.widthMain,
+                               height=self.heightMain/4)
+        self.updateframe.pack()
 
-            if self.updateFailed:
-                tkMessageBox.showerror("Update Failed", self.updateFailed)
-            else:
-                position = self.master.geometry().split("+")
+        text = ScrolledText.ScrolledText(self.updateframe, width=80,
+                                    height=20, font=("TKDefaultFont", "11"), wrap=tk.WORD)
 
-                self.progressWindow = tk.Toplevel()
-                self.progressWindow.geometry("+{}+{}".format(
-                                                int(position[1]
-                                                    )+self.widthMain/4,
-                                                int(position[2]
-                                                    )+self.heightMain/4
-                                                             )
-                                             )
-                self.progressWindow.title("Downloading Zip Files")
+        tk.Label(self.updateframe, text="There is a new version of {} available.".format(self._name)).pack(pady=10)
+        tk.Label(self.updateframe, text="Do you want to install it?").pack(pady=20)
 
-                tk.Label(self.progressWindow, text="Downloading Zip Progress"
-                         ).pack()
+        tk.Button(self.updateframe, text="No", command=lambda: self.offerUpdateWindow.destroy(), width=30
+                    ).pack(padx=30, pady=10, side=tk.BOTTOM)
+        tk.Button(self.updateframe, text="Yes", command=lambda: self.startUpdate(), width=30
+                    ).pack(padx=30, pady=10, side=tk.BOTTOM)
 
-                self.progressBar = tk.IntVar()
-                ttk.Progressbar(self.progressWindow, orient="horizontal",
-                                length=200, mode="determinate",
-                                maximum=self.file_size,
-                                variable=self.progressBar).pack()
+        versions = self.latestVersionJSON["Versions"]
 
-                self.downloadThread = threading.Thread(target=self.downloadUpdate)
-                self.progressQueue = Queue.Queue()
-                self.downloadThread.start()
-                self.progressUpdate()
+        for line in self.latestVersionJSON["Prefix Text"]:
+            text.insert(tk.END, "{}\n".format(line))
+        text.insert(tk.END, "\n")
+
+        text.tag_config("Title", font=("TKDefaultFont", "12", "bold"))
+
+        for version in versions:
+            if float(self.currentVersion) == version:
+                break
+            text.insert(tk.END, "{} Version Release Notes\n".format(version), "Title")
+            text.insert(tk.END, "--------------------------------------------------\n")
+            notes = self.downloadJSONNotes(version)
+            if not notes:
+                tkMessageBox.showerror("Upload Error", "Unable to check for the new version."
+                                                        "Please check your internet connection")
+                self.offerUpdateWindow.destroy()
+            for line in notes[str(version)]:
+                text.insert(tk.END, "* {}\n".format(line))
+            text.insert(tk.END, "\n")
+
+        text.pack(side="left", fill="both", expand=True)
+
+    def downloadJSONNotes(self, filename):
+        #Download the JSON here
+        try:
+            url = self.config.get('Update', 'updateurl') + filename
+
+            self.logger.info("Attepmting to get the release notes from: {}".format(url))
+            request = urllib2.urlopen(url)
+            read_data = request.read()
+            return json.loads(read_data)
+        except urllib2.HTTPError, e:
+            self.logger.error('Unable to get file - HTTPError = ' +
+                            str(e.code))
+            return False
+        except urllib2.URLError, e:
+            self.logger.error('Unable to get file - URLError = ' +
+                            str(e.reason))
+            return False
+        except httplib.HTTPException, e:
+            self.logger.error('Unable to get file - HTTPException')
+            return False
+        except Exception, e:
+            import traceback
+            self.logger.error('Unable to get file - Exception = ' +
+                            traceback.format_exc())
+            return False
+        '''
+        filename = self.config.get('Update','notesfile').format(filename)
+        with open(filename, 'r') as f:
+            read_data = f.read()
+        f.closed
+
+        try:
+            return json.loads(read_data)
+        except :
+            self.logger.error("Error parsing the JSON Release Notes")
+            return False
+        '''
+
+    def startUpdate(self):
+        self.offerUpdateWindow.destroy()
+        self.updateFailed = False
+        # grab zip size for progress bar length
+        try:
+            url = self.config.get('Update', 'updateurl') + self.config.get('Update',
+                                'updatefile').format(self.newVersion)
+            self.logger.info("Attepmting to get file size for: {}".format(url))
+            u = urllib2.urlopen(url)
+            meta = u.info()
+            self.file_size = int(meta.getheaders("Content-Length")[0])
+        except urllib2.HTTPError, e:
+            self.logger.error('Unable to get download file size - HTTPError = ' +
+                            str(e.code))
+            self.updateFailed = "Unable to get download file size"
+
+        except urllib2.URLError, e:
+            self.logger.error('Unable to get download file size- URLError = ' +
+                            str(e.reason))
+            self.updateFailed = "Unable to get download file size"
+
+        except httplib.HTTPException, e:
+            self.logger.error('Unable to get download file size- HTTPException')
+            self.updateFailed = "Unable to get download file size"
+
+        except Exception, e:
+            import traceback
+            self.logger.error('Unable to get download file size - Exception = ' +
+                            traceback.format_exc())
+            self.updateFailed = "Unable to get download file size"
+
+        if self.updateFailed:
+            tkMessageBox.showerror("Update Failed", self.updateFailed)
+        else:
+            position = self.master.geometry().split("+")
+
+            self.progressWindow = tk.Toplevel()
+            self.progressWindow.geometry("+{}+{}".format(
+                                            int(position[1]
+                                                )+self.widthMain/4,
+                                            int(position[2]
+                                                )+self.heightMain/4
+                                                         )
+                                         )
+            self.progressWindow.title("Downloading Zip Files")
+
+            tk.Label(self.progressWindow, text="Downloading Zip Progress"
+                     ).pack()
+
+            self.progressBar = tk.IntVar()
+            ttk.Progressbar(self.progressWindow, orient="horizontal",
+                            length=200, mode="determinate",
+                            maximum=self.file_size,
+                            variable=self.progressBar).pack()
+
+            self.downloadThread = threading.Thread(target=self.downloadUpdate)
+            self.progressQueue = Queue.Queue()
+            self.downloadThread.start()
+            self.progressUpdate()
+
 
     def progressUpdate(self):
         self.logger.info("Download Progress Update")
@@ -576,7 +668,7 @@ class LaunchPad:
                 self.logger.error("Could not check for new Version")
 
             if self.updateAvailable:
-                self.master.after(500, self.offerUpdate)
+                self.master.after(500, self.startOfferUpdateWindow)
 
             self.master.mainloop()
 
