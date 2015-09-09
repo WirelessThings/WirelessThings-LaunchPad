@@ -142,8 +142,8 @@ class LaunchPad:
         except:
             oldVersion = False
 
-        if oldVersion and os.path.exists("../Tools/update/{}.py".format(oldVersion)):
-            subprocess.Popen(["./{}.py".format(oldVersion)], cwd="../Tools/update/")
+        if oldVersion and os.path.exists("../Tools/update/{}.py".format(self.currentVersion)):
+            subprocess.Popen(["./{}.py".format(self.currentVersion), oldVersion], cwd="../Tools/update/")
             # reload the config cause the post update script may be change some config
             self.readConfig()
             self.config.set('Update', 'postupdate', 'False')
