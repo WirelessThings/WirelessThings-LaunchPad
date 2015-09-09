@@ -322,7 +322,7 @@ class LaunchPad:
     def downloadJSONNotes(self, filename):
         #Download the JSON here
         try:
-            url = self.config.get('Update', 'updateurl') + filename
+            url = self.config.get('Update', 'updateurl') + self.config.get('Update', 'notesfile').format(filename)
 
             self.logger.info("Attepmting to get the release notes from: {}".format(url))
             request = urllib2.urlopen(url)
@@ -344,18 +344,6 @@ class LaunchPad:
             self.logger.error('Unable to get file - Exception = ' +
                             traceback.format_exc())
             return False
-        '''
-        filename = self.config.get('Update','notesfile').format(filename)
-        with open(filename, 'r') as f:
-            read_data = f.read()
-        f.closed
-
-        try:
-            return json.loads(read_data)
-        except :
-            self.logger.error("Error parsing the JSON Release Notes")
-            return False
-        '''
 
     def startUpdate(self):
         self.offerUpdateWindow.destroy()
@@ -1305,10 +1293,6 @@ class LaunchPad:
             sys.exit()
 
         self.debug = self.config.getboolean('Debug', 'console_debug')
-        
-        # TODO: move to update file in 0.16
-        self.config.remove_section('Shared')
-        self.config.set('Update', 'updatefile', 'WirelessThings-LaunchPad_{}.zip')
 
         try:
             f = open(self.config.get('Update', 'versionfile'))
