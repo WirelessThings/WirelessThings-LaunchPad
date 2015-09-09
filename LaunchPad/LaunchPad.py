@@ -1296,7 +1296,7 @@ class LaunchPad:
 
         try:
             f = open(self.config.get('Update', 'versionfile'))
-            self.currentVersion = f.read()
+            self.currentVersion = f.read().strip()
             f.close()
         except:
             pass
