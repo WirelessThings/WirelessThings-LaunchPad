@@ -44,55 +44,30 @@ else:
     import lockfile
 
 """
-   Big TODO list
+    Big TODO list
 
-   DCR logic
-    DONE: first pass at processing a request in and out
-    DONE: check DTY
-    DONE: timeouts from config or JSON
-    TODO: Fix Processing EN{1-6} replies
-
-   DONE: better serial read logic
-
-   DONE: Catch Ctrl-C
-   DONE: Clean up on quit code
-   DONE: Clean up on die code
-
-   Thread state monitor
-       gpio state display
-       DONE: restart dead threads
-       DONE: restart dead serial
+    Thread state monitor
        restart dead socket ? how to check
        need to find a way to test broken threads are getting restarted
 
-   "MessageBridge" messages
-        DONE: status
+    "MessageBridge" messages that might be worth adding in the future
         reboot
         stop
         config changes (local ENC and PANID)
         report AT settings on request
         change AT settings on request
 
+    windows service behaviour
 
-   DONE: Set ATLH1 on start
-   Improve checking and retries for ATLH1
-   make ATLH1 permanent on command line option
-   Read other AT settings at launch and store in a memory config
-
-
-   DONE: *nix Daemon behaviour
-   windows service behaviour
-
-   self update via web
+    self update via web
         started via a MessageBridge message
 
-   Auto configure Encryption if set on MessageBridge and flag confirmed from GUI
-   Auto configure PANID
+    Wake message logic
+    configme enable/disable logic
 
-   Wake message logic
-   configme enable/disable logic
+    systemd init script support
 
-
+    Any TODO's from below
 """
 
 class MessageBridge():
@@ -111,6 +86,7 @@ class MessageBridge():
 
     """
 
+    _configFileDefault = "./MessageBridge_defaults.cfg"
     _configFile = "./MessageBridge.cfg"
     _pidFile = None
     _pidFilePath = "./MessageBridge.pid"
@@ -122,7 +98,7 @@ class MessageBridge():
     _serialTimeout = 1     # serial port time out setting
     _UDPListenTimeout = 5   # timeout for UDP listen
 
-    _version = 0.14
+    _version = 0.15
 
     _currentDCR = False
     devType = None
@@ -202,15 +178,7 @@ is running then run in the current terminal
             self.logger.debug("Exiting")
             return
         self.run()
-
-
-        if not self._background:
-            if not sys.platform == 'win32':
-                try:
-                    self.logger.info("Removing Lock file")
-                    self._pidFile.release()
-                except:
-                    pass
+        self._cleanUp()
 
     def _checkArgs(self):
         """Parse the command line options
@@ -433,7 +401,7 @@ is running then run in the current terminal
         except KeyboardInterrupt:
             self.logger.info("Keyboard Interrupt - Exiting")
             self._cleanUp()
-            sys.exit()
+
         self.logger.debug("Exiting")
 
     def _readConfig(self):
@@ -441,16 +409,23 @@ is running then run in the current terminal
         """
         self.logger.info("Reading config files")
         self.config = ConfigParser.SafeConfigParser()
-
         # load defaults
         try:
-            self.config.readfp(open(self._configFile))
+            self.config.readfp(open(self._configFileDefault))
         except:
-            self.logger.error("Could Not Load Settings File")
+            self.logger.debug("Could Not Load Default Settings File")
+
+        if not self.config.read(self._configFile):
+            self.logger.debug("Could Not Load User Config, One Will be Created on Exit")
 
         if not self.config.sections():
             self.logger.critical("No Config Loaded, Exiting")
             self.die()
+
+    def _writeConfig(self):
+        self.logger.debug("Writing Config")
+        with open(self._configFile, 'wb') as configFile:
+            self.config.write(configFile)
 
     def _reloadProgramConfig(self):
         """ Reload the config file from disk
@@ -560,7 +535,7 @@ is running then run in the current terminal
         self._startUDPSend()
 
     def _startUDPSend(self):
-        self.tUDPSend = threading.Thread(name='tUDPSendThread', target=self._UDPSendTread)
+        self.tUDPSend = threading.Thread(name='tUDPSendThread', target=self._UDPSendThread)
         self.tUDPSend.daemon = False
         try:
             self.tUDPSend.start()
@@ -608,7 +583,7 @@ is running then run in the current terminal
 
     def _startUDPListen(self):
         self.tUDPListen = threading.Thread(name='tUDPListen', target=self._UDPListenThread)
-        self.tUDPListen.deamon = False
+        self.tUDPListen.daemon = False
         try:
             self.tUDPListen.start()
         except:
@@ -647,7 +622,6 @@ is running then run in the current terminal
                             # use a copy in case we are adding ENC stuff
                             toQuery = list(self._currentDCR['data']['toQuery'])
                             if self._currentDCR['data'].has_key('setENC'):
-                                # TODO: need to perpend encryption key setup to the toQuery
                                 if self._encryption:
                                     self.logger.debug("tDCR: auto setting encryption")
                                     toQuery.insert(0, {"command":"ENC", "value":"ON"})
@@ -754,7 +728,7 @@ is running then run in the current terminal
             # and clear DCR and SentAll flag
             self._currentDCR = False
 
-    def _UDPSendTread(self):
+    def _UDPSendThread(self):
         """ UDP Send thread
         """
         self.logger.info("tUDPSend: Send thread started")
@@ -821,7 +795,7 @@ is running then run in the current terminal
 
                 # check the ATLH settings
                 if not self._SerialCheckATLH():
-                    self.debug.critical("tSerial: Error on Check ATLH")
+                    self.logger.critical("tSerial: Error on Check ATLH")
                     self.die()
 
                 # main serial processing loop
@@ -872,18 +846,24 @@ is running then run in the current terminal
 
         at = AT.AT(self._serial, self.logger, self.tSerialStop)
 
-        if at.enterATMode():            
-            #ask for the ATLH            
-            if at.sendATWaitForResponse("ATLH") != "1": #if the ATLH returns diff from 1, we force the 1 status            
-                if at.sendATWaitForOK("ATLH1"):
-                    if at.sendATWaitForOK("ATAC"):                        
-                        if at.sendATWaitForOK("ATWR"):
-                            self.logger.debug("SerialCheckATLH: ATLH1 set")
-            # TODO: check/set out PANID and encryption settings as per config
+        if at.enterATMode():
+            #ask for the ATLH
+            atlh = at.sendATWaitForResponse("ATLH")
+            if atlh:
+                if atlh != "1": #if the ATLH returns diff from 1, we force the 1 status
+                    if at.sendATWaitForOK("ATLH1"):
+                        if at.sendATWaitForOK("ATAC"):
+                            if at.sendATWaitForOK("ATWR"):
+                                self.logger.debug("SerialCheckATLH: ATLH1 set")
+            else:
+                self.logger.critical("SerialCheckATLH: ATLH returned False, check radio firmware version")
+                self._cleanUp()
+                return False
+
             self._panID = at.sendATWaitForResponse("ATID")
             if not self._panID:
                 self.logger.critical("SerialCheckATLH: Invalid PANID")
-                self._cleanUp()                
+                self._cleanUp()
                 return False
                 
             self._encryption = at.sendATWaitForResponse("ATEE")
@@ -1127,8 +1107,12 @@ is running then run in the current terminal
                 (data, address) = UDPListenSocket.recvfrom(8192)
                 self.logger.debug("tUDPListen: Received JSON: {} From: {}".format(data, address))
 
-                # TODO: Test its actually json/catch errors
-                jsonin = json.loads(data)
+                # Test its actually json/catch errors
+                try :
+                    jsonin = json.loads(data)
+                except ValueError:
+                    self.logger.debug("tUDPListen: Invalid JSON received")
+                    continue
 
                 # TODO: error checking, dict should have keys for network
                 if (jsonin['network'] == self.config.get('Serial', 'network') or
@@ -1233,17 +1217,19 @@ is running then run in the current terminal
     def _chunkstring(self, string, length):
         return (string[0+i:length+i] for i in range(0, len(string), length))
 
-    # TODO: catch errors and add logging
+    # catch errors and add logging
     def _makePidlockfile(self, path, acquire_timeout):
         """ Make a PIDLockFile instance with the given filesystem path. """
         if not isinstance(path, basestring):
             error = ValueError("Not a filesystem path: %(path)r" % vars())
+            self.logger.critical("makePidlockFile: Not a filesystem path: %(path)r" % vars())
             raise error
         if not os.path.isabs(path):
             error = ValueError("Not an absolute path: %(path)r" % vars())
+            self.logger.critical("makePidlockFile: Not an absolute path: %(path)r" % vars())
             raise error
         lockfile = pidlockfile.TimeoutPIDLockFile(path, acquire_timeout)
-
+        self.logger.debug("makePidlockFile: PIDLockFile created")
         return lockfile
 
     def _isPidfileStale(self, pidfile):
@@ -1272,6 +1258,8 @@ is running then run in the current terminal
         """
         # first stop the main thread from try to restart stuff
         self.tMainStop.set()
+        # writes the config file
+        self._writeConfig()
         # now stop the other threads
         try:
             self.tUDPListenStop.set()

@@ -1,11 +1,11 @@
 {
-    "Version":150812,
+    "Version":150821,
     "Devices":[
                {
                "DTY":"AAAB01",
-               "Name":"Temperature Sensor SB-CA",
-               "Description":"This Temerature Sensor device sends periodic readings in degrees centigrade. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade",
-               "LongDescription":"This small, matchbox sized, wireless sensor uses The Language of Things open messaging standard, this means it is more power friendly and easier to understand than 6lowpan, Zigbee, Zwave etc. The device sends periodic encrypted readings to another receiving WirelessThings device. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade. The internal coin cell battery is capable of running for well in excess of 10 years (based on 1 reading per hour).",
+               "Name":"Temperature Sensor",
+               "Description":"This Temperature Sensor device sends periodic readings in degrees centigrade. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade",
+               "LongDescription":"Using a thermistor this wireless temperature sensor will tell you the ambient temperature of its environment. The device sends periodic encrypted temperature readings to other WirelessThings devices. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade. The internal coin cell battery is capable of running for well in excess of 10 years (based on 1 reading per hour).",
                "SleepMode":"Cyclic",
                "ReadingPeriod":1,
                "PowerClass":"SB",
@@ -49,9 +49,9 @@
                },
                {
                "DTY":"AAAB02",
-               "Name":"Temperature Sensor SB-CA",
-               "Description":"This Temerature Sensor device sends periodic readings in degrees centigrade. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade",
-               "LongDescription":"This small, matchbox sized, wireless sensor uses The Language of Things open messaging standard, this means it is more power friendly and easier to understand than 6lowpan, Zigbee, Zwave etc. The device sends periodic encrypted readings to another receiving WirelessThings device. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade. The internal coin cell battery is capable of running for well in excess of 10 years (based on 1 reading per hour).",
+               "Name":"Temperature Sensor",
+               "Description":"This Temperature Sensor device sends periodic readings in degrees centigrade. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade",
+               "LongDescription":"Using a thermistor this wireless temperature sensor will tell you the ambient temperature of its environment. The device sends periodic encrypted temperature readings to other WirelessThings devices. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade. The internal coin cell battery is capable of running for well in excess of 10 years (based on 1 reading per hour).",
                "SleepMode":"Cyclic",
                "ReadingPeriod":1,
                "PowerClass":"SB",
@@ -89,9 +89,9 @@
                },
                {
                "DTY":"AAAB03",
-               "Name":"Temperature Sensor SB-CA",
-               "Description":"This Temerature Sensor device sends periodic readings in degrees centigrade. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade",
-               "LongDescription":"This small, matchbox sized, wireless sensor uses The Language of Things open messaging standard, this means it is more power friendly and easier to understand than 6lowpan, Zigbee, Zwave etc. The device sends periodic encrypted readings to another receiving WirelessThings device. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade. The internal coin cell battery is capable of running for well in excess of 10 years (based on 1 reading per hour).",
+               "Name":"Temperature Sensor",
+               "Description":"This Temperature Sensor device sends periodic readings in degrees centigrade. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade",
+               "LongDescription":"Using a thermistor this wireless temperature sensor will tell you the ambient temperature of its environment. The device sends periodic encrypted temperature readings to other WirelessThings devices. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade. The internal coin cell battery is capable of running for well in excess of 10 years (based on 1 reading per hour).",
                "SleepMode":"Cyclic",
                "ReadingPeriod":1,
                "PowerClass":"SB",

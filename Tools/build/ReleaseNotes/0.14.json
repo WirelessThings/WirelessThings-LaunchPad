@@ -1,0 +1,18 @@
+{
+    "Versions":[0.14],
+    "Prefix Text":["Below are the highlighted release notes for WirelessThings LaunchPad since your current version",
+                   "More details copy of the relases notes can be found at Documentation directory and a full commit log can be seen at https://github.com/WirelessThings/WirelessThings-LaunchPad"],
+    "0.14":["ConfigurationWizard: now downloads latest Devices.json from the net at launch",
+            "MessageBridge: Better handeling of AT command mode",
+            "MessageBridge: Now reads PANID and Encryption setting from the attached radio",
+            "ConfigurationWizard: Handle unknown device DTY",
+            "ConfigurationWizard: Check CHDEVID length and match when leaving editable CHDEVID screens",
+            "LanguageofThings: APVER 2.1 command added and add ProtocolFrom field to commands",
+            "Devices: updated to latest",
+            "LaunchPad: Fixed the selection on the Listbox at start",
+            "AT: waitForResponse return fixed",
+            "MessageBrige: Now logs Language of Things message to rotating CSV log files",
+            "encryptionSetup: new helper tool to configure radio network PANID and encryption settings",
+            "Documentation: Raspbery Pi User Guide added",
+            "LaunchPad: Update download server"]
+}

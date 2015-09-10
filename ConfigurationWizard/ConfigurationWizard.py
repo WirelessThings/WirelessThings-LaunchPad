@@ -46,44 +46,16 @@ import tkFont
 """
     Big TODO list
 
-    DONE: JSON over UDP
 
-    DONE: UDP open sockets
+    Make use of Batt reading and display in UI
+    
+    Give estimated Battery life based on period
 
-    DONE: JSON encode outgoing messages
-    DONE: JSON decode incoming messages
+    Better handling of Unknown device settings
 
-    DONE: JSON debug window
-    Pretty JSON format for window?
-
-    DONE: type: Message Bridge status check on start up
-        basic PING
-
-    DONE: use logger for debug output
-
-    DONE: timeouts wait windows base on timeout's sent with DCR
-
-    DONE: keepAwake via JSON's
-
-    DONE: check replies for state, PASS, FAIL_RETRY, FAIL_TIMEOUT
-
-    DONE: disable next button while waiting for query
-
-    read AT settings for PANID and ENCRYPTION from Message Bridge and offer as defaults to the user on a new device
-
-    get JSON device file from network
-
-    offer suggested settings based on json
-
-    DONE: UUID in DCR JSON's so only listen for my own replies
-             either another field or don't hard code stages via id
-
-    DONE: if more that one Message Bridge on the network offer DCR target dropdown
-
-    fix self.die()
-
-    Check DEVID box is not empty before going back from change DEVID box
-
+    Advance and encryption UI rework
+    
+    Any TODO's from below
 """
 
 
@@ -124,7 +96,7 @@ class ConfigurationWizard:
         Handles display of wizard interface for configuring devices
     """
     # MARK: - Instance Vars
-    _version = 0.14
+    _version = 0.15
 
     _configFileDefault = "ConfigurationWizard_defaults.cfg"
     _configFile = "ConfigurationWizard.cfg"
@@ -144,8 +116,8 @@ class ConfigurationWizard:
     _lastDCR = []
     _keepAwake = 0
     _currentFrame = None
-    _messgaeBridges = {}
-    _messgaeBridgeButtons = {}
+    _messageBridges = {}
+    _messageBridgeButtons = {}
     _messageBridgeQueryJSON = json.dumps({"type": "MessageBridge", "network": "ALL"})
     _configState = 0
 
@@ -184,7 +156,7 @@ class ConfigurationWizard:
         # DCR Reply Q, Incoming JSON's from the Message Bridge
         self.qDCRReply = Queue.Queue()
         # flag to show a MessageBridge msg has been received
-        self.fMessgaeBridgeUpdate = threading.Event()
+        self.fMessageBridgeUpdate = threading.Event()
         self.fWaitingForReply = threading.Event()
 
     # MARK: - Logging
@@ -233,7 +205,7 @@ class ConfigurationWizard:
             self.logger.info("File Logging started")
 
     # MARK: - Entry point
-    def on_excute(self):
+    def on_execute(self):
         """
             entry point for running
         """
@@ -250,43 +222,54 @@ class ConfigurationWizard:
         self._runConfigMe()
         self._cleanUp()
 
+
     def _runConfigMe(self):
         self.logger.debug("Running Main GUI")
-        self.master = tk.Tk()
-        self.master.protocol("WM_DELETE_WINDOW", self._endConfigMe)
-        self.master.geometry(
-                 "{}x{}+{}+{}".format(self._widthMain,
-                                      self._heightMain,
-                                      self.config.get('ConfigurationWizard',
-                                                      'window_width_offset'),
-                                      self.config.get('ConfigurationWizard',
-                                                      'window_height_offset')
-                                      )
-                             )
+        try:
+            self.master = tk.Tk()
+            self.master.protocol("WM_DELETE_WINDOW", self._endConfigMe)
+            self.master.geometry(
+                     "{}x{}+{}+{}".format(self._widthMain,
+                                          self._heightMain,
+                                          self.config.get('ConfigurationWizard',
+                                                          'window_width_offset'),
+                                          self.config.get('ConfigurationWizard',
+                                                          'window_height_offset')
+                                          )
+                                 )
 
-        self.master.title("WirelessThings Device Configuration Wizard v{}".format(self._version))
-        self.master.resizable(0,0)
+            self.master.title("WirelessThings Device Configuration Wizard v{}".format(self._version))
+            self.master.resizable(0,0)
 
-        self._initTkVariables()
-        self._initValidationRules()
+            self._initTkVariables()
+            self._initValidationRules()
 
-        if self.args.debug or self.config.getboolean('Debug', 'gui_json'):
-            self._jsonWindowDebug()
+            if self.args.debug or self.config.getboolean('Debug', 'gui_json'):
+                self._jsonWindowDebug()
 
-        self._initUDPListenThread()
-        self._initUDPSendThread()
+            self._initUDPListenThread()
+            self._initUDPSendThread()
 
-        # TODO: are UDP threads running
-        if (not self.tUDPListen.isAlive() and not self.tUDPSend.isAlive()):
-            self.logger.warn("UDP Threads not running")
-            # TODO: do we have an error form the UDP to show?
-        else:
-            # dispatch a Message Bridge status request
-            self.qUDPSend.put(self._messageBridgeQueryJSON)
+            self.tUDPListenStarted.wait()
+            self.tUDPSendStarted.wait()
 
-            self._displayIntro()
+            # TODO: are UDP threads running
+            if (not self.tUDPListen.isAlive() and not self.tUDPSend.isAlive()):
+                self.logger.warn("UDP Threads not running")
+                tkMessageBox.showerror("UDP Socket Failed", "UDP Socket could not be open")
+                return
+                # TODO: do we have an error form the UDP to show?
+            else:
+                # dispatch a Message Bridge status request
+                self.qUDPSend.put(self._messageBridgeQueryJSON)
 
-            self.master.mainloop()
+                self._displayIntro()
+
+                self.master.mainloop()
+
+        except KeyboardInterrupt:
+            self.logger.info("Keyboard Interrupt - Exiting")
+            self._endConfigMe()
 
     # MARK: - UDP Send
     def _initUDPSendThread(self):
@@ -297,8 +280,9 @@ class ConfigurationWizard:
         self.qUDPSend = Queue.Queue()
 
         self.tUDPSendStop = threading.Event()
+        self.tUDPSendStarted = threading.Event()
 
-        self.tUDPSend = threading.Thread(target=self._UDPSendTread)
+        self.tUDPSend = threading.Thread(target=self._UDPSendThread)
         self.tUDPSend.daemon = False
 
         try:
@@ -306,7 +290,7 @@ class ConfigurationWizard:
         except:
             self.logger.exception("Failed to Start the UDP send thread")
 
-    def _UDPSendTread(self):
+    def _UDPSendThread(self):
         """ UDP Send thread
         """
         self.logger.info("tUDPSend: Send thread started")
@@ -315,9 +299,6 @@ class ConfigurationWizard:
             UDPSendSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         except socket.error, msg:
             self.logger.critical("tUDPSend: Failed to create socket. Error code : {} Message : {}".format(msg[0], msg[1]))
-            # TODO: tUDPSend needs to stop here
-            # TODO: need to send message to user saying could not open socket
-            self.die()
             return
 
         UDPSendSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -325,12 +306,14 @@ class ConfigurationWizard:
 
         sendPort = int(self.config.get('UDP', 'send_port'))
 
+        self.tUDPSendStarted.set()
+
         while not self.tUDPSendStop.is_set():
             try:
                 message = self.qUDPSend.get(timeout=1)     # block for up to 30 seconds
             except Queue.Empty:
                 # UDP Send que was empty
-                # extrem debug message
+                # extreme debug message
                 # self.logger.debug("tUDPSend: queue is empty")
                 pass
             else:
@@ -362,9 +345,10 @@ class ConfigurationWizard:
         self.logger.info("UDP Listen Thread init")
 
         self.tUDPListenStop = threading.Event()
+        self.tUDPListenStarted = threading.Event()
 
         self.tUDPListen = threading.Thread(target=self._UDPListenThread)
-        self.tUDPListen.deamon = False
+        self.tUDPListen.daemon = False
 
         try:
             self.tUDPListen.start()
@@ -380,8 +364,6 @@ class ConfigurationWizard:
             UDPListenSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         except socket.error:
             self.logger.exception("tUDPListen: Failed to create socket, stopping")
-            # TODO: need to send message to user saying could not create socket object
-            self.die()
             return
 
         UDPListenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -393,10 +375,10 @@ class ConfigurationWizard:
             UDPListenSocket.bind(('', int(self.config.get('UDP', 'listen_port'))))
         except socket.error:
             self.logger.exception("tUDPListen: Failed to bind port")
-            # TODO: need to send message to user saying could not open socket
-            self.die()
             return
         UDPListenSocket.setblocking(0)
+
+        self.tUDPListenStarted.set()
 
         self.logger.info("tUDPListen: listening")
         while not self.tUDPListenStop.is_set():
@@ -405,8 +387,12 @@ class ConfigurationWizard:
                 (data, address) = UDPListenSocket.recvfrom(8192)
                 self.logger.debug("tUDPListen: Received JSON: {} From: {}".format(data, address))
 
-                # TODO: Test its actually json/catch errors
-                jsonin = json.loads(data)
+                # Test its actually json/catch errors
+                try:
+                    jsonin = json.loads(data)
+                except ValueError:
+                    self.logger.debug("tUDPListen: Invalid JSON received")
+                    continue
 
                 self.qJSONDebug.put([data, "RX"])
                 # TODO: Check for keys before trying to use them
@@ -425,7 +411,7 @@ class ConfigurationWizard:
 
                 elif jsonin['type'] == "MessageBridge":
                     self.logger.debug("tUDPListen: JSON of type MessageBridge")
-                    self._updateMessageBridgeDetailsFromJSON(jsonin)
+                    self._updateMessageBridgeDetailsFromJSON(jsonin, address[0])
 
         self.logger.info("tUDPListen: Thread stopping")
         try:
@@ -472,6 +458,7 @@ class ConfigurationWizard:
                       "ENC" : [tk.IntVar(), tk.IntVar(), 'ONOFF'],
                       "ENKEY" : [tk.StringVar(), tk.StringVar(), 'ENKey'],
                       "BATT" : [tk.DoubleVar(), tk.DoubleVar(), 'Float'],
+                      "DVI" : [tk.StringVar(), tk.StringVar(), 'String'],
                       "RSSI" : [tk.IntVar(), tk.IntVar(), 'Int']
                      }
         self.entry['CHDEVID'][0].trace_variable('w', self._checkDevIDList)
@@ -538,7 +525,7 @@ class ConfigurationWizard:
         r = 0
         # device name and rssi (topbar)
         tk.Label(self.sframe,
-                 text="{}".format(self.devices[self.device['index']]['Name'])
+                 text="{} {}".format(self.devices[self.device['index']]['Name'], self._decodeDVIForDisplay())
                  ).grid(row=r, column=0, columnspan=6)
         tk.Label(self.sframe,
                  text="RSSI: -{}".format(self.entry['RSSI'][0].get()),
@@ -664,8 +651,8 @@ class ConfigurationWizard:
         infoText = None
         infoFormat = None
 
-        if subject == "Description":
-            infoText = self.devices[self.device['index']]['Description']
+        if subject == "LongDescription":
+            infoText = self.devices[self.device['index']]['LongDescription']
         elif subject == "Interval":
             infoText = INTERVALTEXT
         elif subject == "MissMatch":
@@ -728,7 +715,7 @@ class ConfigurationWizard:
 
         # device name and rssi (topbar)
         tk.Label(self.dframe,
-                 text="{}".format(self.devices[self.device['index']]['Name'])
+                 text="{} {}".format(self.devices[self.device['index']]['Name'], self._decodeDVIForDisplay())
                  ).grid(row=0, column=0, columnspan=6)
         tk.Label(self.dframe,
                  text="RSSI: -{}".format(self.entry['RSSI'][0].get()),
@@ -767,7 +754,7 @@ class ConfigurationWizard:
         self._devIDListbox = tk.Listbox(self.dframe, selectmode=tk.SINGLE)
         try:
             # try to split get a device store list from our know Message Bridge
-            ds = self._messgaeBridges[self._network]['data']['result']['deviceStore']
+            ds = self._messageBridges[self._network]['data']['result']['deviceStore']
         except:
             pass
         else:
@@ -801,7 +788,7 @@ class ConfigurationWizard:
 
         # device name and rssi (topbar)
         tk.Label(self.cframe,
-                 text="{}".format(self.devices[self.device['index']]['Name'])
+                 text="{} {}".format(self.devices[self.device['index']]['Name'], self._decodeDVIForDisplay())
                  ).grid(row=0, column=0, columnspan=6)
         tk.Label(self.cframe,
                  text="RSSI: -{}".format(self.entry['RSSI'][0].get()),
@@ -1094,11 +1081,11 @@ class ConfigurationWizard:
 
     def _checkMessageBridgeUpdate(self):
 		# self.logger.debug("Checking Message Bridge reply flag")
-        if self.fMessgaeBridgeUpdate.is_set():
+        if self.fMessageBridgeUpdate.is_set():
             # flag set, re-draw buttons
             self._updateMessageBridgeList()
             # clear flag and schedule next check
-            self.fMessgaeBridgeUpdate.clear()
+            self.fMessageBridgeUpdate.clear()
 
 
         if self._checkMessageBridgeCount == 5:
@@ -1106,7 +1093,7 @@ class ConfigurationWizard:
             self.qUDPSend.put(self._messageBridgeQueryJSON)
         elif self._checkMessageBridgeCount == 10:
             # let user know we are still looking but have not found anything yet
-            if len(self._messgaeBridges) == 0:
+            if len(self._messageBridges) == 0:
                 pass
 
             # send out another query and reset count
@@ -1121,21 +1108,21 @@ class ConfigurationWizard:
     def _updateMessageBridgeList(self):
         self.logger.debug("Updating Message Bridge list buttons")
         self.iframe.children['introText'].config(text=INTRO1)
-        for network, messageBridge in self._messgaeBridges.items():
+        for network, messageBridge in self._messageBridges.items():
             # if we don't all-ready have a button create a new one
-            if network not in self._messgaeBridgeButtons.keys():
-                self._messgaeBridgeButtons[network] = tk.Button(self.iframe,
+            if network not in self._messageBridgeButtons.keys():
+                self._messageBridgeButtons[network] = tk.Button(self.iframe,
                                                          name="n{}".format(network),
                                                          text=network,
                                                          command=lambda n=network:self._displayPressButton(n),
                                                          state=tk.ACTIVE if messageBridge['state'] == "Running" or messageBridge['state'] == "RUNNING" else tk.DISABLED
                                                          )
-                self._messgaeBridgeButtons[network].grid(row=5+len(self._messgaeBridgeButtons),
+                self._messageBridgeButtons[network].grid(row=5+len(self._messageBridgeButtons),
                                                   column=1,
                                                   columnspan=4, sticky=tk.E+tk.W)
             else:
               # need to update button state
-              self._messgaeBridgeButtons[network].config(state=tk.ACTIVE if messageBridge['state'] == "Running" or messageBridge['state'] == "RUNNING" else tk.DISABLED
+              self._messageBridgeButtons[network].config(state=tk.ACTIVE if messageBridge['state'] == "Running" or messageBridge['state'] == "RUNNING" else tk.DISABLED
                                                   )
 
     def _updateIntervalOnScaleChange(self, *args):
@@ -1200,7 +1187,7 @@ class ConfigurationWizard:
     def _getNextFreeID(self):
         try:
             for id in itertools.product(string.ascii_uppercase, repeat=2):
-                if ''.join(id) not in sorted(self._messgaeBridges[self._network]['data']['result']['deviceStore'].keys()):
+                if ''.join(id) not in sorted(self._messageBridges[self._network]['data']['result']['deviceStore'].keys()):
                     return ''.join(id)
         except:
             return "??"
@@ -1209,8 +1196,8 @@ class ConfigurationWizard:
         try:
             if not self.device['newDevice']:
                     if self._settingMissMatchVar.get() == 1:
-                        self.entry['PANID'][0].set(self._messgaeBridges[self._network]['data']['result']['PANID'])
-                        if self._messgaeBridges[self._network]['data']['result']['encryptionSet']:
+                        self.entry['PANID'][0].set(self._messageBridges[self._network]['data']['result']['PANID'])
+                        if self._messageBridges[self._network]['data']['result']['encryptionSet']:
                             self.device['setENC'] = True
                         else:
                             self.device['setENC'] = False
@@ -1227,7 +1214,7 @@ class ConfigurationWizard:
     def _checkDevIDList(self, *args):
         if self._currentFrame == "chdevidFrame":
             try:
-                if self.entry['CHDEVID'][0].get() in self._messgaeBridges[self._network]['data']['result']['deviceStore'].keys():
+                if self.entry['CHDEVID'][0].get() in self._messageBridges[self._network]['data']['result']['deviceStore'].keys():
                     self._devIDWarning.set(WARNINGTEXT)
                 else:
                     self._devIDWarning.set("")
@@ -1258,6 +1245,14 @@ class ConfigurationWizard:
             tkMessageBox.showerror("Invalid Device ID",
                                    ("Please enter a valid two character device ID\r"
                                     "A device ID can be anything from AA to ZZ"))
+
+    def _decodeDVIForDisplay(self):
+        if self.device['APVER'] >= 2.1:
+            if self.entry['DVI'][1].get() == "ERR":
+                return ""
+            return "{}-{}".format(self.entry['DVI'][1].get()[0:2], self.entry['DVI'][1].get()[2:4])
+        else:
+            return ""
 
     # MARK: - Validation rules
 
@@ -1388,7 +1383,6 @@ class ConfigurationWizard:
 
     def _sendConfigRequest(self):
         self.logger.debug("Sending config request to device")
-        # TODO: add a line here to disable NEXT button on cfame and advance
         query = []
         for command, value in self.entry.items():
             self.logger.debug("Checking {}: {} != {}".format(command, value[0].get(), value[1].get()))
@@ -1509,7 +1503,7 @@ class ConfigurationWizard:
         """
         self.logger.debug("Query type")
         self._checkMessageBridge = False
-        # TODO: add a line here to disable NEXT button on pfame
+        
         query = [
                  {'command': "DTY"},
                  {'command': "APVER"},
@@ -1539,7 +1533,7 @@ class ConfigurationWizard:
                                                                   reply['replies']))
         # check if reply is valid
         if reply['state'] == "FAIL_TIMEOUT":
-            # TODO: handle failed due to timeout
+            # handle failed due to timeout
             self.logger.debug("DeviceConfigurationRequest timeout")
             # display pop up ask user to check configme mode and try again
             if tkMessageBox.askyesno("Communications Timeout",
@@ -1553,7 +1547,7 @@ class ConfigurationWizard:
                 if self._currentFrame == "pressFrame":
                     self._startOver()
         elif reply['state'] == "FAIL_RETRY":
-            # TODO: handle failed due to retry
+            # handle failed due to retry
             self.logger.debug("DeviceConfigurationRequest retry error")
             # display pop up ask user to check configme mode and try again
             if tkMessageBox.askyesno("Communications Timeout",
@@ -1570,7 +1564,15 @@ class ConfigurationWizard:
             # process reply
             if self._configState == 1:
                 # this was a query type request
-                if float(reply['replies']['APVER']['reply']) >= 2.0:
+                # check for a valid APVER received
+                try :
+                    apver = float(reply['replies']['APVER']['reply'])
+                except ValueError:
+                    self.logger.debug("processReply: APVER invalid. Sending request again")
+                    self._queryType() #send the type query again
+                    return
+
+                if apver >= 2.0:
                     # valid apver
                     # so check what replied
                     matched = False
@@ -1581,6 +1583,7 @@ class ConfigurationWizard:
                             self.device = {'index': n,
                                            'DTY': self.devices[n]['DTY'],   # copy form JSON not reply
                                            'devID': reply['replies']['CHDEVID']['reply'],
+                                           'APVER': apver,
                                            'newDevice': False,
                                            'setENC': False,
                                            'settingsMissMatch': False,
@@ -1590,7 +1593,7 @@ class ConfigurationWizard:
                             self._askCurrentConfig()
                     if not matched:
                         self.logger.debug("Failed to find DTY in Devices JSON")
-                        # TODO: let the user know we couldn't match the device type
+                        # let the user know we couldn't match the device type
                         tkMessageBox.showerror("Unknown device",
                                      ("The device is of an unknown type\n"
                                       "")
@@ -1599,7 +1602,7 @@ class ConfigurationWizard:
                             self._startOver()
 
                 else:
-                    # apver mismatch, show error screen
+                    # TODO: apver mismatch, show error screen
                     pass
             elif self._configState == 2:
                 # this was an information request
@@ -1645,21 +1648,20 @@ class ConfigurationWizard:
                 if self.device['newDevice']:
                     self._newDeviceAutoSetup()
                 else:
-                    if self.entry['PANID'][0].get() != self._messgaeBridges[self._network]['data']['result']['PANID']:
+                    if self.entry['PANID'][0].get() != self._messageBridges[self._network]['data']['result']['PANID']:
                         self.device['settingsMissMatch'] = True
                         self._settingMissMatchVar.set(1)
-                    if self.entry['ENC'][0].get() != self._messgaeBridges[self._network]['data']['result']['encryptionSet']:
+                    if self.entry['ENC'][0].get() != self._messageBridges[self._network]['data']['result']['encryptionSet']:
                         self.device['settingsMissMatch'] = True
                         self._settingMissMatchVar.set(1)
 
                 # show config screen
                 self.logger.debug("Setting keepAwake, display config")
-                # TODO: set keepAwake via UDP DCR
                 self._keepAwake = 1
                 self._displaySimpleConfig()
             elif self._configState == 3:
                 # this was a config request
-                # TODO: check replies were good and let user know device is now ready
+                # check replies were good and let user know device is now ready
                 enkeyCount = 0
                 enkeyMatch = 0
                 en = re.compile('^EN[1-6]')
@@ -1692,7 +1694,6 @@ class ConfigurationWizard:
                 else:
                     # TODO: LLAPRESET didn't work ERROR
                     pass
-        # TODO: clean up
 
     def _askCurrentConfig(self):
         # assuming we know what it is ask for the current config
@@ -1709,7 +1710,9 @@ class ConfigurationWizard:
                  {'command': "RSSI"}
                  ]
                  
-         # TODO: if APVER 2.1 ask DVI
+        # If APVER 2.1 ask DVI
+        if self.device['APVER'] >= 2.1:
+            query.append({'command': "DVI"})
          
 
         if self.devices[self.device['index']]['SleepMode'] == "Cyclic":
@@ -1749,10 +1752,10 @@ class ConfigurationWizard:
             # give it a new deviceID
             self.entry['CHDEVID'][0].set(self._getNextFreeID())
             try:
-                if self.entry['PANID'][0].get() != self._messgaeBridges[self._network]['data']['result']['PANID']:
-                    self.entry['PANID'][0].set(self._messgaeBridges[self._network]['data']['result']['PANID'])
-                if self.entry['ENC'][0].get() != self._messgaeBridges[self._network]['data']['result']['encryptionSet']:
-                    if self._messgaeBridges[self._network]['data']['result']['encryptionSet']:
+                if self.entry['PANID'][0].get() != self._messageBridges[self._network]['data']['result']['PANID']:
+                    self.entry['PANID'][0].set(self._messageBridges[self._network]['data']['result']['PANID'])
+                if self.entry['ENC'][0].get() != self._messageBridges[self._network]['data']['result']['encryptionSet']:
+                    if self._messageBridges[self._network]['data']['result']['encryptionSet']:
                         self.device['setENC'] = True
                     else:
                         self.device['setENC'] = False
@@ -1778,34 +1781,43 @@ class ConfigurationWizard:
                       }
         self._sendRequest(messageBridgeQuery)
 
-    def _updateMessageBridgeDetailsFromJSON(self, jsonin):
+    def _updateMessageBridgeDetailsFromJSON(self, jsonin, address):
         # update Message Bridge entry in our list
-        # TODO: this needs to be a intelligent merge not just overwrite
-        if jsonin['network'] in self._messgaeBridges.keys():
+        if jsonin['network'] in self._messageBridges.keys():
             network = jsonin['network']
-            self._messgaeBridges[network]['state'] = jsonin.get('state', "Unknown")
-            self._messgaeBridges[network]['timestamp'] = jsonin['timestamp']
-            if jsonin.has_key('data'):
-                if not self._messgaeBridges[network].has_key('data'):
-                    self._messgaeBridges[network]['data'] = jsonin['data']
+            if not self._messageBridges[network]['conflict']: #if already in conflict, nothing more to do with the message
+                if self._messageBridges[network]['address'] != address:
+                    tkMessageBox.showerror("Network Error",
+                            "Found network {} twice on ip: {} and ip: {}".format(network,
+                            self._messageBridges[network]['address'], address))
+                    self._messageBridges[network]['state'] = "CONFLICT" #this will disable the button
+                    self._messageBridges[network]['conflict'] = True
                 else:
-                    if jsonin.has_key('id'):
-                        self._messgaeBridges[network]['data']['id'] = jsonin['data']['id']
-                    if jsonin.has_key('result'):
-                        results = jsonin['data']['result']
-                        if not self._messgaeBridges[network]['data'].has_key('result'):
-                            self._messgaeBridges[network]['data']['result'] = results
+                    self._messageBridges[network]['state'] = jsonin.get('state', "Unknown")
+                    self._messageBridges[network]['timestamp'] = jsonin['timestamp']
+                    if jsonin.has_key('data'):
+                        if not self._messageBridges[network].has_key('data'):
+                            self._messageBridges[network]['data'] = jsonin['data']
                         else:
-                            if results.has_key('PAINID'):
-                                self._messgaeBridges[network]['data']['result']['PANID'] = results['PANID']
-                            if results.has_key('encryptionState'):
-                                self._messgaeBridges[network]['data']['result']['encryptionSet'] = results['encryptionSet']
-                            if results.has_key('deviceStore'):
-                                self._messgaeBridges[network]['data']['result']['deviceStore'] = results['deviceStore']
+                            if jsonin.has_key('id'):
+                                self._messageBridges[network]['data']['id'] = jsonin['data']['id']
+                            if jsonin.has_key('result'):
+                                results = jsonin['data']['result']
+                                if not self._messageBridges[network]['data'].has_key('result'):
+                                    self._messageBridges[network]['data']['result'] = results
+                                else:
+                                    if results.has_key('PANID'):
+                                        self._messageBridges[network]['data']['result']['PANID'] = results['PANID']
+                                    if results.has_key('encryptionState'):
+                                        self._messageBridges[network]['data']['result']['encryptionSet'] = results['encryptionSet']
+                                    if results.has_key('deviceStore'):
+                                        self._messageBridges[network]['data']['result']['deviceStore'] = results['deviceStore']
         else:
             # new entry store the whole packet
-            self._messgaeBridges[jsonin['network']] = jsonin
-        self.fMessgaeBridgeUpdate.set()
+            jsonin['conflict'] = False
+            jsonin['address'] = address
+            self._messageBridges[jsonin['network']] = jsonin
+        self.fMessageBridgeUpdate.set()
 
 
     def _processNoReply(self):
@@ -1834,7 +1846,6 @@ class ConfigurationWizard:
 
     def _replyCheck(self):
         # look for a reply
-        # TODO: wait on UDP reply (how long)
         if self.fWaitingForReply.is_set():
             if self.qDCRReply.empty():
                 if time()-self._starttime > int(self._lastDCR[-1]['data']['timeout'])+10:
@@ -1917,7 +1928,7 @@ class ConfigurationWizard:
         self._serialDebugUpdate()
 
     def _serialDebugUpdate(self):
-        # TODO: nice formation for JSON's?
+        # TODO: nice formatting for JSON's?
         if not self.qJSONDebug.empty():
             txt = self.qJSONDebug.get()
             self.serialDebugText.config(state=tk.NORMAL)
@@ -1928,27 +1939,24 @@ class ConfigurationWizard:
 
         self.master.after(2, self._serialDebugUpdate)
 
+
     # MARK: - Clean up stuff
     def _endConfigMe(self):
         self.logger.debug("End Client")
-        position = self.master.geometry().split("+")
-        self.config.set('ConfigurationWizard', 'window_width_offset', position[1])
-        self.config.set('ConfigurationWizard', 'window_height_offset', position[2])
-        self.master.destroy()
+        if hasattr(self,'master'):
+            position = self.master.geometry().split("+")
+            self.config.set('ConfigurationWizard', 'window_width_offset', position[1])
+            self.config.set('ConfigurationWizard', 'window_height_offset', position[2])
+            self.master.destroy()
         self._running = False
 
     def _cleanUp(self):
         self.logger.debug("Clean up and exit")
         # if we were talking to a device we should send a CONFIGEND
-        # TODO: send JSON in stead
-
         self._stopKeepAwake()
-
+        self._writeConfig()
         # cancel anything outstanding
         # disconnect resources
-        # TODO: close sockets
-        # self._lcm.disconnect_transport()
-        self._writeConfig()
         try:
             self.tUDPSendStop.set()
             self.tUDPSend.join()
@@ -2002,7 +2010,7 @@ class ConfigurationWizard:
 
         try:
             self.args = parser.parse_args()
-        except:
+        except IOError:
             self.logger.critical("Failed to open the JSON device file given on the command line")
             sys.exit()
 
@@ -2073,9 +2081,9 @@ class ConfigurationWizard:
             self.logger.error('Unable to get latest device JSON - Exception = ' +
                             traceback.format_exc())
             self.newJSON = False
-                
+
         if self.newJSON:
-            self.logger.debug("Got new devices file saveing to disk")
+            self.logger.debug("Got new devices file saving to disk")
             with open(self.config.get('ConfigurationWizard', 'devFile'), 'w') as f:
                 f.write(self.newJSON)
             f.close()
@@ -2119,16 +2127,15 @@ class ConfigurationWizard:
             self.logger.critical("Could Not Load Language JSON File")
             sys.exit()
 
-#    def die(self):
+    def die(self):
 #        """For some reason we can not longer go forward
 #            Try cleaning up what we can and exit
 #        """
-#        self.logger.critical("DIE")
-##        self._endConfigMe()
-#        self._cleanUp()
-#
-#        sys.exit(1)
+        self.logger.critical("DIE")
+        self._endConfigMe()
+        self._cleanUp()
+        sys.exit(1)
 
 if __name__ == "__main__":
     app = ConfigurationWizard()
-    app.on_excute()
+    app.on_execute()
