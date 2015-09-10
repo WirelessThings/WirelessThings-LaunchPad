@@ -1,7 +1,9 @@
 WirelessThings LaunchPad from Ciseco
-For full detaisl of code changes please see the git commit history
+For full detaisl of code changes please see the git commit history at https://github.com/WirelessThings/WirelessThings-LaunchPad
 
 0.15:
+    BREAKING CHANGE: LaunchPad Auto update process has had some heavy rework so the update from 0.14 to 0.15 must be done as a full reinstall
+    MessageBrdige: New User and defualt config file setup
     LaunchPad: change the debugPrint to use the logger functions
     DCW: If APVER 2.1 query DVI and display
     LaunchPad: Catch Ctrl+C from console
@@ -9,6 +11,7 @@ For full detaisl of code changes please see the git commit history
     LaunchPad: Add new post update routine
     ConfigurationWizard & MessageBridge: MessageBridge Name Clash shows a message to user and disable the button
     MessageBridge: Improve the ATLH1 tests
+    LaunchPad: make UPD recv buffer larger
     Lots of typos and minor TODOs cleaned up
 
 0.14:

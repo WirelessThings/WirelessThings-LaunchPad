@@ -1,7 +1,7 @@
 {
     "Versions":[0.14],
-    "Prefix Text":["Below are the notes for WirelessThings LaunchPad",
-                    "Full versions of the relases notes can be found at http://www.wirelessthings.net or in Documentation directory"],
+    "Prefix Text":["Below are the highlighted release notes for WirelessThings LaunchPad since your current version",
+                   "More details copy of the relases notes can be found at Documentation directory and a full commit log can be seen at https://github.com/WirelessThings/WirelessThings-LaunchPad"],
     "0.14":["ConfigurationWizard: now downloads latest Devices.json from the net at launch",
             "MessageBridge: Better handeling of AT command mode",
             "MessageBridge: Now reads PANID and Encryption setting from the attached radio",
