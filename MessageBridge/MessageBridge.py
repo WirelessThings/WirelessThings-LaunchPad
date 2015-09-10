@@ -583,7 +583,7 @@ is running then run in the current terminal
 
     def _startUDPListen(self):
         self.tUDPListen = threading.Thread(name='tUDPListen', target=self._UDPListenThread)
-        self.tUDPListen.deamon = False
+        self.tUDPListen.daemon = False
         try:
             self.tUDPListen.start()
         except:

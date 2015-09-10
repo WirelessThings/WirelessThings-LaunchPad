@@ -850,7 +850,7 @@ class LaunchPad:
         self.tUDPListenStop = threading.Event()
 
         self.tUDPListen = threading.Thread(name='tUDPListen', target=self._UDPListenThread)
-        self.tUDPListen.deamon = False
+        self.tUDPListen.daemon = False
 
         try:
             self.tUDPListen.start()

@@ -348,7 +348,7 @@ class ConfigurationWizard:
         self.tUDPListenStarted = threading.Event()
 
         self.tUDPListen = threading.Thread(target=self._UDPListenThread)
-        self.tUDPListen.deamon = False
+        self.tUDPListen.daemon = False
 
         try:
             self.tUDPListen.start()
