@@ -651,10 +651,6 @@ class LaunchPad:
 
             self.tBarFrame.show()
 
-            if self.updateCheckFailed:
-                tkMessageBox.showerror("Update Check Failed", "Could not check for new Version")
-                self.logger.error("Could not check for new Version")
-
             if self.updateAvailable:
                 self.master.after(500, self.startOfferUpdateWindow)
 
