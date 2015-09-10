@@ -96,7 +96,7 @@ class ConfigurationWizard:
         Handles display of wizard interface for configuring devices
     """
     # MARK: - Instance Vars
-    _version = 0.15
+    _version = 0.16
 
     _configFileDefault = "ConfigurationWizard_defaults.cfg"
     _configFile = "ConfigurationWizard.cfg"
