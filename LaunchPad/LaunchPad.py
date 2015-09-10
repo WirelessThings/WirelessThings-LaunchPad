@@ -834,7 +834,7 @@ class LaunchPad:
         while not self.tUDPListenStop.is_set():
             datawaiting = select.select([UDPListenSocket], [], [], self._UDPListenTimeout)
             if datawaiting[0]:
-                (data, address) = UDPListenSocket.recvfrom(2048)
+                (data, address) = UDPListenSocket.recvfrom(8192)
                 self.logger.debug("tUDPListen: Received JSON: {} From: {}".format(data, address))
                 try :
                     jsonin = json.loads(data)
