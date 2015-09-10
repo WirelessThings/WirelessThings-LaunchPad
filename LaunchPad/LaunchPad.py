@@ -279,21 +279,41 @@ class LaunchPad:
         self.offerUpdateWindow.title("Update Available")
         self.offerUpdateWindow.resizable(0, 0)
 
-        self.updateframe = tk.Frame(self.offerUpdateWindow, name='updateFrame', relief=tk.RAISED,
-                               borderwidth=2, width=self.widthMain,
-                               height=self.heightMain/4)
+        self.updateframe = tk.Frame(self.offerUpdateWindow, name='updateFrame',
+                                    relief=tk.RAISED,
+                                    borderwidth=2, width=self.widthMain,
+                                    height=self.heightMain/4
+                                    )
         self.updateframe.pack()
 
         text = ScrolledText.ScrolledText(self.updateframe, width=80,
-                                    height=20, font=("TKDefaultFont", "11"), wrap=tk.WORD)
+                                         height=20,
+                                         font=("TKDefaultFont", "11"),
+                                         wrap=tk.WORD)
 
-        tk.Label(self.updateframe, text="There is a new version of {} available.".format(self._name)).pack(pady=10)
-        tk.Label(self.updateframe, text="Do you want to install it?").pack(pady=20)
+        tk.Label(self.updateframe,
+                 text="There is a new version of {} available.".format(self._name)
+                 ).pack(pady=5)
+        tk.Label(self.updateframe,
+                     text="Your current version is {}\n The latest version is {}".format(
+                                                             self.currentVersion, self.newVersion)
+                     ).pack()
+        tk.Label(self.updateframe,
+                 text="Do you want to install this update?\n\n"
+                      "The update process will automatically restart the local "
+                      "running Message Bridge if needed.",
+                 ).pack(pady=10)
 
-        tk.Button(self.updateframe, text="No", command=lambda: self.offerUpdateWindow.destroy(), width=30
-                    ).pack(padx=30, pady=10, side=tk.BOTTOM)
-        tk.Button(self.updateframe, text="Yes", command=lambda: self.startUpdate(), width=30
-                    ).pack(padx=30, pady=10, side=tk.BOTTOM)
+        tk.Button(self.updateframe,
+                  text="No",
+                  command=lambda: self.offerUpdateWindow.destroy(),
+                  width=30
+                  ).pack(padx=30, pady=10, side=tk.BOTTOM)
+        tk.Button(self.updateframe,
+                  text="Yes",
+                  command=lambda: self.startUpdate(),
+                  width=30
+                  ).pack(padx=30, pady=10, side=tk.BOTTOM)
 
         versions = self.latestVersionJSON["Versions"]
 
