@@ -1150,7 +1150,7 @@ class LaunchPad:
         if sys.platform == 'win32':
             pass
         elif sys.platform == 'darwin':
-            # OSX auto start is diffrent so pass for now
+            # OSX auto start is different so pass for now
             pass
         else:
             if command == 'enable':
@@ -1158,6 +1158,12 @@ class LaunchPad:
                 self.disableSSRButtons()
                 if self.password is None:
                     self.master.wait_window(PasswordDialog(self))
+
+                if self.password == False:
+                    #Cancel button was pressed
+                    self.password = None
+                    self.master.after(500, lambda: self.updateSSRButtons(app))
+                    return
                 # run update-rc.d {} remove (if there is an older script there)
                 self.updateRCd(app, 'remove')
                 # copy script to init.d dir
@@ -1211,6 +1217,12 @@ class LaunchPad:
                 if self.password is None:
                     self.master.wait_window(PasswordDialog(self))
                 # run update-rc.d {} remove
+                if self.password == False:
+                    #Cancel button was pressed
+                    self.password = None
+                    self.master.after(500, lambda: self.updateSSRButtons(app))
+                    return
+
                 self.updateRCd(app, 'remove')
                 # rm script from /etc/init.d ???
                 removeCommand = ['sudo', '-p','','-S',
@@ -1352,6 +1364,12 @@ class PasswordDialog(tk.Toplevel):
         tk.Toplevel.__init__(self, )
         self.parent = parent
         position = self.parent.master.geometry().split("+")
+
+        top = tk.Frame(self)
+        bottom = tk.Frame(self)
+        top.pack(side=tk.TOP)
+        bottom.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+
         self.geometry("+{}+{}".format(
                                       int(position[1]
                                           )+self.parent.widthMain/4,
@@ -1360,16 +1378,21 @@ class PasswordDialog(tk.Toplevel):
                                       )
                       )
         if sys.platform == 'win32':
-            tk.Label(self, text="Please enter Admin password").pack()
+            tk.Label(self, text="Admin permision is required to this action.\n\nPlease enter Admin password").pack(in_=top, pady=5)
         else:
-            tk.Label(self, text="Please enter root password").pack()
+            tk.Label(self, text="Root permision is required to this action.\n\nPlease enter root password").pack(in_=top, pady=5)
         self.entry = tk.Entry(self, show='*')
         self.entry.bind("<KeyRelease-Return>", self.StorePassEvent)
-        self.entry.pack()
-        self.button = tk.Button(self)
-        self.button["text"] = "Submit"
-        self.button["command"] = self.StorePass
-        self.button.pack()
+        self.entry.pack(in_=top, pady=5)
+        submitButton = tk.Button(self)
+        submitButton["text"] = "Submit"
+        submitButton["command"] = self.StorePass
+        submitButton.pack(in_=bottom, side=tk.LEFT, padx=35, pady=10)
+        cancelButton = tk.Button(self)
+        cancelButton["text"] = "Cancel"
+        cancelButton["command"] = self.Cancel
+        cancelButton.pack(in_=bottom, side=tk.LEFT, padx=35, pady=10)
+
         self.update() #make sure the window is already visible
         self.grab_set_global()
 
@@ -1379,6 +1402,10 @@ class PasswordDialog(tk.Toplevel):
 
     def StorePass(self):
         self.parent.password = self.entry.get()
+        self.destroy()
+
+    def Cancel(self):
+        self.parent.password = False
         self.destroy()
 
 if __name__ == "__main__":
