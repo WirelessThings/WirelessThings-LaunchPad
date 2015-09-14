@@ -1536,11 +1536,8 @@ class ConfigurationWizard:
             # handle failed due to timeout
             self.logger.debug("DeviceConfigurationRequest timeout")
             # display pop up ask user to check configme mode and try again
-            if tkMessageBox.askyesno("Communications Timeout",
-                                     ("Please check the device is in CONFIGME mode and \n"
-                                      "Click yes to retry\n"
-                                      "No to return to previous screen")
-                                     ):
+            if tkMessageBox.askretrycancel("Communications Timeout",
+                                     "Please check the device is in CONFIGME mode"):
                 # send query again
                 self._sendRequest(self._lastDCR[-1])
             else:
@@ -1550,11 +1547,8 @@ class ConfigurationWizard:
             # handle failed due to retry
             self.logger.debug("DeviceConfigurationRequest retry error")
             # display pop up ask user to check configme mode and try again
-            if tkMessageBox.askyesno("Communications Timeout",
-                                     ("Please check the device is in CONFIGME mode and \n"
-                                      "Click yes to retry\n"
-                                      "No to return to previous screen")
-                                     ):
+            if tkMessageBox.askretrycancel("Communications Timeout",
+                                     "Please check the device is in CONFIGME mode"):
                 # send query again
                 self._sendRequest(self._lastDCR[-1])
             else:
