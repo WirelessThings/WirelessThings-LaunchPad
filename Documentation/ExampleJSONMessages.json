@@ -185,7 +185,8 @@
                        "deviceStore",   // request the current device store
                        "PANID",         // request the networks PANID (used for seting up new devices ror the network)
                        "encryptionSet",  // request if encryption is enabled on the network
-                       "version"        // request the Message Bridge code version
+                       "version",       // request the Message Bridge code version
+                       "RadioFirmwareVersion"   // request the Firmware version of the radio
                        ],
             "set":{                 // optional, used to set settings on the Message Bridge (not yet implemented)
                    "PANID":"5AA5",
@@ -197,6 +198,7 @@
                       "encryptionSet":true, // optional, current encryptiom state
                       "encrptionKey":"Fail", // optional, Pass/Fail state for setting encryption key
                       "version":0.12,       // optional, current Message Bridge version
+                      "RadioFirmwareVersion"    // optional, current Firmware version of the radio
                       "deciceStore":{       // optional, the device store contains information abbout the last Language of Things message a Message Bridge saw for every device it has heard from since its last reboot,
                                      "AA":{     // information is store by device ID, the array will not grow bigger than 656 entries
                                            "data":"TEMP19.50",      // last message seen
