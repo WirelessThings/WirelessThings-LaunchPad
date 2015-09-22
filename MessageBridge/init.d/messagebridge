@@ -35,9 +35,13 @@ case "$1" in
     echo "Restarting Message Bridge"
     python ./MessageBridge.py restart
     ;;
+  status)
+    echo "Message Bridge Status"
+    python ./MessageBridge.py status
+    ;;
   *)
     # Ignore everything else
-    echo "Usage: /etc/init.d/messagebridge {start|stop|restart}"
+    echo "Usage: /etc/init.d/messagebridge {start|stop|restart|status}"
     exit 1
     ;;
 esac
