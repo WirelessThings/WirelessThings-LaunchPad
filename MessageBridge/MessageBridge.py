@@ -838,7 +838,6 @@ is running then run in the current terminal
 
     def _SerialCheckATLH(self):
         """ check and possible set the the ATLH setting on the radio
-            if command line XX the make permanent (ATWR)
         """
         self.logger.info("tSerial: Setting ATLH1")
 
@@ -847,42 +846,45 @@ is running then run in the current terminal
         at = AT.AT(self._serial, self.logger, self.tSerialStop)
 
         if at.enterATMode():
-            #ask for the ATLH
-            atlh = at.sendATWaitForResponse("ATLH")
-            if atlh:
-                if atlh != "1": #if the ATLH returns diff from 1, we force the 1 status
-                    if at.sendATWaitForOK("ATLH1"):
-                        if at.sendATWaitForOK("ATAC"):
-                            if at.sendATWaitForOK("ATWR"):
-                                self.logger.debug("SerialCheckATLH: ATLH1 set")
-            else:
-                self.logger.critical("SerialCheckATLH: ATLH returned False, check radio firmware version")
-                self._cleanUp()
-                return False
+            self.radioFirmwareVersion = at.sendATWaitForResponse("ATVR")
+            self.logger.info("tSerial: Radio Firmware Version: {}".format(self.radioFirmwareVersion))
+            if self.radioFirmwareVersion:
+                #ask for the ATLH
+                atlh = at.sendATWaitForResponse("ATLH")
+                if atlh:
+                    if atlh != "1": #if the ATLH returns diff from 1, we force the 1 status
+                        if at.sendATWaitForOK("ATLH1"):
+                            if at.sendATWaitForOK("ATAC"):
+                                if at.sendATWaitForOK("ATWR"):
+                                    self.logger.debug("SerialCheckATLH: ATLH1 set")
+                else:
+                    self.logger.critical("tSerial: ATLH returned False, check radio firmware version")
+                    self._cleanUp()
+                    return False
 
             self._panID = at.sendATWaitForResponse("ATID")
             if not self._panID:
-                self.logger.critical("SerialCheckATLH: Invalid PANID")
+                self.logger.critical("tSerial: Invalid PANID")
                 self._cleanUp()
                 return False
-                
+
             self._encryption = at.sendATWaitForResponse("ATEE")
             if not self._encryption:
-                self.logger.critical("SerialCheckATLH: Invalid Encryption")                
-                self._cleanUp()                
-                return False
-            self._encryption = bool(int(self._encryption)) #convert the received encryption to bool
-            
-            self._encryptionKey = at.sendATWaitForResponse("ATEK")
-            if not self._encryptionKey:
-                self.logger.critical("SerialCheckATLH: Invalid encryptionKey")                
+                self.logger.critical("tSerial: Invalid Encryption")
                 self._cleanUp()
                 return False
-                
+            self._encryption = bool(int(self._encryption)) #convert the received encryption to bool
+
+            self._encryptionKey = at.sendATWaitForResponse("ATEK")
+            if not self._encryptionKey:
+                self.logger.critical("tSerial: Invalid encryptionKey")
+                self._cleanUp()
+                return False
+
             at.leaveATMode()
             return True
-            
-        self.logger.debug("SerialCheckATLH: Failed to enter on AT Mode")
+
+        self.logger.debug("tSerial: Failed to enter on AT Mode")
         return False
                 
             
@@ -1177,6 +1179,8 @@ is running then run in the current terminal
                         result['encryptionSet'] = self._encryption
                     elif request == "version":
                         result['version'] = self._version
+                    elif request == "RadioFirmwareVersion":
+                        result['RadioFirmwareVersion'] = self.radioFirmwareVersion
             elif message['data'].has_key('set'):
                 for set in message['data']['set']:
                     # TODO: implement "set" requests
