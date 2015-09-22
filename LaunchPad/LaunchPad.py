@@ -847,21 +847,13 @@ class LaunchPad:
         self.statusBar = tk.Label(self.master, textvariable=self._serviceStatus, bd=1, relief=tk.SUNKEN, anchor=tk.W)
         self.statusBar.pack(side=tk.BOTTOM, fill=tk.X)
 
-        self.tUDPListenStop = threading.Event()
-
-        self.tUDPListen = threading.Thread(name='tUDPListen', target=self._UDPListenThread)
-        self.tUDPListen.daemon = False
-
-        try:
-            self.tUDPListen.start()
-        except:
-            self.logger.error("Failed to Start the UDP listen thread")
-
+        self._initUDPListenThread()
         self._initUDPSendThread()
         self.fMessageBridgeGood = threading.Event()
         self.fMessageBridgeConflict = threading.Event()
 
         self.master.after(100, self.checkNetwork)
+        self.master.after(5000, self.checkUDPThreads)
 
     def checkNetwork(self):
         """
@@ -903,6 +895,26 @@ class LaunchPad:
 
 
         self.master.after(1000, self.checkNetwork)
+
+    def checkUDPThreads(self):
+        if self._running:
+            if not self.tUDPListen.is_alive():
+                self.logger.error("UDPThread thread stopped. Try restarting it")
+                self._startUDPListenThread()
+                sleep(2)
+                if self.tUDPListen.is_alive():
+                    self.logger.critical("Unable to restart UDP Listen Thread")
+                    self.die()
+
+            if not self.tUDPSend.is_alive():
+                self.logger.error("UDPSend thread stopped. Try restarting it")
+                self._startUDPSendThread()
+                sleep(2)
+                if self.tUDPSend.is_alive():
+                    self.logger.critical("Unable to restart UDP Send Thread")
+                    self.die()
+
+            self.master.after(1000, self.checkUDPThreads)
 
     def _UDPListenThread(self):
         """ UDP Listen Thread
@@ -972,6 +984,23 @@ class LaunchPad:
         elif self._messageBridges[jsonin['network']]['state'].upper() == "RUNNING":
             self.fMessageBridgeGood.set()
 
+    def _initUDPListenThread(self):
+        """ Start the UDP input thread
+            """
+        self.logger.debug("UDP Listen Thread init")
+
+        self.tUDPListenStop = threading.Event()
+
+        self._startUDPListenThread()
+
+    def _startUDPListenThread(self):
+        self.tUDPListen = threading.Thread(name='tUDPListen', target=self._UDPListenThread)
+        self.tUDPListen.daemon = False
+
+        try:
+            self.tUDPListen.start()
+        except:
+            self.logger.error("Failed to Start the UDP listen thread")
 
     def _initUDPSendThread(self):
         """ Start the UDP output thread
@@ -982,6 +1011,9 @@ class LaunchPad:
 
         self.tUDPSendStop = threading.Event()
 
+        self._startUDPSendThread()
+
+    def _startUDPSendThread(self):
         self.tUDPSend = threading.Thread(target=self._UDPSendThread)
         self.tUDPSend.daemon = False
 
