@@ -47,10 +47,14 @@ if sys.platform == 'darwin':
 
 sock.bind(('', FROM_PORT))
 lasttime = time()
+
 while True:
     data, addr = sock.recvfrom(1024*8)
     pydata = json.loads(data)
-    if pydata['type'] == 'LLAP' and pydata['network'] == 'Dashboard': # and pydata['data'][0].startswith("VAL"):
+    if pydata['type'] == 'WirelessMessage':
+        if len(sys.argv) == 3:
+            if pydata['network'] != sys.argv[2]:
+                continue
         if len(sys.argv) == 2:
             if pydata['id'] == sys.argv[1]:
 		now = time()
