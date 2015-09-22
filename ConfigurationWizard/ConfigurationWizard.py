@@ -1751,6 +1751,11 @@ class ConfigurationWizard:
         if self.device['newDevice']:
             # give it a new deviceID
             self.entry['CHDEVID'][0].set(self._getNextFreeID())
+            
+            # if this is a Intrerupt sleeping device set it to sleep
+            if self.devices[self.device['index']]['SleepMode'] == "Interrupt":
+                self.entry['SLEEPM'][0].set(1)
+            
             try:
                 if self.entry['PANID'][0].get() != self._messageBridges[self._network]['data']['result']['PANID']:
                     self.entry['PANID'][0].set(self._messageBridges[self._network]['data']['result']['PANID'])
