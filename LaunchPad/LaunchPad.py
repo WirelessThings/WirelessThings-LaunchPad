@@ -1291,10 +1291,38 @@ class LaunchPad:
         proc.wait()
 
     def launch(self, app, command, NoUIUpdate=False):
-        appCommand = ["./{}".format(self.appList[app]['FileName'])]
-
+        appCommand = []
+        sudo = False
         if command in ['stop', 'restart']:
             self._messageBridges = {}
+            if os.getuid() != 0: #if program not running as su
+                # check what user started the app that we want to stop/restart
+                pidFileName = "{0}{1}.pid".format(self.appList[app]['CWD'],
+                                                    self.appList[app]['FileName'].split('.py',1)[0])
+                with open (pidFileName, 'r') as pid_file:
+                    appPID = int(pid_file.readline().rstrip())
+                    pid_file.close
+                    # Return UID of process pid
+                    for ln in open('/proc/%d/status' % appPID):
+                        if ln.startswith('Uid:'):
+                            uid = int(ln.split()[1])
+
+                if uid == 0: #if root started the app, only sudo can stop it
+                    sudo = True
+                    appCommand.append("sudo")
+                    appCommand.append("-p")
+                    appCommand.append("-S")
+
+                    if self.password is None:
+                        self.master.wait_window(PasswordDialog(self))
+
+                    if self.password == False:
+                        #Cancel button was pressed
+                        self.password = None
+                        self.master.after(500, lambda: self.updateSSRButtons(app))
+                        return
+
+        appCommand.append("./{}".format(self.appList[app]['FileName']))
 
         if not self.appList[app]['Args'] == "":
             appCommand.append(self.appList[app]['Args'])
@@ -1315,8 +1343,18 @@ class LaunchPad:
                 os.chmod(filePath, (st.st_mode | stat.S_IXUSR | stat.S_IXGRP))
 
         self.logger.debug("Launching {}".format(appCommand))
-        self.proc.append(subprocess.Popen(appCommand,
-                                          cwd=self.appList[app]['CWD']))
+
+        cproc = subprocess.Popen(appCommand,
+                                stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE,
+                                cwd=self.appList[app]['CWD']
+                                )
+        self.proc.append(cproc)
+
+        if sudo:
+            cproc.stdin.write(self.password+'\n')
+            cproc.stdin.close()
+            cproc.wait()
 
         if not NoUIUpdate and command is not 'launch':
             self.disableSSRButtons()
