@@ -1,6 +1,15 @@
 WirelessThings LaunchPad from Ciseco
 For full detaisl of code changes please see the git commit history at https://github.com/WirelessThings/WirelessThings-LaunchPad
 
+0.16:
+    DeviceConfigurationWizard: Auto set new Interrupt sleeping device to sleep on first config, fixes #17
+    MessageBridge: added the RadioFirmwareVersion reading #27
+    Examples: fix filterUDPListen
+    init.d: Add status check for the messagebridge init script
+    LaunchPad: Rework of the PasswordDialog. Added Cancel button
+    LaunchPad: Check if sudo is needed before stop/restart an app
+
+
 0.15:
     BREAKING CHANGE: LaunchPad Auto update process has had some heavy rework so the update from 0.14 to 0.15 must be done as a full reinstall
     MessageBrdige: New User and defualt config file setup

@@ -1,111 +1,214 @@
 {
-    "Version":150821,
-    "Devices":[
-               {
-               "DTY":"AAAB01",
-               "Name":"Temperature Sensor",
-               "Description":"This Temperature Sensor device sends periodic readings in degrees centigrade. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade",
-               "LongDescription":"Using a thermistor this wireless temperature sensor will tell you the ambient temperature of its environment. The device sends periodic encrypted temperature readings to other WirelessThings devices. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade. The internal coin cell battery is capable of running for well in excess of 10 years (based on 1 reading per hour).",
-               "SleepMode":"Cyclic",
-               "ReadingPeriod":1,
-               "PowerClass":"SB",
-               "AntennaClass":"CA",
-               "Actions":[
-                          {
-                          "Command":"TEMP",
-                          "Description":"Request Temperature",
-                          "Format":"Float",
-                          "Type":"Polled"
-                          },
-                          {
-                          "Command":"TMPA",
-                          "Description":"Request Temperature",
-                          "Format":"Float",
-                          "Type":"Both"
-                          }
-                          ],
-               "Options":[
-                          {
-                          "Command":"BVAL",
-                          "Description":"Beta Value of Thermistor",
-                          "Format":"Int"
-                          },
-                          {
-                          "Command":"RNOM",
-                          "Description":"Resistance at 20C",
-                          "Format":"Int"
-                          },
-                          {
-                          "Command":"IR",
-                          "Description":"Internal Resistance",
-                          "Format":"Int"
-                          },
-                          {
-                          "Command":"SRES",
-                          "Description":"Series Resistance",
-                          "Format":"Int"
-                          }
-                          ]
-               },
-               {
-               "DTY":"AAAB02",
-               "Name":"Temperature Sensor",
-               "Description":"This Temperature Sensor device sends periodic readings in degrees centigrade. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade",
-               "LongDescription":"Using a thermistor this wireless temperature sensor will tell you the ambient temperature of its environment. The device sends periodic encrypted temperature readings to other WirelessThings devices. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade. The internal coin cell battery is capable of running for well in excess of 10 years (based on 1 reading per hour).",
-               "SleepMode":"Cyclic",
-               "ReadingPeriod":1,
-               "PowerClass":"SB",
-               "AntennaClass":"CA",
-               "Actions":[
-                          {
-                          "Command":"TEMP",
-                          "Description":"Request Temperature",
-                          "Format":"Float",
-                          "Type":"Both"
-                          }
-                          ],
-               "Options":[
-                          {
-                          "Command":"BVAL",
-                          "Description":"Beta Value of Thermistor",
-                          "Format":"Int"
-                          },
-                          {
-                          "Command":"RNOM",
-                          "Description":"Resistance at 20C",
-                          "Format":"Int"
-                          },
-                          {
-                          "Command":"IR",
-                          "Description":"Internal Resistance",
-                          "Format":"Int"
-                          },
-                          {
-                          "Command":"SRES",
-                          "Description":"Series Resistance",
-                          "Format":"Int"
-                          }
-                          ]
-               },
-               {
-               "DTY":"AAAB03",
-               "Name":"Temperature Sensor",
-               "Description":"This Temperature Sensor device sends periodic readings in degrees centigrade. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade",
-               "LongDescription":"Using a thermistor this wireless temperature sensor will tell you the ambient temperature of its environment. The device sends periodic encrypted temperature readings to other WirelessThings devices. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade. The internal coin cell battery is capable of running for well in excess of 10 years (based on 1 reading per hour).",
-               "SleepMode":"Cyclic",
-               "ReadingPeriod":1,
-               "PowerClass":"SB",
-               "AntennaClass":"CA",
-               "Actions":[
-                          {
-                          "Command":"TEMP",
-                          "Description":"Request Temperature",
-                          "Format":"Float",
-                          "Type":"Both"
-                          }
-                          ],
-               "Options":[
-               ]
-               }
-               ]
+   "Version":151013,
+   "Devices":[
+      {
+         "DTY":"AAAB01",
+         "Name":"Temperature Sensor",
+         "Description":"This Temperature Sensor device sends periodic readings in degrees centigrade. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade",
+         "LongDescription":"Using a thermistor this wireless temperature sensor will tell you the ambient temperature of its environment. The device sends periodic encrypted temperature readings to other WirelessThings devices. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade. The internal coin cell battery is capable of running for well in excess of 10 years (based on 1 reading per hour).",
+         "SleepMode":"Cyclic",
+         "ReadingPeriod":1,
+         "PowerClass":"SB",
+         "AntennaClass":"CA",
+         "Actions":[
+            {
+               "Command":"TEMP",
+               "Description":"Return the temperature in degrees centigrade",
+               "Format":"Float",
+               "Type":"Polled"
+            },
+            {
+               "Command":"TMPA",
+               "Description":"Return the temperature in degrees centigrade",
+               "Format":"Float",
+               "Type":"Both"
+            }
+         ],
+         "Options":[
+            {
+               "Command":"BVAL",
+               "Description":"Beta Value of Thermistor",
+               "Format":"Int"
+            },
+            {
+               "Command":"RNOM",
+               "Description":"Resistance at 20C",
+               "Format":"Int"
+            },
+            {
+               "Command":"IR",
+               "Description":"Internal Resistance",
+               "Format":"Int"
+            },
+            {
+               "Command":"SRES",
+               "Description":"Series Resistance",
+               "Format":"Int"
+            }
+         ]
+      },
+      {
+         "DTY":"AAAB02",
+         "Name":"Temperature Sensor",
+         "Description":"This Temperature Sensor device sends periodic readings in degrees centigrade. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade",
+         "LongDescription":"Using a thermistor this wireless temperature sensor will tell you the ambient temperature of its environment. The device sends periodic encrypted temperature readings to other WirelessThings devices. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade. The internal coin cell battery is capable of running for well in excess of 10 years (based on 1 reading per hour).",
+         "SleepMode":"Cyclic",
+         "ReadingPeriod":1,
+         "PowerClass":"SB",
+         "AntennaClass":"CA",
+         "Actions":[
+            {
+               "Command":"TEMP",
+               "Description":"Return the temperature in degrees centigrade",
+               "Format":"Float",
+               "Type":"Both"
+            }
+         ],
+         "Options":[
+            {
+               "Command":"BVAL",
+               "Description":"Beta Value of Thermistor",
+               "Format":"Int"
+            },
+            {
+               "Command":"RNOM",
+               "Description":"Resistance at 20C",
+               "Format":"Int"
+            },
+            {
+               "Command":"IR",
+               "Description":"Internal Resistance",
+               "Format":"Int"
+            },
+            {
+               "Command":"SRES",
+               "Description":"Series Resistance",
+               "Format":"Int"
+            }
+         ]
+      },
+      {
+         "DTY":"AAAB03",
+         "Name":"Temperature Sensor",
+         "Description":"This Temperature Sensor device sends periodic readings in degrees centigrade. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade",
+         "LongDescription":"Using a thermistor this wireless temperature sensor will tell you the ambient temperature of its environment. The device sends periodic encrypted temperature readings to other WirelessThings devices. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade. The internal coin cell battery is capable of running for well in excess of 10 years (based on 1 reading per hour).",
+         "SleepMode":"Cyclic",
+         "ReadingPeriod":1,
+         "PowerClass":"SB",
+         "AntennaClass":"CA",
+         "Actions":[
+            {
+               "Command":"TEMP",
+               "Description":"Return the temperature in degrees centigrade",
+               "Format":"Float",
+               "Type":"Both"
+            }
+         ],
+         "Options":[
+
+         ]
+      },
+      {
+         "DTY":"AAAD01",
+         "Name":"Ambient Light Level Sensor",
+         "Description":"This Ambient Light Sensor device sends periodic readings of light as a percentage.",
+         "LongDescription":"Using a light dependent resistor (LDR), this wireless light sensor measures and sends you periodical readings, of the ambient light level of its environment. The light level is represented as a percentage, with 100% being very bright and 0% very dark. The internal coin cell battery is capable of running for well in excess of 10 years (based on 1 reading per hour).",
+         "SleepMode":"Cyclic",
+         "ReadingPeriod":1,
+         "PowerClass":"SB",
+         "AntennaClass":"CA",
+         "Actions":[
+            {
+               "Command":"LVAL",
+               "Description":"Return the light level as a percentage",
+               "Format":"Int",
+               "Type":"Both"
+            }
+         ],
+         "Options":[
+
+         ]
+      },
+      {
+         "DTY":"AAAN01",
+         "Name":"Humidity and Temperature",
+         "Description":"This Humidity and Temperature Sensor device sends periodic readings of relative humidity and temperature in degrees centigrade.",
+         "LongDescription":"Using a Sensirion SHT21 sensor, this device measures and sends you periodical readings, of both the humidity and temperature of its environment. The humidity level is represented as relative humidity RH and temperature is in degrees centigrade.",
+         "SleepMode":"Cyclic",
+         "ReadingPeriod":1,
+         "PowerClass":"LB",
+         "AntennaClass":"CA",
+         "Actions":[
+            {
+               "Command":"RHUM",
+               "Description":"Return the current relative humidity reading",
+               "Format":"Float",
+               "Type":"Both"
+            },
+            {
+               "Command":"TEMP",
+               "Description":"Return the current temperature in degrees centigrade",
+               "Format":"Float",
+               "Type":"Both"
+            }
+         ],
+         "Options":[
+
+         ]
+      },
+      {
+         "DTY":"AAAV01",
+         "Name":"Button KeyFob",
+         "Description":"The Wireless KeyFob can have one to five buttons depending on the model, each sends its own Language of Things message that can be used to control our other devices or any other system you can think of.",
+         "LongDescription":"The Wireless KeyFob can have one to five buttons depending on the model, each sends its own Language of Things message that can be used to control our other devices or any other system you can think of. Examples include switching a device on/off to sending an email. Buttons are identified by the letters A to E. A full five button key fob starts with A in the middle and then B at the top, C, D and E are clockwise from there. A three button key fob (horizontal layout) will thus have button E at the left, button A in the centre and button C at the right.",
+         "SleepMode":"Interrupt",
+         "PowerClass":"SB",
+         "AntennaClass":"CA",
+         "Actions":[
+            {
+               "Command":"BUTTON",
+               "Description":"Indicates which button has been pressed [A-E], note actual command name can be set via MSG option",
+               "Format":"String",
+               "Type":"Announce"
+            }
+         ],
+         "Options":[
+            {
+               "Command":"MSG",
+               "Description":"Set message for the button press (Default BUTTON)",
+               "Format":"String"
+            },
+            {
+               "Command":"DEB",
+               "Description":"Button debounce in mS (Default 50)",
+               "Format":"Int"
+            }
+         ]
+      },
+      {
+         "DTY":"AAAX01",
+         "Name":"Lux light level sensor",
+         "Description":"This Lux Light Sensor device sends periodic readings of light in LUX.",
+              "LongDescription":"Using a TSL2591 digital Lux Light Sensor this devcice provides a more absolute reading of ligth level. The lux (symbol: lx) is the SI unit of illuminance and luminous emittance, measuring luminous flux per unit area. It is equal to one lumen per square metre. The LUX sensor reports the absolute LUX value, this has approximately been calibrated for the supplied container, note that the reading will vary according to the direction of the incident light.",
+         "SleepMode":"Cyclic",
+         "ReadingPeriod":1,
+         "PowerClass":"LB",
+         "AntennaClass":"CA",
+         "Actions":[
+            {
+               "Command":"LUX",
+               "Description":"Return the current Lux reading. Result of 88888 indicates the LUX is too bright for the sensor (rated at 88000 lux)",
+               "Format":"Int",
+               "Type":"Both"
+            }
+         ],
+         "Options":[
+            {
+               "Command":"CAL",
+               "Description":"Set the calibration value – this is a floating point number and the measured LUX will be multiplied by this value to give the calibrated LUX. This is to allow for the attenuation of the box and slots as well as the positioning of the sensor.",
+               "Format":"Float"
+            }
+         ]
+      }
+   ]
 }

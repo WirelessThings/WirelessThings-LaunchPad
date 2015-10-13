@@ -195,11 +195,11 @@
                    },
             "result":{      // optional, results from the Message Bridge to request
                       "PANID":"5AA5"        // optional, current PANID, or PANID as a result of a set
-                      "encryptionSet":true, // optional, current encryptiom state
+                      "encryptionSet":true, // optional, current encryption state
                       "encrptionKey":"Fail", // optional, Pass/Fail state for setting encryption key
                       "version":0.12,       // optional, current Message Bridge version
-                      "RadioFirmwareVersion"    // optional, current Firmware version of the radio
-                      "deciceStore":{       // optional, the device store contains information abbout the last Language of Things message a Message Bridge saw for every device it has heard from since its last reboot,
+                      "RadioFirmwareVersion":"0.95 UARTSRF",   // optional, current Firmware version of the radio
+                      "deviceStore":{       // optional, the device store contains information abbout the last Language of Things message a Message Bridge saw for every device it has heard from since its last reboot,
                                      "AA":{     // information is store by device ID, the array will not grow bigger than 656 entries
                                            "data":"TEMP19.50",      // last message seen
                                            "timestamp":"12 Mar 2014 14:19:21 +0000" // timestamp of last message

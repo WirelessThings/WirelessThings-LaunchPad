@@ -202,9 +202,9 @@ class encryptionSetup():
         while self._panID == self._defaultPANID:
             self._panID = "{0:0{1}X}".format(random.randrange(0,61439,1),4)
 
-        self._encryptionKey = "{0:0{1}X}".format(random.randrange(0,4340282366920938463463374607431768211456,1),32)
+        self._encryptionKey = "{0:0{1}X}".format(random.randrange(0,340282366920938463463374607431768211455,1),32)
         while self._encryptionKey == self._defaultEncryptionKey:
-            self._encryptionKey = "{0:0{1}X}".format(random.randrange(0,4340282366920938463463374607431768211456,1),32)
+            self._encryptionKey = "{0:0{1}X}".format(random.randrange(0,340282366920938463463374607431768211455,1),32)
 
     def _applySettings(self):
         self.logger.info("Applying setting to radio")

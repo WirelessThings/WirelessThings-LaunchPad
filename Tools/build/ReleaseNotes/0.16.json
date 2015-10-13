@@ -2,6 +2,11 @@
     "Versions":[0.16, 0.15, 0.14],
     "Prefix Text":["Below are the highlighted release notes for WirelessThings LaunchPad since your current version",
                    "More details copy of the relases notes can be found at Documentation directory and a full commit log can be seen at https://github.com/WirelessThings/WirelessThings-LaunchPad"],
-    "0.16":[""
+    "0.16":["DeviceConfigurationWizard: Auto set new Interrupt sleeping device to sleep on first config, fixes #17",
+            "MessageBridge: added the RadioFirmwareVersion reading #27",
+            "Examples: fix filterUDPListen",
+            "init.d: Add status check for the messagebridge init script",
+            "LaunchPad: Rework of the PasswordDialog. Added Cancel button",
+            "LaunchPad: Check if sudo is needed before stop/restart an app"
             ]
 }
