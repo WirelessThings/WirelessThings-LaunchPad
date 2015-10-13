@@ -55,7 +55,7 @@ while True:
         if len(sys.argv) == 3:
             if pydata['network'] != sys.argv[2]:
                 continue
-        if len(sys.argv) == 2:
+        if len(sys.argv) >= 2:
             if pydata['id'] == sys.argv[1]:
 		now = time()
                 timediff = now - lasttime
