@@ -2,6 +2,22 @@
    "Version":151013,
    "Devices":[
       {
+         "DTY":"",
+         "Name":"Unknown Device",
+         "Description":"Unable to identify your device",
+         "LongDescription":"Unable to identify your device",
+         "SleepMode":"Polled",
+         "ReadingPeriod":0,
+         "PowerClass":"",
+         "AntennaClass":"",
+         "Actions":[
+
+         ],
+         "Options":[
+
+         ]
+      },
+      {
          "DTY":"AAAB01",
          "Name":"Temperature Sensor",
          "Description":"This Temperature Sensor device sends periodic readings in degrees centigrade. It is accurate to +/- 1 degree between -10 and +40 degrees centigrade",
