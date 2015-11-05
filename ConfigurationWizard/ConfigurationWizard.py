@@ -484,6 +484,10 @@ class ConfigurationWizard:
         self._checkMessageBridge = True
         self.master.after(1000, self._checkMessageBridgeUpdate)
 
+        self._checkMessageBoxFlag = True
+        self._messageBoxFlag = False
+        self.master.after(1000, self._checkMessageBoxFlagUpdate)
+
     def _displayPressButton(self, network, reset=False):
         self.logger.debug("Displaying PressButton")
 
@@ -1098,6 +1102,12 @@ class ConfigurationWizard:
             self.progressBar.start()
 
     # MARK: - Display helpers
+    def _checkMessageBoxFlagUpdate(self):
+        if self._checkMessageBoxFlag:
+            if self._messageBoxFlag:
+                self._messageBoxFlag = False
+                tkMessageBox.showerror(self._msgBoxTitle, self._msgBoxMessage)
+            self.master.after(1000, self._checkMessageBoxFlagUpdate)
 
     def _checkMessageBridgeUpdate(self):
 		# self.logger.debug("Checking Message Bridge reply flag")
@@ -1830,9 +1840,10 @@ class ConfigurationWizard:
             network = jsonin['network']
             if not self._messageBridges[network]['conflict']: #if already in conflict, nothing more to do with the message
                 if self._messageBridges[network]['address'] != address:
-                    tkMessageBox.showerror("Network Error",
-                            "Found network {} twice on ip: {} and ip: {}".format(network,
-                            self._messageBridges[network]['address'], address))
+                    self._msgBoxTitle = "Network Error"
+                    self._msgBoxMessage = "Found network {} twice on ip: {} and ip: {}".format(network,
+                                            self._messageBridges[network]['address'], address)
+                    self._messageBoxFlag = True
                     self._messageBridges[network]['state'] = "CONFLICT" #this will disable the button
                     self._messageBridges[network]['conflict'] = True
                 else:
