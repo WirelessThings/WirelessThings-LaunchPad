@@ -29,7 +29,7 @@
     "type":"WirelessMessage",
     "network":"Serial",
     "id":"MA",
-    "sendOn":"AWAKE"
+    "sendOn":"AWAKE",
     "data":["WAKE", "CHDEVIDMB", "INTVL005M", "CYCLE"]
 }
 
