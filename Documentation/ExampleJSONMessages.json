@@ -198,7 +198,7 @@
                       "encryptionSet":true, // optional, current encryption state
                       "encrptionKey":"Fail", // optional, Pass/Fail state for setting encryption key
                       "version":0.12,       // optional, current Message Bridge version
-                      "RadioFirmwareVersion":"0.95 UARTSRF",   // optional, current Firmware version of the radio
+                      "radioFirmwareVersion":"0.95 UARTSRF",   // optional, current Firmware version of the radio
                       "deviceStore":{       // optional, the device store contains information abbout the last Language of Things message a Message Bridge saw for every device it has heard from since its last reboot,
                                      "AA":{     // information is store by device ID, the array will not grow bigger than 656 entries
                                            "data":"TEMP19.50",      // last message seen

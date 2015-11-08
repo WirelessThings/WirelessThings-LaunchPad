@@ -1179,8 +1179,8 @@ is running then run in the current terminal
                         result['encryptionSet'] = self._encryption
                     elif request == "version":
                         result['version'] = self._version
-                    elif request == "RadioFirmwareVersion":
-                        result['RadioFirmwareVersion'] = self.radioFirmwareVersion
+                    elif request == "radioFirmwareVersion":
+                        result['radioFirmwareVersion'] = self.radioFirmwareVersion
             elif message['data'].has_key('set'):
                 for set in message['data']['set']:
                     # TODO: implement "set" requests
