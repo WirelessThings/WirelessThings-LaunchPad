@@ -296,7 +296,7 @@ is running then run in the current terminal
             pid = self._pidFile.read_pid()
             try:
                 os.kill(pid, signal.SIGTERM)
-            except OSError, exc:
+            except OSError as exc:
                 self.logger.warn("Failed to terminate {}: {}: Try sudo".format(pid, exc))
                 return False
             else:
@@ -735,7 +735,7 @@ is running then run in the current terminal
         # setup the UDP send socket
         try:
             UDPSendSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        except socket.error, msg:
+        except socket.error as msg:
             self.logger.critical("tUDPSend: Failed to create socket, Exiting. Error code : {} Message : {} ".format(msg[0], msg[1]))
             self.die()
 
@@ -757,7 +757,7 @@ is running then run in the current terminal
                 try:
                     UDPSendSocket.sendto(message, ('<broadcast>', sendPort))
                     self.logger.debug("tUDPSend: Put message out via UDP")
-                except socket.error, msg:
+                except socket.error as msg:
                     self.logger.warn("tUDPSend: Failed to send via UDP. Error code : {} Message: {}".format(msg[0], msg[1]))
 
                 # tidy up
@@ -813,7 +813,7 @@ is running then run in the current terminal
                             self._serial.write(wirelessMsg)
                         except Queue.Empty:
                             self.logger.debug("tSerial: failed to get item from queue")
-                        except Serial.SerialException, e:
+                        except Serial.SerialException as e:
                             self.logger.warn("tSerial: failed to write to the serial port {}: {}".format(self._serial.port, e))
                         else:
                              self.logger.debug("tSerial: TX:{}".format(wirelessMsg))
@@ -1036,7 +1036,7 @@ is running then run in the current terminal
         if wirelessMsg == "CONFIGME" and self.fKeepAwake.is_set():
             try:
                 self._serial.write("a??HELLO----")
-            except Serial.SerialException, e:
+            except Serial.SerialException as e:
                 self.logger.warn("tSerial: failed to write to the serial port {}: {}".format(self._serial.port, e))
             else:
                 self.logger.debug("tSerial: TX:a??HELLO-----")
@@ -1054,7 +1054,7 @@ is running then run in the current terminal
                 wirelessToSend += "-"
             try:
                 self._serial.write(wirelessToSend)
-            except Serial.SerialException, e:
+            except Serial.SerialException as e:
                 self.logger.warn("tSerial: failed to write to the serial port {}: {}".format(self._serial.port, e))
                 return False
             else:
@@ -1070,7 +1070,7 @@ is running then run in the current terminal
         """
         try:
           self._serial.write("a??DTY------")
-        except Serial.SerialException, e:
+        except Serial.SerialException as e:
           self.logger.warn("tSerial: failed to write to the serial port {}: {}".format(self._serial.port, e))
           return False
         else:
@@ -1250,7 +1250,7 @@ is running then run in the current terminal
         if pidfile_pid is not None:
             try:
                 os.kill(pidfile_pid, signal.SIG_DFL)
-            except OSError, exc:
+            except OSError as exc:
                 if exc.errno == errno.ESRCH:
                     # The specified PID does not exist
                     result = True

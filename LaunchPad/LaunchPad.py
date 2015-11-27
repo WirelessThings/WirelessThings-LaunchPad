@@ -231,22 +231,22 @@ class LaunchPad:
             else:
                 self.newVersion = latest["Versions"][0]
 
-        except urllib2.HTTPError, e:
+        except urllib2.HTTPError as e:
 
             self.logger.error('Unable to get latest version info - HTTPError = ' +
                             str(e.code))
             self.newVersion = False
 
-        except urllib2.URLError, e:
+        except urllib2.URLError as e:
             self.logger.error('Unable to get latest version info - URLError = ' +
                             str(e.reason))
             self.newVersion = False
 
-        except httplib.HTTPException, e:
+        except httplib.HTTPException as e:
             self.logger.error('Unable to get latest version info - HTTPException')
             self.newVersion = False
 
-        except Exception, e:
+        except Exception as e:
             import traceback
             self.logger.error('Unable to get latest version info - Exception = ' +
                             traceback.format_exc())
@@ -348,18 +348,18 @@ class LaunchPad:
             request = urllib2.urlopen(url)
             read_data = request.read()
             return json.loads(read_data)
-        except urllib2.HTTPError, e:
+        except urllib2.HTTPError as e:
             self.logger.error('Unable to get file - HTTPError = ' +
                             str(e.code))
             return False
-        except urllib2.URLError, e:
+        except urllib2.URLError as e:
             self.logger.error('Unable to get file - URLError = ' +
                             str(e.reason))
             return False
-        except httplib.HTTPException, e:
+        except httplib.HTTPException as e:
             self.logger.error('Unable to get file - HTTPException')
             return False
-        except Exception, e:
+        except Exception as e:
             import traceback
             self.logger.error('Unable to get file - Exception = ' +
                             traceback.format_exc())
@@ -376,21 +376,21 @@ class LaunchPad:
             u = urllib2.urlopen(url)
             meta = u.info()
             self.file_size = int(meta.getheaders("Content-Length")[0])
-        except urllib2.HTTPError, e:
+        except urllib2.HTTPError as e:
             self.logger.error('Unable to get download file size - HTTPError = ' +
                             str(e.code))
             self.updateFailed = "Unable to get download file size"
 
-        except urllib2.URLError, e:
+        except urllib2.URLError as e:
             self.logger.error('Unable to get download file size- URLError = ' +
                             str(e.reason))
             self.updateFailed = "Unable to get download file size"
 
-        except httplib.HTTPException, e:
+        except httplib.HTTPException as e:
             self.logger.error('Unable to get download file size- HTTPException')
             self.updateFailed = "Unable to get download file size"
 
-        except Exception, e:
+        except Exception as e:
             import traceback
             self.logger.error('Unable to get download file size - Exception = ' +
                             traceback.format_exc())
@@ -484,21 +484,21 @@ class LaunchPad:
                 self.progressQueue.put(file_size_dl)
 
             f.close()
-        except urllib2.HTTPError, e:
+        except urllib2.HTTPError as e:
             self.logger.error('Unable to get download file - HTTPError = ' +
                             str(e.code))
             self.updateFailed = "Unable to get download file"
 
-        except urllib2.URLError, e:
+        except urllib2.URLError as e:
             self.logger.error('Unable to get download file - URLError = ' +
                             str(e.reason))
             self.updateFailed = "Unable to get download file"
 
-        except httplib.HTTPException, e:
+        except httplib.HTTPException as e:
             self.logger.error('Unable to get download file - HTTPException')
             self.updateFailed = "Unable to get download file"
 
-        except Exception, e:
+        except Exception as e:
             import traceback
             self.logger.error('Unable to get download file - Exception = ' +
                             traceback.format_exc())
@@ -1029,7 +1029,7 @@ class LaunchPad:
         # setup the UDP send socket
         try:
             UDPSendSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        except socket.error, msg:
+        except socket.error as msg:
             self.logger.error("tUDPSend: Failed to create socket. Error code : {} Message : {}".format(msg[0], msg[1]))
             # tUDPSend needs to stop here
             # need to send message to user saying could not open socket
@@ -1053,7 +1053,7 @@ class LaunchPad:
                 try:
                     UDPSendSocket.sendto(message, ('<broadcast>', sendPort))
                     self.logger.debug("tUDPSend: Put message out via UDP")
-                except socket.error, msg:
+                except socket.error as msg:
                     self.logger.error("tUDPSend: Failed to send via UDP. Error code : {} Message: {}".format(msg[0], msg[1]))
                 else:
                     pass
