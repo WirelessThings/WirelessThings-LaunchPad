@@ -97,6 +97,7 @@ class MessageBridge():
     _SerialFailCountLimit = 3
     _serialTimeout = 1     # serial port time out setting
     _UDPListenTimeout = 5   # timeout for UDP listen
+    _ATLHRetriesCount = 3
 
     _version = 0.16
 
@@ -801,9 +802,13 @@ is running then run in the current terminal
                 self._serial.flushInput()
 
                 # check the ATLH settings
-                if not self._SerialCheckATLH():
-                    self.logger.critical("tSerial: Error on Check ATLH")
-                    self.die()
+                retries = 0
+                while not self._SerialCheckATLH():
+                    retries += 1
+                    self.logger.error("tSerial: Retrying Check ATLH attempt: {}".format(retries))
+                    if retries == self._ATLHRetriesCount:
+                        self.logger.critical("tSerial: Error on Check ATLH")
+                        self.die()
 
                 # main serial processing loop
                 while self._serial.isOpen() and not self.tSerialStop.is_set():
@@ -865,27 +870,23 @@ is running then run in the current terminal
                                 if at.sendATWaitForOK("ATWR"):
                                     self.logger.debug("SerialCheckATLH: ATLH1 set")
                 else:
-                    self.logger.critical("tSerial: ATLH returned False, check radio firmware version")
-                    self._cleanUp()
+                    self.logger.error("tSerial: ATLH returned False, check radio firmware version")
                     return False
 
             self._panID = at.sendATWaitForResponse("ATID")
             if not self._panID:
-                self.logger.critical("tSerial: Invalid PANID")
-                self._cleanUp()
+                self.logger.error("tSerial: Invalid PANID")
                 return False
 
             self._encryption = at.sendATWaitForResponse("ATEE")
             if not self._encryption:
-                self.logger.critical("tSerial: Invalid Encryption")
-                self._cleanUp()
+                self.logger.error("tSerial: Invalid Encryption")
                 return False
             self._encryption = bool(int(self._encryption)) #convert the received encryption to bool
 
             self._encryptionKey = at.sendATWaitForResponse("ATEK")
             if not self._encryptionKey:
-                self.logger.critical("tSerial: Invalid encryptionKey")
-                self._cleanUp()
+                self.logger.error("tSerial: Invalid encryptionKey")
                 return False
 
             at.leaveATMode()
