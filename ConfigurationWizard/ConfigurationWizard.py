@@ -322,7 +322,17 @@ class ConfigurationWizard:
                     UDPSendSocket.sendto(message, ('<broadcast>', sendPort))
 #                    self.logger.debug("tUDPSend: Put message out via UDP")
                 except socket.error as msg:
-                    self.logger.warn("tUDPSend: Failed to send via UDP. Error code : {} Message: {}".format(msg[0], msg[1]))
+                    if msg[0] == 101:
+                        try:
+                            self.logger.warn("tUDPSend: External network unreachable retrying on local interface only")
+                            UDPSendSocket.sendto(message, ('127.0.0.255', sendPort))
+                            self.logger.debug("tUDPSend: Put message out via UDP to local only")
+                        except socket.error as msg:
+                            self.logger.warn("tUDPSend: Failed to send via UDP local only. Error code : {} Message: {}".format(msg[0], msg[1]))
+                        else:
+                            self.qJSONDebug.put([message, "TX"])
+                    else:
+                        self.logger.warn("tUDPSend: Failed to send via UDP. Error code : {} Message: {}".format(msg[0], msg[1]))
                 else:
                     self.qJSONDebug.put([message, "TX"])
                 # tidy up
