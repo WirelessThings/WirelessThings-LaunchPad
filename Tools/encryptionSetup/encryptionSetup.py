@@ -65,7 +65,7 @@ class encryptionSetup():
 
         # setup initial Logging
         logging.getLogger().setLevel(logging.NOTSET)
-        self.logger = logging.getLogger('Message Bridge')
+        self.logger = logging.getLogger('Encryption setup')
         self._ch = logging.StreamHandler()
         self._ch.setLevel(logging.INFO)    # this should be INFO by default
         self._formatter = logging.Formatter('%(asctime)s - %(message)s')
@@ -89,6 +89,12 @@ class encryptionSetup():
         if (self.args.debug == True):
             self.logger.info("Setting output level to DEBUG")
             self._ch.setLevel(logging.DEBUG)
+        
+        # TODO: Check panID and EncrytpionKey args are valid
+        if (self.args.panID):
+            pass
+
+        if (self.args.encKey)
         
         # setup the serial port
         self._serial = serial.Serial()
@@ -126,7 +132,7 @@ class encryptionSetup():
                         self._printSettings()
                 else:
                     self.logger.info("Failed to correctly apply setting, no changes have been saved to the device")
-                    self.exit()
+                    self.exit(1)
             else:
                 self.logger.info("Non default settings found, no changes have been made")
                 self._printSettings()
@@ -139,11 +145,11 @@ class encryptionSetup():
                             self._printSettings()
                     else:
                         self.logger.info("Failed to correctly apply setting, no changes have been saved to the device")
-                        self.exit()
+                        self.exit(1)
         else:
             self.logger.info("Failed to read the current setting from your radio")
-            self.exit()
-        self.exit()
+            self.exit(1)
+        self.exit(0)
 
     def _checkArgs(self):
         """Parse the command line options
@@ -162,6 +168,12 @@ class encryptionSetup():
         parser.add_argument('-f', '--force',
                             help='Force overwrite setings even when none defualt, Use with caution',
                             action='store_true'
+                            )
+        parser.add_argument('-i', '--panID',
+                            help='Use the give panID rather than reandomly generated one',
+                            )
+        parser.add_argument('-e', '--encKey',
+                            help='Use the give encryption key rather than reandomly generated one',
                             )
 
         self.args = parser.parse_args()
@@ -196,15 +208,21 @@ class encryptionSetup():
     
     def _generateNewSetings(self):
         self.logger.info("Generating new Settings")
-    
-        # PANID between 0000 - EFFF (0-61439)
-        self._panID = "{0:0{1}X}".format(random.randrange(0,61439,1),4)
-        while self._panID == self._defaultPANID:
+        
+        if (self.args.panID):
+            self._panID = self.args.panID
+        else:
+            # PANID between 0000 - EFFF (0-61439)
             self._panID = "{0:0{1}X}".format(random.randrange(0,61439,1),4)
+            while self._panID == self._defaultPANID:
+                self._panID = "{0:0{1}X}".format(random.randrange(0,61439,1),4)
 
-        self._encryptionKey = "{0:0{1}X}".format(random.randrange(0,340282366920938463463374607431768211455,1),32)
-        while self._encryptionKey == self._defaultEncryptionKey:
+        if (self.args.encKey):
+            self._encryptionKey = self.args.encKey
+        else:
             self._encryptionKey = "{0:0{1}X}".format(random.randrange(0,340282366920938463463374607431768211455,1),32)
+            while self._encryptionKey == self._defaultEncryptionKey:
+                self._encryptionKey = "{0:0{1}X}".format(random.randrange(0,340282366920938463463374607431768211455,1),32)
 
     def _applySettings(self):
         self.logger.info("Applying setting to radio")
@@ -276,13 +294,13 @@ class encryptionSetup():
     def _cleanUp(self):
         pass
 
-    def exit(self):
+    def exit(self, code = 0):
         try:
             self._serial.close()
         except:
             self.logger.debug("Error closing the serial port")
         self.logger.info("Exiting")
-        sys.exit(1)
+        sys.exit(code)
 # run code
 if __name__ == "__main__" :
     app = encryptionSetup()
