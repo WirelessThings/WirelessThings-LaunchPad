@@ -46,7 +46,19 @@ jsonDict['data'] = ["HELLO","TEMP"] # sending two commands HELLO and TEMP
                                     # aMAHELLO---- and aMATEMP-----
 
 jsonout = json.dumps(jsonDict)
+try:
+    sock.sendto(jsonout, ('<broadcast>', TO_PORT))
+except socket.error as msg:
+    if msg[0] == 101:
+        try:
+            sock.sendto(jsonout, ('127.0.0..255', TO_PORT))
+        except socket.error as msg:
+            print("Failed to send, Error code : {} Message: {}".format(msg[0], msg[1]))
+        else:
+            print("Sent: {}".format(jsonout))
+    else:
+        print("Failed to send, Error code : {} Message: {}".format(msg[0], msg[1]))
+else:
+    print("Sent: {}".format(jsonout))
 
-sock.sendto(jsonout, ('<broadcast>', TO_PORT))
-print("Sent: {}".format(jsonout))
 sock.close()

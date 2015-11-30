@@ -297,7 +297,7 @@ class ConfigurationWizard:
         # setup the UDP send socket
         try:
             UDPSendSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        except socket.error, msg:
+        except socket.error as msg:
             self.logger.critical("tUDPSend: Failed to create socket. Error code : {} Message : {}".format(msg[0], msg[1]))
             return
 
@@ -321,8 +321,18 @@ class ConfigurationWizard:
                 try:
                     UDPSendSocket.sendto(message, ('<broadcast>', sendPort))
 #                    self.logger.debug("tUDPSend: Put message out via UDP")
-                except socket.error, msg:
-                    self.logger.warn("tUDPSend: Failed to send via UDP. Error code : {} Message: {}".format(msg[0], msg[1]))
+                except socket.error as msg:
+                    if msg[0] == 101:
+                        try:
+                            self.logger.warn("tUDPSend: External network unreachable retrying on local interface only")
+                            UDPSendSocket.sendto(message, ('127.0.0.255', sendPort))
+                            self.logger.debug("tUDPSend: Put message out via UDP to local only")
+                        except socket.error as msg:
+                            self.logger.warn("tUDPSend: Failed to send via UDP local only. Error code : {} Message: {}".format(msg[0], msg[1]))
+                        else:
+                            self.qJSONDebug.put([message, "TX"])
+                    else:
+                        self.logger.warn("tUDPSend: Failed to send via UDP. Error code : {} Message: {}".format(msg[0], msg[1]))
                 else:
                     self.qJSONDebug.put([message, "TX"])
                 # tidy up
@@ -2061,21 +2071,21 @@ class ConfigurationWizard:
             request = urllib2.urlopen(url)
             self.newJSON = request.read()
 
-        except urllib2.HTTPError, e:
+        except urllib2.HTTPError as e:
             self.logger.error('Unable to get latest device JSON - HTTPError = ' +
                             str(e.code))
             self.newJSON = False
 
-        except urllib2.URLError, e:
+        except urllib2.URLError as e:
             self.logger.error('Unable to get latest device JSON - URLError = ' +
                             str(e.reason))
             self.newJSON = False
 
-        except httplib.HTTPException, e:
+        except httplib.HTTPException as e:
             self.logger.error('Unable to get latest device JSON - HTTPException')
             self.newJSON = False
 
-        except Exception, e:
+        except Exception as e:
             import traceback
             self.logger.error('Unable to get latest device JSON - Exception = ' +
                             traceback.format_exc())
