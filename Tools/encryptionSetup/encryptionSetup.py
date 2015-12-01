@@ -94,8 +94,9 @@ class encryptionSetup():
         if (self.args.panID):
             pass
 
-        if (self.args.encKey)
-        
+        if (self.args.encKey):
+                pass
+    
         # setup the serial port
         self._serial = serial.Serial()
         if (self.args.port):
