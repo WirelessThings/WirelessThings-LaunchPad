@@ -554,7 +554,7 @@ is running then run in the current terminal
             self._serial.port = self.args.port
         else:
             self._serial.port = self.config.get('Serial', 'port')
-        self._serial.baud = self.config.get('Serial', 'baudrate')
+        self._serial.baudrate = self.config.get('Serial', 'baudrate')
         self._serial.timeout = self._serialTimeout
         # setup queue
         self.qSerialOut = Queue.Queue()
