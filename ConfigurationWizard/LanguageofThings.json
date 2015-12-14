@@ -270,7 +270,7 @@
                         "Command":"SLEEP",
                         "ProtocolFrom":1.0,
                         "Format":"Period",
-                        "Description":"Requests the device for a period of time. After which the device will return to an AWAKE state\n For Interrupt sleeping devices a command with no period aXXSLEEP---- will cause the device to sleep permanently until woken by an external interrupt e.g. A button press"
+                        "Description":"Requests the device sleep for a period of time. After which the device will return to an AWAKE state\n For Interrupt sleeping devices a command with no period aXXSLEEP---- will cause the device to sleep permanently until woken by an external interrupt e.g. A button press"
                         },
                         {
                         "Command":"SAVE",
@@ -373,7 +373,7 @@
                    },
                    {
                    "Mode":"Polled",
-                   "Description":"Polled sleeping device can be told to sleep for a period of time (SlEEP command), after which they will return to an awake state."
+                   "Description":"Polled sleeping device can be told to sleep for a period of time (SLEEP command), after which they will return to an awake state."
                    }
                    ],
     "Power Classes":{

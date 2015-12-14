@@ -853,7 +853,12 @@ class LaunchPad:
         self.fMessageBridgeConflict = threading.Event()
 
         self.master.after(100, self.checkNetwork)
+        self.master.after(500, self.checkSSRButtonsState)
         self.master.after(5000, self.checkUDPThreads)
+
+    def checkSSRButtonsState(self):
+        self.onAppSelect(None)
+        self.master.after(4000, self.checkSSRButtonsState)
 
     def checkNetwork(self):
         """

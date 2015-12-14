@@ -125,16 +125,6 @@ class ConfigurationWizard:
     _validIDMatch = re.compile("[^A-Z]")
     _validData = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !\"#$%&'()*+,-.:;<=>?@[\\\/]^_`{|}~"
     _periodUnits = {"T":"Milli seconds", "S":"Seconds", "M":"Minutes", "H":"Hours", "D":"Days"}
-    
-    device = {
-              'index': "",
-              'DTY': "",
-              'devID': "",
-              'newDevice': "",
-              'setENC': False,
-              'settingsMissMatch': False,
-              'network': ""
-              }
 
     # MARK: - Init
     def __init__(self):
@@ -442,6 +432,9 @@ class ConfigurationWizard:
         self._devIDWarning = tk.StringVar()
         self._settingMissMatchVar = tk.IntVar()
         self._settingMissMatchVar.trace_variable('w', self._updateMissMatchSettings)
+        self._rbSleepModeSelection = tk.StringVar()
+        self._rbSleepModeSelection.trace_variable('w', self._updateSleepModeSelection)
+
         # init the entry variables we will need to reset between each run
         self._initEntryVariables()
 
@@ -473,6 +466,15 @@ class ConfigurationWizard:
                      }
         self.entry['CHDEVID'][0].trace_variable('w', self._checkDevIDList)
         self._settingMissMatchVar.set(0)
+        self.device = {
+                      'index': "",
+                      'DTY': "",
+                      'devID': "",
+                      'newDevice': "",
+                      'setENC': False,
+                      'settingsMissMatch': False,
+                      'network': ""
+                      }
 
     def _displayIntro(self):
         self.logger.debug("Display Intro Page")
@@ -491,6 +493,10 @@ class ConfigurationWizard:
         self._checkMessageBridgeCount = 0
         self._checkMessageBridge = True
         self.master.after(1000, self._checkMessageBridgeUpdate)
+
+        self._checkMessageBoxFlag = True
+        self._messageBoxFlag = False
+        self.master.after(1000, self._checkMessageBoxFlagUpdate)
 
     def _displayPressButton(self, network, reset=False):
         self.logger.debug("Displaying PressButton")
@@ -619,8 +625,26 @@ class ConfigurationWizard:
                           ).grid(row=r, column=5, sticky=tk.W)
                 r +=2
 
-        # if cyclic device show slider
-        if self.devices[self.device['index']]['SleepMode'] == "Cyclic":
+        if self.unknownDevice:
+            tk.Label(self.sframe, text="Pick your Sleep Mode then \n"
+                                        "click on \"Advanced Settings\" to configure"
+                     ).grid(row=r, column=0, columnspan=6, rowspan=2)
+
+            polledRB = tk.Radiobutton(self.sframe, text="Always On", variable=self._rbSleepModeSelection, value="Polled")
+            polledRB.grid(row=r+2, column=2, sticky=tk.W)
+            cyclicRB = tk.Radiobutton(self.sframe, text="Cyclic", variable=self._rbSleepModeSelection, value="Cyclic")
+            cyclicRB.grid(row=r+3, column=2, sticky=tk.W)
+            interruptRB = tk.Radiobutton(self.sframe, text="Interrupt", variable=self._rbSleepModeSelection, value="Interrupt")
+            interruptRB.grid(row=r+4, column=2, sticky=tk.W)
+            r += 5
+            if self.devices[self.device['index']]['SleepMode'] == "Cyclic":
+                cyclicRB.select()
+            elif self.devices[self.device['index']]['SleepMode'] == "Interrupt":
+                interruptRB.select()
+            else:
+                polledRB.select()
+        # if cyclic device show slider and not unknownDevice
+        elif self.devices[self.device['index']]['SleepMode'] == "Cyclic":
             self._updateScaleAndDescriptionFromPeriod(self.entry['INTVL'][0].get(), not fromConfig)
             tk.Label(self.sframe, text="Reading Interval:"
                      ).grid(row=r, column=1, sticky=tk.E)
@@ -638,7 +662,7 @@ class ConfigurationWizard:
             tk.Label(self.sframe, textvariable=self._readingScale[2],
                      wraplength=self._widthMain/6*4
                      ).grid(row=r+1, column=1, columnspan=4, rowspan=3, sticky=tk.W+tk.E)
-            r += 5
+            r += 3
 
         # if not a new device does the network settings match?
         if not self.device['newDevice'] and self.device['settingsMissMatch']:
@@ -1088,6 +1112,12 @@ class ConfigurationWizard:
             self.progressBar.start()
 
     # MARK: - Display helpers
+    def _checkMessageBoxFlagUpdate(self):
+        if self._checkMessageBoxFlag:
+            if self._messageBoxFlag:
+                self._messageBoxFlag = False
+                tkMessageBox.showerror(self._msgBoxTitle, self._msgBoxMessage)
+            self.master.after(1000, self._checkMessageBoxFlagUpdate)
 
     def _checkMessageBridgeUpdate(self):
 		# self.logger.debug("Checking Message Bridge reply flag")
@@ -1187,7 +1217,8 @@ class ConfigurationWizard:
                                  )
 
     def _parseIntervalToString(self, period):
-        return "{} {}".format(int(period[:3]), self._periodUnits[period[3:]])
+        if period:
+            return "{} {}".format(int(period[:3]), self._periodUnits[period[3:]])
 
     def _estimateLifeTimeForPeriod(self, period, deviceID):
         # TODO: correctly calculate and display expected life text
@@ -1216,6 +1247,9 @@ class ConfigurationWizard:
                         self.device['setENC'] = False
         except:
             pass
+
+    def _updateSleepModeSelection(self, *args):
+        self.devices[self.device['index']]['SleepMode'] = self._rbSleepModeSelection.get()
 
     def _onDevIDselect(self, evt):
         w = evt.widget
@@ -1360,8 +1394,8 @@ class ConfigurationWizard:
         self.iframe.pack()
         self._currentFrame = 'introFrame'
         self._configState = 0
-        self.device['newDevice'] = False
-        self.device['setENC'] = False
+        self.unknownDevice = False
+        self._rbSleepModeSelection.set("")
         self.fWaitingForReply.clear()
         # clear out entry variables
         self._initEntryVariables()
@@ -1486,6 +1520,11 @@ class ConfigurationWizard:
                              'value': ("8" if self.entry['SLEEPM'][0].get() else "0")
                              }
                              )
+            elif self.devices[self.device['index']]['SleepMode'] == "Polled":
+                query.append({'command': "SLEEPM"
+                             #'value': ("32" if self.entry['SLEEPM'][0].get() else "0")
+                             }
+                             )
         elif value[2] == 'ENKey':
             # set encryption key
             # need to split into each EN[1-6]
@@ -1580,7 +1619,10 @@ class ConfigurationWizard:
                     # valid apver
                     # so check what replied
                     matched = False
+                    self.unknownDevice = False
                     for n in range(len(self.devices)):
+                        if not self.devices[n]['DTY']:
+                            unknownDeviceIndex = n
                         if self.devices[n]['DTY'] == reply['replies']['DTY']['reply']:
                             # we have a match
                             self.logger.debug("Matched device")
@@ -1599,26 +1641,38 @@ class ConfigurationWizard:
                         self.logger.debug("Failed to find DTY in Devices JSON")
                         # let the user know we couldn't match the device type
                         tkMessageBox.showerror("Unknown device",
-                                     ("The device is of an unknown type\n"
-                                      "")
+                                     ("The device is of an unknown type\n")
                                      )
-                        if self._currentFrame == "pressFrame":
-                            self._startOver()
+                        # populate fields before call simpleConfig
+                        self.device['network'] = json['network']
+                        self.device['APVER'] = apver
+                        self.device['index'] = unknownDeviceIndex
+                        for command, args in reply['replies'].items():
+                            if command in self.entry:
+                                # TODO: need to handle check box entry (Format: ONOFF)
+                                if self.entry[command][2] == 'Int':
+                                    self.entry[command][0].set(args['reply'])
+                                else:
+                                    self.entry[command][0].set(args['reply'])
 
+                        self.unknownDevice = True
+                        self._askCurrentConfig()
                 else:
                     # TODO: apver mismatch, show error screen
                     pass
             elif self._configState == 2:
                 # this was an information request
                 # populate fields
-                self.device['newDevice'] = False
-                if self.device['devID'] == '':
-                    self.entry['CHDEVID'][0].set("--")
-                else:
-                    self.entry['CHDEVID'][0].set(self.device['devID'])
-                    if self.device['devID'] == '??':
-                        # this is a new or reset device, set a flag so we know later
-                        self.device['newDevice'] = True
+                if not self.unknownDevice:
+                    self.device['newDevice'] = False
+
+                    if self.device['devID'] == '':
+                        self.entry['CHDEVID'][0].set("--")
+                    else:
+                        self.entry['CHDEVID'][0].set(self.device['devID'])
+                        if self.device['devID'] == '??':
+                            # this is a new or reset device, set a flag so we know later
+                            self.device['newDevice'] = True
                 for command, args in reply['replies'].items():
                     if command == "CHREMID" and args['reply'] == '':
                         self.entry[command][0].set("--")
@@ -1796,9 +1850,10 @@ class ConfigurationWizard:
             network = jsonin['network']
             if not self._messageBridges[network]['conflict']: #if already in conflict, nothing more to do with the message
                 if self._messageBridges[network]['address'] != address:
-                    tkMessageBox.showerror("Network Error",
-                            "Found network {} twice on ip: {} and ip: {}".format(network,
-                            self._messageBridges[network]['address'], address))
+                    self._msgBoxTitle = "Network Error"
+                    self._msgBoxMessage = "Found network {} twice on ip: {} and ip: {}".format(network,
+                                            self._messageBridges[network]['address'], address)
+                    self._messageBoxFlag = True
                     self._messageBridges[network]['state'] = "CONFLICT" #this will disable the button
                     self._messageBridges[network]['conflict'] = True
                 else:
