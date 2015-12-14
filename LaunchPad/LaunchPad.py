@@ -344,7 +344,7 @@ class LaunchPad:
         try:
             url = self.config.get('Update', 'updateurl') + self.config.get('Update', 'notesfile').format(filename)
 
-            self.logger.info("Attepmting to get the release notes from: {}".format(url))
+            self.logger.info("Attempting to get the release notes from: {}".format(url))
             request = urllib2.urlopen(url)
             read_data = request.read()
             return json.loads(read_data)
@@ -372,7 +372,7 @@ class LaunchPad:
         try:
             url = self.config.get('Update', 'updateurl') + self.config.get('Update',
                                 'updatefile').format(self.newVersion)
-            self.logger.info("Attepmting to get file size for: {}".format(url))
+            self.logger.info("Attempting to get file size for: {}".format(url))
             u = urllib2.urlopen(url)
             meta = u.info()
             self.file_size = int(meta.getheaders("Content-Length")[0])
