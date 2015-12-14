@@ -8,36 +8,54 @@
 #
 ### BEGIN INIT INFO
 # Provides: messagebridge
-# Required-Start: $remotefs $syslog
+# Required-Start: $all
 # Required-Stop: $remotefs $syslog
 # Default-Start:  2 3 4 5
 # Default-Stop:   0 1 6
 # Short-Description: WirelessThings Message Bridge
 # Description:    WirelessThings Message Bridge to pass Language of Things trafic between serial and UDP interfaces
 ### END INIT INFO
-
+. /lib/lsb/init-functions
 ###
 # This line will be auto updated with the path to your current install path
 # by WirelessThings Launchpad on clicking the Enable Autostart button
 cd /home/pi/MessageBridge
 ###
-
 case "$1" in
   start)
-    echo "Starting Message Bridge"
     python ./MessageBridge.py start
+    sleep 2
+    if [ "$(pidof python ./MessageBridge.py)" ]; then
+        log_success_msg "Starting Message Bridge"
+    else
+        log_failure_msg "Starting Message Bridge"
+    fi
     ;;
   stop)
-    echo "Stopping Message Bridge"
     python ./MessageBridge.py stop
+    sleep 2
+    if [ "$(pidof python ./MessageBridge.py)" ]; then
+        log_failure_msg "Stopping Message Bridge"
+    else
+        log_success_msg "Stopping Message Bridge"
+    fi
     ;;
   restart)
-    echo "Restarting Message Bridge"
     python ./MessageBridge.py restart
+    sleep 2
+    if [ "$(pidof python ./MessageBridge.py)" ]; then
+        log_success_msg "Restarting Message Bridge"
+    else
+        log_failure_msg "Restarting Message Bridge"
+    fi
     ;;
   status)
-    echo "Message Bridge Status"
-    python ./MessageBridge.py status
+    status=$(python ./MessageBridge.py status)
+    if [[ $status =~ "PID" ]]; then
+        log_success_msg "Message Bridge is running"
+    else
+        log_failure_msg "Message Bridge is not running"
+    fi
     ;;
   *)
     # Ignore everything else
