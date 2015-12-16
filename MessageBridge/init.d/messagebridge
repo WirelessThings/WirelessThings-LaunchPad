@@ -21,40 +21,56 @@
 # by WirelessThings Launchpad on clicking the Enable Autostart button
 cd /home/pi/MessageBridge
 ###
+
 case "$1" in
   start)
-    python ./MessageBridge.py start
-    sleep 2
-    if [ "$(pidof python ./MessageBridge.py)" ]; then
-        log_success_msg "Starting Message Bridge"
+    status=$(python ./MessageBridge.py status)
+    if [[ $status =~ "PID" ]]; then
+      log_success_msg "Message Bridge already running"
     else
+      python ./MessageBridge.py start
+      status=$(python ./MessageBridge.py status)
+      if [[ $status =~ "PID" ]]; then
+        log_success_msg "Starting Message Bridge"
+      else
         log_failure_msg "Starting Message Bridge"
+      fi
     fi
     ;;
   stop)
-    python ./MessageBridge.py stop
-    sleep 2
-    if [ "$(pidof python ./MessageBridge.py)" ]; then
+    status=$(python ./MessageBridge.py status)
+    if [[ $status =~ "PID" ]]; then
+      stop=$(python ./MessageBridge.py stop 2>&1)
+      if [[ $stop ]]; then
+        echo $stop
         log_failure_msg "Stopping Message Bridge"
-    else
+      else
         log_success_msg "Stopping Message Bridge"
+      fi
+    else
+      log_success_msg "Message Bridge already stopped"
     fi
     ;;
   restart)
-    python ./MessageBridge.py restart
-    sleep 2
-    if [ "$(pidof python ./MessageBridge.py)" ]; then
-        log_success_msg "Restarting Message Bridge"
+    restart=$(python ./MessageBridge.py restart 2>&1)
+    if [[ $restart ]]; then
+      echo $restart
+      log_failure_msg "Restarting Message Bridge"
     else
+      status=$(python ./MessageBridge.py status)
+      if [[ $status =~ "PID" ]]; then
+        log_success_msg "Restarting Message Bridge"
+      else
         log_failure_msg "Restarting Message Bridge"
+      fi
     fi
     ;;
   status)
     status=$(python ./MessageBridge.py status)
     if [[ $status =~ "PID" ]]; then
-        log_success_msg "Message Bridge is running"
+      log_success_msg "Message Bridge is running"
     else
-        log_failure_msg "Message Bridge is not running"
+      log_failure_msg "Message Bridge not running"
     fi
     ;;
   *)
