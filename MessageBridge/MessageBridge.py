@@ -89,7 +89,7 @@ class MessageBridge():
     _configFileDefault = "./MessageBridge_defaults.cfg"
     _configFile = "./MessageBridge.cfg"
     _pidFile = None
-    _pidFilePath = "./MessageBridge.pid"
+    _pidFilePath = "/var/run/"
     _pidFileTimeout = 5
     _background = False
 
@@ -216,7 +216,7 @@ is running then run in the current terminal
             # must be *nix based, right?
 
             #setup pidfile checking
-            self._pidFile = self._makePidlockfile(os.path.join(self._path, self._pidFilePath),
+            self._pidFile = self._makePidlockfile("{}MessageBridge.pid".format(self._pidFilePath),
                                                   self._pidFileTimeout)
 
             if self.args.action == None:
@@ -231,6 +231,9 @@ is running then run in the current terminal
                 self.logger.info("Acquiring Lock file")
                 try:
                     self._pidFile.acquire()
+                except lockfile.LockFailed:
+                    self.logger.critical("Failed creating lockFile. Try sudo")
+                    return False
                 except lockfile.LockTimeout:
                     self.logger.critical("Already running, exiting")
                     return False
@@ -272,6 +275,11 @@ is running then run in the current terminal
         if self._isPidfileStale(self._pidFile):
             self._pidFile.break_lock()
             self.logger.debug("Removed Stale Lock")
+
+        #check if the user has permission to write the pid file
+        if not os.access(self._pidFilePath, os.W_OK):
+            self.logger.warn("Permission required. Try sudo")
+            return False
 
         try:
             self._daemonContext.open()
