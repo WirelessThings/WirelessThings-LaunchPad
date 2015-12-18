@@ -92,6 +92,13 @@ class AT():
             if self.waitForOK(1.5):
                 self._inATMode = True
                 return True
+            else:
+                self.logger.debug("AT: Send 'AT'")
+                self._serial.write("AT\r")
+                if self.waitForOK(0.5):
+                    self.logger.debug("AT: Entered AT Mode")
+                    self._inATMode = True
+                    return True
         return False
 
     def leaveATMode(self):
