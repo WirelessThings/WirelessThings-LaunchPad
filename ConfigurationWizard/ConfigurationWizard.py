@@ -1398,7 +1398,9 @@ class ConfigurationWizard:
         self._rbSleepModeSelection.set("")
         self.fWaitingForReply.clear()
         # clear out entry variables
-        self._initEntryVariables()
+        self._initTkVariables()
+        self._loadDevices()
+        self._loadLanguage()
 
     def _resetDefautls(self):
         self._displayPressButton(self.device['network'], reset=True)
