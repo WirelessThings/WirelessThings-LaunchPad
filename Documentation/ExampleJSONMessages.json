@@ -24,7 +24,7 @@
 }
 
 
-// send multiple Language of Things messages on receive of an sendOn message
+// send multiple Language of Things messages on receive of an sendOn message (not yet implemented)
 {
     "type":"WirelessMessage",
     "network":"Serial",
