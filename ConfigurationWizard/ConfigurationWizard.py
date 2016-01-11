@@ -666,17 +666,17 @@ class ConfigurationWizard:
 
         # if not a new device does the network settings match?
         if not self.device['newDevice'] and self.device['settingsMissMatch']:
+            tk.Label(self.sframe, text=SETTINGMISSMATCHTEXT,
+                     wraplength=self._widthMain/6*4
+                     ).grid(row=r, column=1, columnspan=4, rowspan=2)
             tk.Label(self.sframe, text="Update network settings:"
-                     ).grid(row=r, column=1, columnspan=2, sticky=tk.E)
+                     ).grid(row=r+2, column=1, columnspan=2, sticky=tk.E)
             tk.Checkbutton(self.sframe, variable=self._settingMissMatchVar
-                           ).grid(row=r, column=3, columnspan=2)
+                           ).grid(row=r+2, column=3, columnspan=2)
             tk.Button(self.sframe, text='i', state=tk.ACTIVE,
                       command=lambda: self._displayMoreInfo("MissMatch"),
                       font = self._italicFont,
-                      ).grid(row=r, column=5, sticky=tk.W)
-            tk.Label(self.sframe, text=SETTINGMISSMATCHTEXT,
-                     wraplength=self._widthMain/6*4
-                     ).grid(row=r+1, column=1, columnspan=4, rowspan=2)
+                      ).grid(row=r+2, column=5, sticky=tk.W)
             r += 3
     
     def _displayMoreInfo(self, subject):
