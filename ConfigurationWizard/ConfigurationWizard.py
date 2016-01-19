@@ -1249,7 +1249,8 @@ class ConfigurationWizard:
             pass
 
     def _updateSleepModeSelection(self, *args):
-        self.devices[self.device['index']]['SleepMode'] = self._rbSleepModeSelection.get()
+        if self.device['index']:
+            self.devices[self.device['index']]['SleepMode'] = self._rbSleepModeSelection.get()
 
     def _onDevIDselect(self, evt):
         w = evt.widget
