@@ -198,6 +198,9 @@ is running then run in the current terminal
         parser.add_argument('-p', '--port',
                             help='Override the serial port given in MessageBridge.cfg'
                             )
+        parser.add_argument('-g', '--gpio',
+                            help='Override the GPIO pin given in MessageBridge.cfg to set AT Mode'
+                            )
 
         self.args = parser.parse_args()
 
@@ -562,6 +565,7 @@ is running then run in the current terminal
             self._serial.port = self.args.port
         else:
             self._serial.port = self.config.get('Serial', 'port')
+
         self._serial.baudrate = self.config.get('Serial', 'baudrate')
         self._serial.timeout = self._serialTimeout
         # setup queue
@@ -863,7 +867,15 @@ is running then run in the current terminal
 
         self._serial.flushInput()
 
-        at = AT.AT(self._serial, self.logger, self.tSerialStop)
+        try:
+            if self.args.gpio:
+                at = AT.AT(self._serial, self.logger, self.tSerialStop, self.args.gpio)
+            elif self.config.getboolean('Serial', 'at_gpio'):
+                at = AT.AT(self._serial, self.logger, self.tSerialStop, self.config.getint('Serial', 'at_gpio_pin'))
+            else:
+                at = AT.AT(self._serial, self.logger, self.tSerialStop)
+        except:
+            at = AT.AT(self._serial, self.logger, self.tSerialStop)
 
         if at.enterATMode():
             self.radioFirmwareVersion = at.sendATWaitForResponse("ATVR")
@@ -1187,7 +1199,6 @@ is running then run in the current terminal
     def checkSendOnQueue(self, jsonid, jsoncommand):
         tempQueue = []
         messageSent = False
-        print ("checkSendOnQueue: id {} command {}".format(jsonid, jsoncommand))
         while not self.qSendOn.empty():
             self.logger.debug("tMain: Processing SendOn JSON message")
             try:
