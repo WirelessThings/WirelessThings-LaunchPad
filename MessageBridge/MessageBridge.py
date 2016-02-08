@@ -148,6 +148,7 @@ is running then run in the current terminal
                               }
 
         self.tMainStop = threading.Event()
+        self.fNetworkNameSetted = threading.Event()
         self.qMessageBridge = Queue.Queue()
         self.qSendOn = Queue.Queue()
         # setup initial Logging
@@ -201,6 +202,9 @@ is running then run in the current terminal
         parser.add_argument('-g', '--gpio',
                             help='Override the GPIO pin given in MessageBridge.cfg to set AT Mode'
                             )
+        parser.add_argument('-n', '--network',
+                            help='Use the radio Serial Number as Network Name',
+                            action='store_true')
 
         self.args = parser.parse_args()
 
@@ -342,11 +346,12 @@ is running then run in the current terminal
         try:
             self._readConfig()          # read in the config file
             self._initLogging()         # setup the logging options
-            self._initDCRThread()       # start the DeviceConfigurationRequest thread
-            self._initUDPSendThread()   # start the UDP sender
             self.tMainStop.wait(1)
             self._initSerialThread()    # start the serial port thread
             self.tMainStop.wait(1)
+            self.fNetworkNameSetted.wait(10) # waiting until serial network to be setted
+            self._initDCRThread()       # start the DeviceConfigurationRequest thread
+            self._initUDPSendThread()   # start the UDP sender
             self._initUDPListenThread() # start the UDP listener
 
             self._state = self.Running
@@ -592,7 +597,6 @@ is running then run in the current terminal
         self.qReplyEncryption = Queue.Queue()
         #setup flags
         self.fSetRadioEncryption = threading.Event()
-        self.fSetRadioEncryption.clear()
         self.fRadioEncryptionDone = threading.Event()
 
         # setup thread
@@ -747,7 +751,7 @@ is running then run in the current terminal
     def _DCRReturnDCR(self, state):
         # prep the reply
         self._currentDCR['timestamp'] = strftime("%d %b %Y %H:%M:%S +0000", gmtime())
-        self._currentDCR['network'] = self.config.get('Serial', 'network')
+        self._currentDCR['network'] = self._network
         self._currentDCR['keepAwake'] = 1 if self.fKeepAwake.is_set() else 0
         self._currentDCR['data']['state'] = state
 
@@ -1009,6 +1013,18 @@ is running then run in the current terminal
                 self.logger.error("tSerial: Error obtaining Radio Serial Number")
                 return False
 
+            if not self.fNetworkNameSetted.is_set():
+                if self.args.network or self.config.getboolean('Serial', 'network_use_uuid'):
+                    try:
+                        self._network = self.radioSerialNumber
+                    except:
+                        self.logger.error("tSerial: Error setting Network as radio Serial Number")
+                        self._network = self.config.get('Serial', 'network')
+                else:
+                    self._network = self.config.get('Serial', 'network')
+
+                self.fNetworkNameSetted.set()  #informs the network now has a value
+
             self.logger.info("tSerial: Radio Firmware Version: {}".format(self.radioFirmwareVersion))
             self.logger.info("tSerial: Radio Serial Number: {}".format(self.radioSerialNumber))
             #ask for the ATLH
@@ -1089,7 +1105,7 @@ is running then run in the current terminal
                     if not self.checkSendOnQueue(wirelessMsg[1:3], wirelessMsg[3:].strip("-")):
                         # not a configme Language of Things message so send out via UDP WirelessMessage
                         try:
-                            self.qUDPSend.put_nowait(self.encodeWirelessMessageJson(wirelessMsg, self.config.get('Serial', 'network')))
+                            self.qUDPSend.put_nowait(self.encodeWirelessMessageJson(wirelessMsg, self._network))
                         except Queue.Full:
                             self.logger.warn("tSerial: Failed to put {} on qUDPSend as it's full".format(wirelessMsg))
 
@@ -1277,7 +1293,7 @@ is running then run in the current terminal
                     continue
 
                 # TODO: error checking, dict should have keys for network
-                if (jsonin['network'] == self.config.get('Serial', 'network') or
+                if (jsonin['network'] == self._network or
                     jsonin['network'] == "ALL"):
                     # yep its for our network or "ALL"
                     # TODO: error checking, dict should have keys for type
@@ -1360,7 +1376,7 @@ is running then run in the current terminal
 
     def _processMessageBridgeMessage(self, message):
         message['timestamp'] = strftime("%d %b %Y %H:%M:%S +0000", gmtime())
-        message['network'] = self.config.get('Serial', 'network')
+        message['network'] = self._network
         message['state'] = self._state
         if message.has_key('data'):
             result = {}
