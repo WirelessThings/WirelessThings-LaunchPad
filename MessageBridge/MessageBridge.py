@@ -109,8 +109,8 @@ class MessageBridge():
 
     _panID = 0
     _encryption = False
-    _encryptionKey = 0
-    
+    _encryptionKey = None
+
     _validID = "ABCDEFGHIJKLMNOPQRSTUVWXYZ-#@?\\*"
     _validData = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !\"#$%&'()*+,-.:;<=>?@[\\\/]^_`{|}~"
     _encryptionCommandMatch = re.compile('^EN[1-6]')
@@ -148,6 +148,7 @@ is running then run in the current terminal
                               }
 
         self.tMainStop = threading.Event()
+        self.fNetworkNameSetted = threading.Event()
         self.qMessageBridge = Queue.Queue()
         self.qSendOn = Queue.Queue()
         # setup initial Logging
@@ -198,6 +199,12 @@ is running then run in the current terminal
         parser.add_argument('-p', '--port',
                             help='Override the serial port given in MessageBridge.cfg'
                             )
+        parser.add_argument('-g', '--gpio',
+                            help='Override the GPIO pin given in MessageBridge.cfg to set AT Mode'
+                            )
+        parser.add_argument('-n', '--network',
+                            help='Use the radio Serial Number as Network Name',
+                            action='store_true')
 
         self.args = parser.parse_args()
 
@@ -213,8 +220,6 @@ is running then run in the current terminal
             self._background = False
             return True
         else:
-            # must be *nix based, right?
-
             #setup pidfile checking
             self._pidFile = self._makePidlockfile("{}MessageBridge.pid".format(self._pidFilePath),
                                                   self._pidFileTimeout)
@@ -341,11 +346,12 @@ is running then run in the current terminal
         try:
             self._readConfig()          # read in the config file
             self._initLogging()         # setup the logging options
-            self._initDCRThread()       # start the DeviceConfigurationRequest thread
-            self._initUDPSendThread()   # start the UDP sender
             self.tMainStop.wait(1)
             self._initSerialThread()    # start the serial port thread
             self.tMainStop.wait(1)
+            self.fNetworkNameSetted.wait(10) # waiting until serial network to be setted
+            self._initDCRThread()       # start the DeviceConfigurationRequest thread
+            self._initUDPSendThread()   # start the UDP sender
             self._initUDPListenThread() # start the UDP listener
 
             self._state = self.Running
@@ -394,15 +400,35 @@ is running then run in the current terminal
                     if self.tUDPSend.is_alive():
                         self._state = self.Running
 
+                #check if the serial have done the encryption on the radio
+                if self.fRadioEncryptionDone.is_set():
+                    self.fRadioEncryptionDone.clear()
+                    self.logger.debug("tMain: Processing Reply Encryption message")
+                    if not self.qReplyEncryption.empty():
+                        try:
+                            message = self.qReplyEncryption.get_nowait()
+                        except Queue.Empty():
+                            pass
+                        else:
+                            message['timestamp'] = strftime("%d %b %Y %H:%M:%S +0000", gmtime())
+                            message['data']['result'] = self._setRadioEncryption
+                            try:
+                                self.qUDPSend.put(json.dumps(message))
+                            except Queue.Full:
+                                self.logger.debug("tMain: Failed to put {} on qUDPSend as it's full".format(message))
+                            else:
+                                self.logger.debug("tMain: Put {} on qUDPSend".format(message))
+                        self.qReplyEncryption.task_done()
+
                 # process any "MessageBridge" messages
                 if not self.qMessageBridge.empty():
                     self.logger.debug("tMain: Processing MessageBridge JSON message")
                     try:
-                        json = self.qMessageBridge.get_nowait()
+                        jsonMessage = self.qMessageBridge.get_nowait()
                     except Queue.Empty():
                         pass
                     else:
-                        self._processMessageBridgeMessage(json)
+                        self._processMessageBridgeMessage(jsonMessage)
 
                 # flash led's if GPIO debug
                 self.tMainStop.wait(0.5)
@@ -562,11 +588,16 @@ is running then run in the current terminal
             self._serial.port = self.args.port
         else:
             self._serial.port = self.config.get('Serial', 'port')
+
         self._serial.baudrate = self.config.get('Serial', 'baudrate')
         self._serial.timeout = self._serialTimeout
         # setup queue
         self.qSerialOut = Queue.Queue()
         self.qSerialToQuery = Queue.Queue()
+        self.qReplyEncryption = Queue.Queue()
+        #setup flags
+        self.fSetRadioEncryption = threading.Event()
+        self.fRadioEncryptionDone = threading.Event()
 
         # setup thread
         self.tSerialStop = threading.Event()
@@ -720,7 +751,7 @@ is running then run in the current terminal
     def _DCRReturnDCR(self, state):
         # prep the reply
         self._currentDCR['timestamp'] = strftime("%d %b %Y %H:%M:%S +0000", gmtime())
-        self._currentDCR['network'] = self.config.get('Serial', 'network')
+        self._currentDCR['network'] = self._network
         self._currentDCR['keepAwake'] = 1 if self.fKeepAwake.is_set() else 0
         self._currentDCR['data']['state'] = state
 
@@ -793,6 +824,8 @@ is running then run in the current terminal
         self._SerialToQueryState = 0
         self._SerialToQuery = []
         self.tSerialStop.wait(1)
+        checkEncKeyCounter = 0
+
         try:
             while (not self.tSerialStop.is_set()):
                 # open the port
@@ -821,9 +854,15 @@ is running then run in the current terminal
                 # main serial processing loop
                 while self._serial.isOpen() and not self.tSerialStop.is_set():
                     # extrem debug message
-                    # self.logger.debug("tSerial: check serial port")
+                    #self.logger.debug("tSerial: check serial port")
                     if self._serial.inWaiting():
                         self._SerialReadIncomingLanguageOfThings()
+                    #check if there's any change on the Encryption Key to set on radio
+                    elif self.fSetRadioEncryption.is_set():
+                        self.logger.debug("tSerial: fSetRadioEncryption setted")
+                        self.fRadioEncryptionDone.clear()
+                        self.SetRadioEncryption()
+                        self.fRadioEncryptionDone.set() #informs the main thread that has some encryption result to send
 
                     # do we have anything to send
                     if not self.qSerialOut.empty():
@@ -856,6 +895,88 @@ is running then run in the current terminal
         self.logger.info("tSerial: Thread stoping")
         return
 
+    def SetRadioEncryption(self):
+        self.logger.info("SetRadioEncryption: Checking Serial Number of the radio")
+        self.fSetRadioEncryption.clear()
+        changesToCommit = False
+
+        if not self._setRadioEncryption:
+            self.logger.error("SetRadioEncryption: Encryption Key not received")
+            return False
+
+        try:
+            if self.args.gpio:
+                at = AT.AT(self._serial, self.logger, self.tSerialStop, self.args.gpio)
+            elif self.config.getboolean('Serial', 'at_gpio'):
+                at = AT.AT(self._serial, self.logger, self.tSerialStop, self.config.getint('Serial', 'at_gpio_pin'))
+            else:
+                at = AT.AT(self._serial, self.logger, self.tSerialStop)
+        except:
+            at = AT.AT(self._serial, self.logger, self.tSerialStop)
+
+        if at.enterATMode():
+            if self._setRadioEncryption.has_key('PANID'):
+                atid = at.sendATWaitForResponse("ATID")
+                if atid:
+                    if self._setRadioEncryption['PANID'] in atid:
+                        self.logger.debug("SetRadioEncryption: PANID already setted")
+                    else:
+                        if at.sendATWaitForOK("PANID{}".format(self._setRadioEncryption['PANID'])):
+                            self._panID = self._setRadioEncryption['PANID']
+                            changesToCommit = True
+                        else:
+                            self.logger.error("SetRadioEncryption: Error setting PANID")
+                else:
+                    self.logger.error("SetRadioEncryption: Error getting ATID response")
+
+            if self._setRadioEncryption.has_key('encryptionSet'):
+                atee = at.sendATWaitForResponse("ATEE")
+                if atee:
+                    try:
+                        if self._setRadioEncryption['encryptionSet'] == bool(int(atee)):
+                            self.logger.debug("SetRadioEncryption: Encryption already setted")
+                        else:
+                            if at.sendATWaitForOK("ATEE{}".format(int(self._setRadioEncryption['encryptionSet']))):
+                                self._encryption = self._setRadioEncryption['encryptionSet']
+                                changesToCommit = True
+                            else:
+                                self.logger.error("SetRadioEncryption: Error setting encryptionSet")
+                    except ValueError:
+                        self.logger.error("SetRadioEncryption: Wrong value on encryptionSet: {}".format(self._setRadioEncryption['encryptionSet']))
+                else:
+                    self.logger.error("SetRadioEncryption: Error getting ATEE response")
+
+            if self._setRadioEncryption.has_key('encryptionKey'):
+                status = "Fail"
+                atek = at.sendATWaitForResponse("ATEK")
+                if atek:
+                    self.logger.debug("atek {}".format(atek))
+                    if self._setRadioEncryption['encryptionKey'] in atek:
+                        self.logger.debug("SetRadioEncryption: Encryption Key already setted")
+                        status = "Pass"
+                    else:
+                        if at.sendATWaitForOK("ATEK{}".format(self._setRadioEncryption['encryptionKey'])):
+                            self._encryptionKey = self._setRadioEncryption['encryptionKey']
+                            status = "Pass"
+                            changesToCommit = True
+                        else:
+                            self.logger.error("SetRadioEncryption: Error setting encryption key")
+                else:
+                    self.logger.error("SetRadioEncryption: Error getting ATEK response")
+                self._setRadioEncryption['encryptionKey'] = status
+
+            if changesToCommit:
+                if at.sendATWaitForOK("ATAC"):
+                    if at.sendATWaitForOK("ATWR"):
+                        self.logger.debug ("SetRadioEncryption: Encryption settings commited")
+        else:
+            self.logger.error("SetRadioEncryption: Failed on enter AT Mode")
+            at.leaveATMode() #make sure the radio is not stucked on AT mode
+            return False
+
+        at.leaveATMode()
+        return True
+
     def _SerialCheckATLH(self):
         """ check and possible set the the ATLH setting on the radio
         """
@@ -863,23 +984,60 @@ is running then run in the current terminal
 
         self._serial.flushInput()
 
-        at = AT.AT(self._serial, self.logger, self.tSerialStop)
+        try:
+            if self.args.gpio:
+                at = AT.AT(self._serial, self.logger, self.tSerialStop, self.args.gpio)
+            elif self.config.getboolean('Serial', 'at_gpio'):
+                at = AT.AT(self._serial, self.logger, self.tSerialStop, self.config.getint('Serial', 'at_gpio_pin'))
+            else:
+                at = AT.AT(self._serial, self.logger, self.tSerialStop)
+        except:
+            at = AT.AT(self._serial, self.logger, self.tSerialStop)
 
         if at.enterATMode():
-            self.radioFirmwareVersion = at.sendATWaitForResponse("ATVR")
-            self.logger.info("tSerial: Radio Firmware Version: {}".format(self.radioFirmwareVersion))
-            if self.radioFirmwareVersion:
-                #ask for the ATLH
-                atlh = at.sendATWaitForResponse("ATLH")
-                if atlh:
-                    if atlh != "1": #if the ATLH returns diff from 1, we force the 1 status
-                        if at.sendATWaitForOK("ATLH1"):
-                            if at.sendATWaitForOK("ATAC"):
-                                if at.sendATWaitForOK("ATWR"):
-                                    self.logger.debug("SerialCheckATLH: ATLH1 set")
-                else:
-                    self.logger.error("tSerial: ATLH returned False, check radio firmware version")
+            try:
+                self.radioFirmwareVersion = at.sendATWaitForResponse("ATVR")
+                if not self.radioFirmwareVersion:
+                    self.logger.error("tSerial: Radio Firmware Version not valid")
                     return False
+            except:
+                self.logger.error("tSerial: Error obtaining Radio Firmware Version")
+                return False
+
+            try:
+                self.radioSerialNumber = at.sendATWaitForResponse("ATSF")
+                if not self.radioSerialNumber:
+                    self.logger.error("tSerial: Radio Serial Number not valid")
+                    return False
+            except:
+                self.logger.error("tSerial: Error obtaining Radio Serial Number")
+                return False
+
+            if not self.fNetworkNameSetted.is_set():
+                if self.args.network or self.config.getboolean('Serial', 'network_use_uuid'):
+                    try:
+                        self._network = self.radioSerialNumber
+                    except:
+                        self.logger.error("tSerial: Error setting Network as radio Serial Number")
+                        self._network = self.config.get('Serial', 'network')
+                else:
+                    self._network = self.config.get('Serial', 'network')
+
+                self.fNetworkNameSetted.set()  #informs the network now has a value
+
+            self.logger.info("tSerial: Radio Firmware Version: {}".format(self.radioFirmwareVersion))
+            self.logger.info("tSerial: Radio Serial Number: {}".format(self.radioSerialNumber))
+            #ask for the ATLH
+            atlh = at.sendATWaitForResponse("ATLH")
+            if atlh:
+                if atlh != "1": #if the ATLH returns diff from 1, we force the 1 status
+                    if at.sendATWaitForOK("ATLH1"):
+                        if at.sendATWaitForOK("ATAC"):
+                            if at.sendATWaitForOK("ATWR"):
+                                self.logger.debug("SerialCheckATLH: ATLH1 set")
+            else:
+                self.logger.error("tSerial: ATLH returned False, check radio firmware version")
+                return False
 
             self._panID = at.sendATWaitForResponse("ATID")
             if not self._panID:
@@ -902,8 +1060,8 @@ is running then run in the current terminal
 
         self.logger.debug("tSerial: Failed to enter on AT Mode")
         return False
-                
-            
+
+
 
     def _SerialReadIncomingLanguageOfThings(self):
         char = self._serial.read()  # should not time out but we should check anyway
@@ -947,7 +1105,7 @@ is running then run in the current terminal
                     if not self.checkSendOnQueue(wirelessMsg[1:3], wirelessMsg[3:].strip("-")):
                         # not a configme Language of Things message so send out via UDP WirelessMessage
                         try:
-                            self.qUDPSend.put_nowait(self.encodeWirelessMessageJson(wirelessMsg, self.config.get('Serial', 'network')))
+                            self.qUDPSend.put_nowait(self.encodeWirelessMessageJson(wirelessMsg, self._network))
                         except Queue.Full:
                             self.logger.warn("tSerial: Failed to put {} on qUDPSend as it's full".format(wirelessMsg))
 
@@ -1135,7 +1293,7 @@ is running then run in the current terminal
                     continue
 
                 # TODO: error checking, dict should have keys for network
-                if (jsonin['network'] == self.config.get('Serial', 'network') or
+                if (jsonin['network'] == self._network or
                     jsonin['network'] == "ALL"):
                     # yep its for our network or "ALL"
                     # TODO: error checking, dict should have keys for type
@@ -1187,7 +1345,6 @@ is running then run in the current terminal
     def checkSendOnQueue(self, jsonid, jsoncommand):
         tempQueue = []
         messageSent = False
-        print ("checkSendOnQueue: id {} command {}".format(jsonid, jsoncommand))
         while not self.qSendOn.empty():
             self.logger.debug("tMain: Processing SendOn JSON message")
             try:
@@ -1219,7 +1376,7 @@ is running then run in the current terminal
 
     def _processMessageBridgeMessage(self, message):
         message['timestamp'] = strftime("%d %b %Y %H:%M:%S +0000", gmtime())
-        message['network'] = self.config.get('Serial', 'network')
+        message['network'] = self._network
         message['state'] = self._state
         if message.has_key('data'):
             result = {}
@@ -1236,19 +1393,36 @@ is running then run in the current terminal
                         result['version'] = self._version
                     elif request == "radioFirmwareVersion":
                         result['radioFirmwareVersion'] = self.radioFirmwareVersion
+                    elif request == "radioSerialNumber":
+                        result['radioSerialNumber'] = self.radioSerialNumber
+                message['data']['result'] = result
+
             elif message['data'].has_key('set'):
-                for set in message['data']['set']:
-                    # TODO: implement "set" requests
-                    pass
-            message['data']['result'] = result
+                self.logger.debug("tSerial: received 'set' on json")
+                self._setRadioEncryption = {}
+                for _set in message['data']['set']:
+                    self.logger.debug("message['data']['set'][_set] {}".format(message['data']['set'][_set]))
+                    if _set == "PANID":
+                         self._setRadioEncryption['PANID'] = message['data']['set'][_set]
+                    elif _set == "encryptionSet":
+                         self._setRadioEncryption['encryptionSet'] = message['data']['set'][_set]
+                    elif _set == "encryptionKey":
+                         self._setRadioEncryption['encryptionKey'] = message['data']['set'][_set]
+                #in case of a 'set' received, set the flag to set encryption on radio
+                self.fSetRadioEncryption.set()
 
         try:
             # just report state
-            self.qUDPSend.put(json.dumps(message))
+            if message.has_key('data') and message['data'].has_key('set'):
+                    queueName = "qReplyEncryption"
+                    self.qReplyEncryption.put(message)
+            else:
+                queueName = "qUDPSend"
+                self.qUDPSend.put(json.dumps(message))
         except Queue.Full:
-            self.logger.debug("tMain: Failed to put {} on qUDPSend as it's full".format(message))
+            self.logger.debug("tMain: Failed to put {} on {} as it's full".format(message, queueName))
         else:
-            self.logger.debug("tMain: Put {} on qUDPSend".format(message))
+            self.logger.debug("tMain: Put {} on {}".format(message, queueName))
 
     def encodeWirelessMessageJson(self, message, network=None):
         """Encode a single Language of Things message into an outgoing JSON message

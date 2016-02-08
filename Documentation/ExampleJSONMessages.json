@@ -24,7 +24,7 @@
 }
 
 
-// send multiple Language of Things messages on receive of an sendOn message 
+// send multiple Language of Things messages on receive of an sendOn message
 {
     "type":"WirelessMessage",
     "network":"Serial",
@@ -181,24 +181,26 @@
     "timestamp":"12 Mar 2014 14:19:21 +0000",          // optional, always provided by the Message Bridge
     "data":{           // optional, config MessageBridge commands or expaneded run time info from Message Bridge
             "id":3,                 // optional, can be use by requester to help track request and replies
-            "request":[             // optional, used to ask the Message Bridge for information
+            "request":[             // optional, used to ask the Message Bridge for information, must not be sent in same packet as "set"
                        "deviceStore",   // request the current device store
                        "PANID",         // request the networks PANID (used for seting up new devices ror the network)
                        "encryptionSet",  // request if encryption is enabled on the network
                        "version",       // request the Message Bridge code version
-                       "RadioFirmwareVersion"   // request the Firmware version of the radio
-                       ],
-            "set":{                 // optional, used to set settings on the Message Bridge (not yet implemented)
+                       "radioFirmwareVersion",   // request the Firmware version of the radio
+                       "radioSerialNumber"   // request the Serial Number of the radio
+            ],
+            "set":{                 // optional, used to set settings on the Message Bridge (not yet implemented) , must not be sent in same packet as "request"
                    "PANID":"5AA5",
                    "encryptionSet":false,
-                   "encrptionKey":"0123456789ABCDEF01234567890ABCDEF"
-                   },
+                   "encryptionKey":"0123456789ABCDEF0123456789ABCDEF"
+                    },
             "result":{      // optional, results from the Message Bridge to request
                       "PANID":"5AA5"        // optional, current PANID, or PANID as a result of a set
                       "encryptionSet":true, // optional, current encryption state
-                      "encrptionKey":"Fail", // optional, Pass/Fail state for setting encryption key
+                      "encryptionKey":"Fail", // optional, Pass/Fail state for setting encryption key
                       "version":0.12,       // optional, current Message Bridge version
                       "radioFirmwareVersion":"0.95 UARTSRF",   // optional, current Firmware version of the radio
+                      "radioSerialNumber":"1234567890",   // optional, current Serial Number of the radio
                       "deviceStore":{       // optional, the device store contains information abbout the last Language of Things message a Message Bridge saw for every device it has heard from since its last reboot,
                                      "AA":{     // information is store by device ID, the array will not grow bigger than 656 entries
                                            "data":"TEMP19.50",      // last message seen

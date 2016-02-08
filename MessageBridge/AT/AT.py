@@ -28,7 +28,7 @@ class AT():
 
     _inATMode = False
 
-    def __init__(self, serialHandle=None, logger=None, event=None):
+    def __init__(self, serialHandle=None, logger=None, event=None, _gpio=None):
         self._serial = serialHandle or serial.Serial()
         if logger == None:
             logging.basicConfig(level=logging.DEBUG)
@@ -37,6 +37,14 @@ class AT():
             self.logger = logger
 
         self.event = event
+
+        self._gpio = _gpio
+
+        if self._gpio:
+            import RPi.GPIO as gpio
+            gpio.setmode(gpio.BCM)
+            gpio.setup(self._gpio, gpio.OUT)
+            gpio.output(self._gpio, gpio.HIGH)
 
     def __del__(self):
         pass
@@ -76,8 +84,17 @@ class AT():
             To enter AT mode we wait 1 seconds send +++
             wait 1 second
             we should get back an "OK\r"
+            or
+            we set the gpio pin specified on .cfg file or by arg
         """
+
         self.logger.debug("AT: Enter Command Mode")
+        if self._gpio:
+            gpio.output(self._gpio, gpio.LOW)
+            self.logger.debug("AT: Entered AT Mode via GPIO")
+            self._inATMode = True
+            return True
+
         for r in range(retries):
             self._serial.flushInput()
 
@@ -99,6 +116,8 @@ class AT():
                     self.logger.debug("AT: Entered AT Mode")
                     self._inATMode = True
                     return True
+        #if reaches here, not in AT mode
+        self._inATMode = False
         return False
 
     def leaveATMode(self):
@@ -109,7 +128,10 @@ class AT():
         """
         self.logger.debug("AT: Leave Command Mode")
         if self._inATMode:
-            self.sendATWaitForOK("ATDN", 5)
+            if self._gpio:
+                gpio.output(self._gpio, gpio.HIGH)
+            else:
+                self.sendATWaitForOK("ATDN", 5)
         return True
 
     def sendAT(self, command):
