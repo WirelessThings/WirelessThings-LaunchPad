@@ -1003,9 +1003,14 @@ is running then run in the current terminal
             except:
                 self.logger.error("tSerial: Error obtaining Radio Firmware Version")
                 return False
-
+            
+            if self.radioFirmwareVersion.contains("SRFV2") and self.radioFirmwareVersion > 97:
+                serialNumberCommand = "ATSF"    # SRF fixed serial number (only avalible on SRFV2 firmware 97 or later
+            else:
+                serialNumberCommand = "ATSN"    # SRF user settable serial number
+            
             try:
-                self.radioSerialNumber = at.sendATWaitForResponse("ATSF")
+                self.radioSerialNumber = at.sendATWaitForResponse(serialNumberCommand)
                 if not self.radioSerialNumber:
                     self.logger.error("tSerial: Radio Serial Number not valid")
                     return False
