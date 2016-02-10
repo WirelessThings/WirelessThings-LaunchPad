@@ -148,7 +148,7 @@ is running then run in the current terminal
                               }
 
         self.tMainStop = threading.Event()
-        self.fNetworkNameSetted = threading.Event()
+        self.fNetworkNameSet = threading.Event()
         self.qMessageBridge = Queue.Queue()
         self.qSendOn = Queue.Queue()
         # setup initial Logging
@@ -349,7 +349,7 @@ is running then run in the current terminal
             self.tMainStop.wait(1)
             self._initSerialThread()    # start the serial port thread
             self.tMainStop.wait(1)
-            self.fNetworkNameSetted.wait(10) # waiting until serial network to be setted
+            self.fNetworkNameSet.wait(10) # waiting until serial network to be Set
             self._initDCRThread()       # start the DeviceConfigurationRequest thread
             self._initUDPSendThread()   # start the UDP sender
             self._initUDPListenThread() # start the UDP listener
@@ -859,7 +859,7 @@ is running then run in the current terminal
                         self._SerialReadIncomingLanguageOfThings()
                     #check if there's any change on the Encryption Key to set on radio
                     elif self.fSetRadioEncryption.is_set():
-                        self.logger.debug("tSerial: fSetRadioEncryption setted")
+                        self.logger.debug("tSerial: fSetRadioEncryption Set")
                         self.fRadioEncryptionDone.clear()
                         self.SetRadioEncryption()
                         self.fRadioEncryptionDone.set() #informs the main thread that has some encryption result to send
@@ -896,12 +896,12 @@ is running then run in the current terminal
         return
 
     def SetRadioEncryption(self):
-        self.logger.info("SetRadioEncryption: Checking Serial Number of the radio")
+        self.logger.info("tSerial: SetRadioEncryption: Checking Serial Number of the radio")
         self.fSetRadioEncryption.clear()
         changesToCommit = False
 
         if not self._setRadioEncryption:
-            self.logger.error("SetRadioEncryption: Encryption Key not received")
+            self.logger.error("tSerial: SetRadioEncryption: Encryption Key not received")
             return False
 
         try:
@@ -919,32 +919,32 @@ is running then run in the current terminal
                 atid = at.sendATWaitForResponse("ATID")
                 if atid:
                     if self._setRadioEncryption['PANID'] in atid:
-                        self.logger.debug("SetRadioEncryption: PANID already setted")
+                        self.logger.debug("tSerial: SetRadioEncryption: PANID already Set")
                     else:
                         if at.sendATWaitForOK("PANID{}".format(self._setRadioEncryption['PANID'])):
                             self._panID = self._setRadioEncryption['PANID']
                             changesToCommit = True
                         else:
-                            self.logger.error("SetRadioEncryption: Error setting PANID")
+                            self.logger.error("tSerial: SetRadioEncryption: Error setting PANID")
                 else:
-                    self.logger.error("SetRadioEncryption: Error getting ATID response")
+                    self.logger.error("tSerial: SetRadioEncryption: Error getting ATID response")
 
             if self._setRadioEncryption.has_key('encryptionSet'):
                 atee = at.sendATWaitForResponse("ATEE")
                 if atee:
                     try:
                         if self._setRadioEncryption['encryptionSet'] == bool(int(atee)):
-                            self.logger.debug("SetRadioEncryption: Encryption already setted")
+                            self.logger.debug("tSerial: SetRadioEncryption: Encryption already Set")
                         else:
                             if at.sendATWaitForOK("ATEE{}".format(int(self._setRadioEncryption['encryptionSet']))):
                                 self._encryption = self._setRadioEncryption['encryptionSet']
                                 changesToCommit = True
                             else:
-                                self.logger.error("SetRadioEncryption: Error setting encryptionSet")
+                                self.logger.error("tSerial: SetRadioEncryption: Error setting encryptionSet")
                     except ValueError:
-                        self.logger.error("SetRadioEncryption: Wrong value on encryptionSet: {}".format(self._setRadioEncryption['encryptionSet']))
+                        self.logger.error("tSerial: SetRadioEncryption: Wrong value on encryptionSet: {}".format(self._setRadioEncryption['encryptionSet']))
                 else:
-                    self.logger.error("SetRadioEncryption: Error getting ATEE response")
+                    self.logger.error("tSerial: SetRadioEncryption: Error getting ATEE response")
 
             if self._setRadioEncryption.has_key('encryptionKey'):
                 status = "Fail"
@@ -952,7 +952,7 @@ is running then run in the current terminal
                 if atek:
                     self.logger.debug("atek {}".format(atek))
                     if self._setRadioEncryption['encryptionKey'] in atek:
-                        self.logger.debug("SetRadioEncryption: Encryption Key already setted")
+                        self.logger.debug("tSerial: SetRadioEncryption: Encryption Key already Set")
                         status = "Pass"
                     else:
                         if at.sendATWaitForOK("ATEK{}".format(self._setRadioEncryption['encryptionKey'])):
@@ -960,17 +960,17 @@ is running then run in the current terminal
                             status = "Pass"
                             changesToCommit = True
                         else:
-                            self.logger.error("SetRadioEncryption: Error setting encryption key")
+                            self.logger.error("tSerial: SetRadioEncryption: Error setting encryption key")
                 else:
-                    self.logger.error("SetRadioEncryption: Error getting ATEK response")
+                    self.logger.error("tSerial: SetRadioEncryption: Error getting ATEK response")
                 self._setRadioEncryption['encryptionKey'] = status
 
             if changesToCommit:
                 if at.sendATWaitForOK("ATAC"):
                     if at.sendATWaitForOK("ATWR"):
-                        self.logger.debug ("SetRadioEncryption: Encryption settings commited")
+                        self.logger.debug ("tSerial: SetRadioEncryption: Encryption settings commited")
         else:
-            self.logger.error("SetRadioEncryption: Failed on enter AT Mode")
+            self.logger.error("tSerial: SetRadioEncryption: Failed on enter AT Mode")
             at.leaveATMode() #make sure the radio is not stucked on AT mode
             return False
 
@@ -1013,8 +1013,7 @@ is running then run in the current terminal
                 self.logger.error("tSerial: Error obtaining Radio Serial Number")
                 return False
             
-            if not self.fNetworkNameSetted.is_set():
-                if self.args.network or self.config.getboolean('Serial', 'network_use_radioSerialNumber'):
+            if not self.fNetworkNameSet.is_set():
                 if self.args.network or self.config.getboolean('Serial', 'network_use_radio_serial_number'):
                     try:
                         self._network = self.radioSerialNumber
@@ -1024,7 +1023,7 @@ is running then run in the current terminal
                 else:
                     self._network = self.config.get('Serial', 'network')
 
-                self.fNetworkNameSetted.set()  #informs the network now has a value
+                self.fNetworkNameSet.set()  #informs the network now has a value
 
             self.logger.info("tSerial: Radio Firmware Version: {}".format(self.radioFirmwareVersion))
             self.logger.info("tSerial: Radio Serial Number: {}".format(self.radioSerialNumber))
