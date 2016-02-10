@@ -59,6 +59,10 @@
                {
                "Name":"ENKey",
                "Description":"Hexadecimal string when sent to a radio, ACK in response"
+               },
+               {
+               "Name":"ALRTOFF",
+               "Description":"Alert state for off for normal state, Either ALRT or OFF (boolean)"
                }
                ],
     "Reading Periods":[
