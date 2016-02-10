@@ -1012,9 +1012,10 @@ is running then run in the current terminal
             except:
                 self.logger.error("tSerial: Error obtaining Radio Serial Number")
                 return False
-
+            
             if not self.fNetworkNameSetted.is_set():
-                if self.args.network or self.config.getboolean('Serial', 'network_use_uuid'):
+                if self.args.network or self.config.getboolean('Serial', 'network_use_radioSerialNumber'):
+                if self.args.network or self.config.getboolean('Serial', 'network_use_radio_serial_number'):
                     try:
                         self._network = self.radioSerialNumber
                     except:
