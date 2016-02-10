@@ -211,6 +211,7 @@ class encryptionSetup():
         self.logger.info("Generating new Settings")
         
         if (self.args.panID):
+            self.logger.info("generateNewSetings: using PANID: {}, from command line".format(self.args.panID))
             self._panID = self.args.panID
         else:
             # PANID between 0000 - EFFF (0-61439)
@@ -219,6 +220,7 @@ class encryptionSetup():
                 self._panID = "{0:0{1}X}".format(random.randrange(0,61439,1),4)
 
         if (self.args.encKey):
+            self.logger.info("generateNewSetings: using EncKey: {}, from command line".format(self.args.encKey))
             self._encryptionKey = self.args.encKey
         else:
             self._encryptionKey = "{0:0{1}X}".format(random.randrange(0,340282366920938463463374607431768211455,1),32)

@@ -5,9 +5,9 @@
     Simple script to help reset a device back to factory settings
 
     usage
-    $ python DCRDeviceReset.py -- HELLO
+    $ python DCRDeviceReset.py
     or
-    $ ./DCRDeviceReset.py MA TEMP
+    $ ./DCRDeviceReset.py
 
     Optionally you can speficy a network via an argument
     Other wise the request will be send to "Serial" network
