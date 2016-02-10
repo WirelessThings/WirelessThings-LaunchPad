@@ -89,7 +89,7 @@ class MessageBridge():
     _configFileDefault = "./MessageBridge_defaults.cfg"
     _configFile = "./MessageBridge.cfg"
     _pidFile = None
-    _pidFilePath = "/var/run/"
+    _pidFilePath = None
     _pidFileTimeout = 5
     _background = False
 
@@ -148,7 +148,7 @@ is running then run in the current terminal
                               }
 
         self.tMainStop = threading.Event()
-        self.fNetworkNameSetted = threading.Event()
+        self.fNetworkNameSet = threading.Event()
         self.qMessageBridge = Queue.Queue()
         self.qSendOn = Queue.Queue()
         # setup initial Logging
@@ -221,8 +221,11 @@ is running then run in the current terminal
             return True
         else:
             #setup pidfile checking
-            self._pidFile = self._makePidlockfile("{}MessageBridge.pid".format(self._pidFilePath),
-                                                  self._pidFileTimeout)
+            self._pidFilePath = self.config.get('Run', 'pid_file_path')
+            self._pidFileName = self.config.get('Run', 'pid_file')
+            fullPath = os.path.join(self._pidFilePath, self._pidFileName)
+            self._pidFile = self._makePidlockfile(os.path.abspath(fullPath),
+                                                    self._pidFileTimeout)
 
             if self.args.action == None:
                 # run in foreground unless a daemon is all ready running
@@ -349,7 +352,7 @@ is running then run in the current terminal
             self.tMainStop.wait(1)
             self._initSerialThread()    # start the serial port thread
             self.tMainStop.wait(1)
-            self.fNetworkNameSetted.wait(10) # waiting until serial network to be setted
+            self.fNetworkNameSet.wait(10) # waiting until serial network to be setted
             self._initDCRThread()       # start the DeviceConfigurationRequest thread
             self._initUDPSendThread()   # start the UDP sender
             self._initUDPListenThread() # start the UDP listener
@@ -1013,7 +1016,7 @@ is running then run in the current terminal
                 self.logger.error("tSerial: Error obtaining Radio Serial Number")
                 return False
 
-            if not self.fNetworkNameSetted.is_set():
+            if not self.fNetworkNameSet.is_set():
                 if self.args.network or self.config.getboolean('Serial', 'network_use_uuid'):
                     try:
                         self._network = self.radioSerialNumber
@@ -1023,7 +1026,7 @@ is running then run in the current terminal
                 else:
                     self._network = self.config.get('Serial', 'network')
 
-                self.fNetworkNameSetted.set()  #informs the network now has a value
+                self.fNetworkNameSet.set()  #informs the network now has a value
 
             self.logger.info("tSerial: Radio Firmware Version: {}".format(self.radioFirmwareVersion))
             self.logger.info("tSerial: Radio Serial Number: {}".format(self.radioSerialNumber))
