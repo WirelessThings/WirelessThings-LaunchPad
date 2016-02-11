@@ -151,6 +151,7 @@ class LaunchPad:
             self.restart()
 
         self.loadApps()
+        self.loadAppsConfigFiles()
 
         if self.args.noupdate:
             self.checkForUpdate()
@@ -1441,6 +1442,66 @@ class LaunchPad:
                                 'Description': 'Error loading AppList file'
                                 }]
             self.disableLaunch = True
+
+    def loadAppsConfigFiles(self):
+        self.logger.debug("Start loadAppsConfigFiles")
+        self.appsConfigFiles = []
+        if not self.disableLaunch:
+            for app in self.appList:
+                cfgFileName = "{0}{1}.cfg".format(app['CWD'],
+                                            app['FileName'].split('.py',1)[0])
+
+                cfgFileNameDefault = "{0}{1}_defaults.cfg".format(app['CWD'],
+                                            app['FileName'].split('.py',1)[0])
+
+                self.logger.info("Reading Config")
+
+                cfgFile = ConfigParser.SafeConfigParser()
+
+                # load defaults first
+                try:
+                    cfgFile.readfp(open(cfgFileNameDefault))
+                except:
+                    self.logger.debug("Could Not Load Default Settings File")
+
+                # read the user config file
+                if not cfgFile.read(cfgFileName):
+                    self.logger.debug("Could Not Load User Config")
+
+                if not cfgFile.sections():
+                    self.logger.error("No Config Loaded, Quitting")
+                    sys.exit()
+
+                self.appsConfigFiles.append(cfgFile)
+
+    def reloadAppConfigFile(self, app):
+        self.logger.debug("Start loadAppsConfigFiles")
+        cfgFileName = "{0}{1}.cfg".format(self.appList[app]['CWD'],
+                                    self.appList[app]['FileName'].split('.py',1)[0])
+
+        cfgFileNameDefault = "{0}{1}_defaults.cfg".format(self.appList[app]['CWD'],
+                                    self.appList[app]['FileName'].split('.py',1)[0])
+
+        self.logger.info("Reading Config")
+
+        cfgFile = ConfigParser.SafeConfigParser()
+
+        # load defaults first
+        try:
+            cfgFile.readfp(open(cfgFileNameDefault))
+        except:
+            self.logger.debug("Could Not Load Default Settings File")
+
+        # read the user config file
+        if not cfgFile.read(cfgFileName):
+            self.logger.debug("Could Not Load User Config")
+
+        if not cfgFile.sections():
+            self.logger.error("No Config Loaded, Quitting")
+            sys.exit()
+
+        self.appsConfigFiles[app] = cfgFile
+
 
 class PasswordDialog(tk.Toplevel):
     def __init__(self, parent):
