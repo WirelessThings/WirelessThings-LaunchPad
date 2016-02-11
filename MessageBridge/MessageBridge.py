@@ -90,6 +90,7 @@ class MessageBridge():
     _configFile = "./MessageBridge.cfg"
     _pidFile = None
     _pidFilePath = None
+    _pidFileName = None
     _pidFileTimeout = 5
     _background = False
 
@@ -222,8 +223,8 @@ is running then run in the current terminal
         else:
             #setup pidfile checking
             self._readConfig()
-            self._pidFilePath = self.config.get('Run', 'pid_file_path')
-            self._pidFileName = self.config.get('Run', 'pid_file')
+            self._pidFilePath = self.config.get('Run', 'pid_file_path_name')
+            self._pidFileName = self.config.get('Run', 'pid_file_name')
             fullPath = os.path.join(self._pidFilePath, self._pidFileName)
             self._pidFile = self._makePidlockfile(os.path.abspath(fullPath),
                                                     self._pidFileTimeout)
