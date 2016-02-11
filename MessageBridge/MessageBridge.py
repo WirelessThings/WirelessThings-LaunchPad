@@ -221,6 +221,7 @@ is running then run in the current terminal
             return True
         else:
             #setup pidfile checking
+            self._readConfig()
             self._pidFilePath = self.config.get('Run', 'pid_file_path')
             self._pidFileName = self.config.get('Run', 'pid_file')
             fullPath = os.path.join(self._pidFilePath, self._pidFileName)
