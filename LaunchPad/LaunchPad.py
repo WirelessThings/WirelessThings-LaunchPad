@@ -1316,8 +1316,8 @@ class LaunchPad:
             self._messageBridges = {}
             if os.getuid() != 0: #if program not running as su
                 # check what user started the app that we want to stop/restart
-                appPidFilePath = self.appsConfigFiles[app].get('Run', 'pid_file_path')
-                appPidFileName = self.appsConfigFiles[app].get('Run', 'pid_file')
+                appPidFilePath = self.appsConfigFiles[app].get('Run', 'pid_file_path_name')
+                appPidFileName = self.appsConfigFiles[app].get('Run', 'pid_file_name')
 
                 if appPidFilePath.startswith("./"):
                     appPidFilePath = os.path.join(self.appList[app]['CWD'],appPidFilePath[2:])
