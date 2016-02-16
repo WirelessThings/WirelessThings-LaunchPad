@@ -1121,7 +1121,6 @@ is running then run in the current terminal
                     #now will check if there's any message to be sent on the "sendOn" queue
                     if wirelessMsg[1:3] in self._sendOnIDs:
                         self.sendOnForMatchedID(wirelessMsg[1:3], wirelessMsg[3:].strip("-"))
-                        #self.checkSendOnQueue(wirelessMsg[1:3], wirelessMsg[3:].strip("-"))
                     # not a configme Language of Things message so send out via UDP WirelessMessage
                     try:
                         self.qUDPSend.put_nowait(self.encodeWirelessMessageJson(wirelessMsg, self._network))
