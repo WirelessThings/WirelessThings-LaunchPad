@@ -102,6 +102,9 @@ class MessageBridge():
 
     _version = 0.17
 
+    _sendOnIDs = []
+    _sendOnRequests = {}
+
     _currentDCR = False
     devType = None
     _SerialDTYSync = False
@@ -1116,12 +1119,14 @@ is running then run in the current terminal
                     self._SerialProcessQQ(wirelessMsg[3:].strip("-"))
                 else:
                     #now will check if there's any message to be sent on the "sendOn" queue
-                    if not self.checkSendOnQueue(wirelessMsg[1:3], wirelessMsg[3:].strip("-")):
-                        # not a configme Language of Things message so send out via UDP WirelessMessage
-                        try:
-                            self.qUDPSend.put_nowait(self.encodeWirelessMessageJson(wirelessMsg, self._network))
-                        except Queue.Full:
-                            self.logger.warn("tSerial: Failed to put {} on qUDPSend as it's full".format(wirelessMsg))
+                    if wirelessMsg[1:3] in self._sendOnIDs:
+                        self.sendOnForMatchedID(wirelessMsg[1:3], wirelessMsg[3:].strip("-"))
+                        #self.checkSendOnQueue(wirelessMsg[1:3], wirelessMsg[3:].strip("-"))
+                    # not a configme Language of Things message so send out via UDP WirelessMessage
+                    try:
+                        self.qUDPSend.put_nowait(self.encodeWirelessMessageJson(wirelessMsg, self._network))
+                    except Queue.Full:
+                        self.logger.warn("tSerial: Failed to put {} on qUDPSend as it's full".format(wirelessMsg))
 
     def _SerialProcessQQ(self, wirelessMsg):
         """ process an incoming ?? Language of Things message
@@ -1316,9 +1321,8 @@ is running then run in the current terminal
                         # got a WirelessMessage type json, need to generate the Language of Things message and
                         # put them on the TX queue
                         # TODO: error checking, dict should have keys for data
-                        if 'sendOn' in jsonin:
-                            #add the package to qSendOn
-                            self.qSendOn.put_nowait([jsonin['sendOn'], jsonin['id'], jsonin['data']])
+                        if jsonin.has_key('sendOn'):
+                            self.processSendOnJSON(jsonin)
                             continue
 
                         for command in jsonin['data']:
@@ -1356,37 +1360,45 @@ is running then run in the current terminal
             self.logger.exception("tUDPListen: Failed to close socket")
         return
 
-    def checkSendOnQueue(self, jsonid, jsoncommand):
-        tempQueue = []
-        messageSent = False
-        while not self.qSendOn.empty():
-            self.logger.debug("tMain: Processing SendOn JSON message")
-            try:
-                message = self.qSendOn.get_nowait()
-                if (message[0] == jsoncommand) and (message[1] == jsonid):
-                    for command in message[2]:
-                        wirelessMsg = "a{}{}".format(message[1], command)
-                        while len(wirelessMsg) <12:
-                            wirelessMsg += '-'
+    def processSendOnJSON(self, jsonin):
+        _id = jsonin['id']
+        request = { _id:[] }
+        request[_id].append({
+                            "on":jsonin['sendOn'],
+                            "send":jsonin['data'][0]
+                            })
 
-                        try:
-                            self.qSerialOut.put_nowait(wirelessMsg)
-                            messageSent = True
-                        except Queue.Full:
-                            self.logger.debug("checkSendOnQueue: Failed to put {} on qSerialOut as it's full".format(wirelessMsg))
-                        else:
-                            self.logger.debug("checkSendOnQueue: Put {} on qSerialOut".format(wirelessMsg))
+        for i in range(0, len(jsonin['data'])-1):
+            request[_id].append({ "on":jsonin['data'][i], "send":jsonin['data'][i+1] })
+
+        if not _id in self._sendOnIDs:
+            self._sendOnIDs.append(_id)
+
+        if self._sendOnRequests.has_key(_id):
+            for i in range(0, len(request[_id])):
+                self._sendOnRequests[_id].append(request[_id][i])
+        else:
+            self._sendOnRequests.update(request)
+
+    def sendOnForMatchedID(self, _id, command):
+        if self._sendOnRequests.has_key(_id):
+            if self._sendOnRequests[_id][0]['on'] == command:
+                wirelessMsg = "a{}{}".format(_id, self._sendOnRequests[_id][0]['send'])
+                while len(wirelessMsg) <12:
+                    wirelessMsg += '-'
+
+                try:
+                    self.qSerialOut.put_nowait(wirelessMsg)
+                except Queue.Full:
+                    self.logger.debug("checkSendOnQueue: Failed to put {} on qSerialOut as it's full".format(wirelessMsg))
                 else:
-                    #if isn't the message for that ID, store the message to fill the queue again with the message
-                    tempQueue.append(message)
-                self.qSendOn.task_done()
-            except Queue.Empty():
-                pass
-
-        if len(tempQueue): #if there's any message not used, put back on the queue
-            for sendOn, _id, data in tempQueue:
-                self.qSendOn.put([sendOn, _id, data])
-        return messageSent
+                    self.logger.debug("checkSendOnQueue: Put {} on qSerialOut".format(wirelessMsg))
+                    # if message sent, remove from the sendOnRequest
+                    self._sendOnRequests[_id].pop(0)
+                    # if is the last message for that ID, remove it from the sendOn arrays
+                    if len(self._sendOnRequests[_id]) == 0:
+                        self._sendOnIDs.remove(_id)
+                        self._sendOnRequests.pop(_id)
 
     def _processMessageBridgeMessage(self, message):
         message['timestamp'] = strftime("%d %b %Y %H:%M:%S +0000", gmtime())
