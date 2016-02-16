@@ -354,7 +354,7 @@ is running then run in the current terminal
             self.tMainStop.wait(1)
             self._initSerialThread()    # start the serial port thread
             self.tMainStop.wait(1)
-            self.fNetworkNameSet.wait(10) # waiting until serial network to be setted
+            self.fNetworkNameSet.wait(10) # waiting until serial network to be set
             self._initDCRThread()       # start the DeviceConfigurationRequest thread
             self._initUDPSendThread()   # start the UDP sender
             self._initUDPListenThread() # start the UDP listener
@@ -864,7 +864,7 @@ is running then run in the current terminal
                         self._SerialReadIncomingLanguageOfThings()
                     #check if there's any change on the Encryption Key to set on radio
                     elif self.fSetRadioEncryption.is_set():
-                        self.logger.debug("tSerial: fSetRadioEncryption setted")
+                        self.logger.debug("tSerial: fSetRadioEncryption set")
                         self.fRadioEncryptionDone.clear()
                         self.SetRadioEncryption()
                         self.fRadioEncryptionDone.set() #informs the main thread that has some encryption result to send
@@ -924,7 +924,7 @@ is running then run in the current terminal
                 atid = at.sendATWaitForResponse("ATID")
                 if atid:
                     if self._setRadioEncryption['PANID'] in atid:
-                        self.logger.debug("SetRadioEncryption: PANID already setted")
+                        self.logger.debug("SetRadioEncryption: PANID already set")
                     else:
                         if at.sendATWaitForOK("PANID{}".format(self._setRadioEncryption['PANID'])):
                             self._panID = self._setRadioEncryption['PANID']
@@ -939,7 +939,7 @@ is running then run in the current terminal
                 if atee:
                     try:
                         if self._setRadioEncryption['encryptionSet'] == bool(int(atee)):
-                            self.logger.debug("SetRadioEncryption: Encryption already setted")
+                            self.logger.debug("SetRadioEncryption: Encryption already set")
                         else:
                             if at.sendATWaitForOK("ATEE{}".format(int(self._setRadioEncryption['encryptionSet']))):
                                 self._encryption = self._setRadioEncryption['encryptionSet']
@@ -957,7 +957,7 @@ is running then run in the current terminal
                 if atek:
                     self.logger.debug("atek {}".format(atek))
                     if self._setRadioEncryption['encryptionKey'] in atek:
-                        self.logger.debug("SetRadioEncryption: Encryption Key already setted")
+                        self.logger.debug("SetRadioEncryption: Encryption Key already set")
                         status = "Pass"
                     else:
                         if at.sendATWaitForOK("ATEK{}".format(self._setRadioEncryption['encryptionKey'])):
