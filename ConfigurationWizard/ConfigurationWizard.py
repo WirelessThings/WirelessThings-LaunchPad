@@ -308,36 +308,43 @@ class ConfigurationWizard:
                 pass
             else:
                 self.logger.debug("tUDPSend: Got json to send: {}".format(message))
-                try:
-                    UDPSendSocket.sendto(message, ('<broadcast>', sendPort))
-#                    self.logger.debug("tUDPSend: Put message out via UDP")
-                except socket.error as msg:
-                    if msg[0] == 101:
-                        try:
-                            self.logger.warn("tUDPSend: External network unreachable retrying on local interface only")
-                            UDPSendSocket.sendto(message, ('127.0.0.255', sendPort))
-                            self.logger.debug("tUDPSend: Put message out via UDP to local only")
-                        except socket.error as msg:
-                            self.logger.warn("tUDPSend: Failed to send via UDP local only. Error code : {} Message: {}".format(msg[0], msg[1]))
-                        else:
-                            self.qJSONDebug.put([message, "TX"])
+                if self.config.getboolean('UDP', 'use_local_only'):
+                    try:
+                        UDPSendSocket.sendto(message, ('127.0.0.255', sendPort))
+                        self.logger.debug("tUDPSend: Put message out via UDP to local only")
+                    except socket.error as msg:
+                        self.logger.warn("tUDPSend: Failed to send via UDP local only. Error code : {} Message: {}".format(msg[0], msg[1]))
                     else:
-                        self.logger.warn("tUDPSend: Failed to send via UDP. Error code : {} Message: {}".format(msg[0], msg[1]))
+                        self.qJSONDebug.put([message, "TX"])
                 else:
-                    self.qJSONDebug.put([message, "TX"])
+                    try:
+                        UDPSendSocket.sendto(message, ('<broadcast>', sendPort))
+                        self.logger.debug("tUDPSend: Put message out via UDP")
+                    except socket.error as msg:
+                        if msg[0] == 101:
+                            try:
+                                self.logger.warn("tUDPSend: External network unreachable retrying on local interface only")
+                                UDPSendSocket.sendto(message, ('127.0.0.255', sendPort))
+                                self.logger.debug("tUDPSend: Put message out via UDP to local only")
+                            except socket.error as msg:
+                                self.logger.warn("tUDPSend: Failed to send via UDP local only. Error code : {} Message: {}".format(msg[0], msg[1]))
+                            else:
+                                self.qJSONDebug.put([message, "TX"])
+                        else:
+                            self.logger.warn("tUDPSend: Failed to send via UDP. Error code : {} Message: {}".format(msg[0], msg[1]))
+                    else:
+                        self.qJSONDebug.put([message, "TX"])
                 # tidy up
-
                 self.qUDPSend.task_done()
 
             # TODO: tUDPSend thread is alive, wiggle a pin?
-
         self.logger.info("tUDPSend: Thread stopping")
         try:
             UDPSendSocket.close()
         except socket.error:
             self.logger.exception("tUDPSend: Failed to close socket")
         return
-    
+
     # MARK: - UDP listen
     def _initUDPListenThread(self):
         """ Start the UDP Listen thread and queues

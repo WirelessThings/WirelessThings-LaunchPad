@@ -41,10 +41,17 @@ class AT():
         self._gpio = _gpio
 
         if self._gpio:
-            import RPi.GPIO as gpio
-            gpio.setmode(gpio.BCM)
-            gpio.setup(self._gpio, gpio.OUT)
-            gpio.output(self._gpio, gpio.HIGH)
+            try:
+                import RPi.GPIO as gpio
+                gpio.setmode(gpio.BCM)
+                gpio.setup(self._gpio, gpio.OUT)
+                gpio.output(self._gpio, gpio.HIGH)
+            except ImportError:
+                self.logger.warn("AT: Error importing RPi.GPIO. '+++' will be used instead of GPIO")
+                self._gpio = None
+            except:
+                self.logger.warn("AT: Error setting GPIO. '+++' will be used instead of GPIO")
+                self._gpio = None
 
     def __del__(self):
         pass

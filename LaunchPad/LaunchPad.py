@@ -151,6 +151,7 @@ class LaunchPad:
             self.restart()
 
         self.loadApps()
+        self.loadAppsConfigFiles()
 
         if self.args.noupdate:
             self.checkForUpdate()
@@ -1306,12 +1307,22 @@ class LaunchPad:
     def launch(self, app, command, NoUIUpdate=False):
         appCommand = []
         sudo = False
+
+        if command == "start":
+            #update the cfg file for this app with the info that the app used on start
+            self.reloadAppConfigFile(app)
+
         if command in ['stop', 'restart']:
             self._messageBridges = {}
             if os.getuid() != 0: #if program not running as su
                 # check what user started the app that we want to stop/restart
-                pidFileName = "{0}{1}.pid".format(self.appList[app]['CWD'],
-                                                    self.appList[app]['FileName'].split('.py',1)[0])
+                appPidFilePath = self.appsConfigFiles[app].get('Run', 'pid_file_path_name')
+                appPidFileName = self.appsConfigFiles[app].get('Run', 'pid_file_name')
+
+                if appPidFilePath.startswith("./"):
+                    appPidFilePath = os.path.join(self.appList[app]['CWD'],appPidFilePath[2:])
+
+                pidFileName = os.path.join(appPidFilePath, appPidFileName)
                 with open (pidFileName, 'r') as pid_file:
                     appPID = int(pid_file.readline().rstrip())
                     pid_file.close
@@ -1441,6 +1452,66 @@ class LaunchPad:
                                 'Description': 'Error loading AppList file'
                                 }]
             self.disableLaunch = True
+
+    def loadAppsConfigFiles(self):
+        self.logger.debug("Start loadAppsConfigFiles")
+        self.appsConfigFiles = []
+        if not self.disableLaunch:
+            for app in self.appList:
+                cfgFileName = "{0}{1}.cfg".format(app['CWD'],
+                                            app['FileName'].split('.py',1)[0])
+
+                cfgFileNameDefault = "{0}{1}_defaults.cfg".format(app['CWD'],
+                                            app['FileName'].split('.py',1)[0])
+
+                self.logger.info("Reading Config")
+
+                cfgFile = ConfigParser.SafeConfigParser()
+
+                # load defaults first
+                try:
+                    cfgFile.readfp(open(cfgFileNameDefault))
+                except:
+                    self.logger.debug("Could Not Load Default Settings File")
+
+                # read the user config file
+                if not cfgFile.read(cfgFileName):
+                    self.logger.debug("Could Not Load User Config")
+
+                if not cfgFile.sections():
+                    self.logger.error("No Config Loaded, Quitting")
+                    sys.exit()
+
+                self.appsConfigFiles.append(cfgFile)
+
+    def reloadAppConfigFile(self, app):
+        self.logger.debug("Start loadAppsConfigFiles")
+        cfgFileName = "{0}{1}.cfg".format(self.appList[app]['CWD'],
+                                    self.appList[app]['FileName'].split('.py',1)[0])
+
+        cfgFileNameDefault = "{0}{1}_defaults.cfg".format(self.appList[app]['CWD'],
+                                    self.appList[app]['FileName'].split('.py',1)[0])
+
+        self.logger.info("Reading Config")
+
+        cfgFile = ConfigParser.SafeConfigParser()
+
+        # load defaults first
+        try:
+            cfgFile.readfp(open(cfgFileNameDefault))
+        except:
+            self.logger.debug("Could Not Load Default Settings File")
+
+        # read the user config file
+        if not cfgFile.read(cfgFileName):
+            self.logger.debug("Could Not Load User Config")
+
+        if not cfgFile.sections():
+            self.logger.error("No Config Loaded, Quitting")
+            sys.exit()
+
+        self.appsConfigFiles[app] = cfgFile
+
 
 class PasswordDialog(tk.Toplevel):
     def __init__(self, parent):
