@@ -1530,11 +1530,7 @@ class ConfigurationWizard:
                              'value': ("8" if self.entry['SLEEPM'][0].get() else "0")
                              }
                              )
-            elif self.devices[self.device['index']]['SleepMode'] == "Polled":
-                query.append({'command': "SLEEPM"
-                             #'value': ("32" if self.entry['SLEEPM'][0].get() else "0")
-                             }
-                             )
+                         
         elif value[2] == 'ENKey':
             # set encryption key
             # need to split into each EN[1-6]
