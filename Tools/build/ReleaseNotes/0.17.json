@@ -2,6 +2,16 @@
     "Versions":[0.17, 0.16, 0.15, 0.14],
     "Prefix Text":["Below are the highlighted release notes for WirelessThings LaunchPad since your current version",
                    "More details copy of the relases notes can be found at Documentation directory and a full commit log can be seen at https://github.com/WirelessThings/WirelessThings-LaunchPad"],
-    "0.16":[""
+    "0.17":["Minor fixes in the Examples and Tools",
+            "Fix UDP send when no external network IP address",
+            "Make Initial AT mode commands more robust",
+            "Imporve init.d startup script",
+            "ConfigurationWizard can now do basic Configuration on unknow devices",
+            "Pid file loctaion easier to configure, helps support /var/run/",
+            "WirelessMessage JSON now supports sendOn function",
+            "MessageBridge now supports use of AT Command pin aswell as +++",
+            "MessageBridge JSON now exposed radioSerialNumber",
+            "MessageBridge can now use radioSerialNumber as network name",
+            "MessageBridge and ConfigurationWizard can be forced to use local network only"
             ]
 }
