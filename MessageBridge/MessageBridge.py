@@ -89,7 +89,8 @@ class MessageBridge():
     _configFileDefault = "./MessageBridge_defaults.cfg"
     _configFile = "./MessageBridge.cfg"
     _pidFile = None
-    _pidFilePath = "/var/run/"
+    _pidFilePath = None
+    _pidFileName = None
     _pidFileTimeout = 5
     _background = False
 
@@ -100,6 +101,9 @@ class MessageBridge():
     _ATLHRetriesCount = 3
 
     _version = 0.17
+
+    _sendOnIDs = []
+    _sendOnRequests = {}
 
     _currentDCR = False
     devType = None
@@ -221,8 +225,12 @@ is running then run in the current terminal
             return True
         else:
             #setup pidfile checking
-            self._pidFile = self._makePidlockfile("{}MessageBridge.pid".format(self._pidFilePath),
-                                                  self._pidFileTimeout)
+            self._readConfig()
+            self._pidFilePath = self.config.get('Run', 'pid_file_path_name')
+            self._pidFileName = self.config.get('Run', 'pid_file_name')
+            fullPath = os.path.join(self._pidFilePath, self._pidFileName)
+            self._pidFile = self._makePidlockfile(os.path.abspath(fullPath),
+                                                    self._pidFileTimeout)
 
             if self.args.action == None:
                 # run in foreground unless a daemon is all ready running
@@ -349,7 +357,7 @@ is running then run in the current terminal
             self.tMainStop.wait(1)
             self._initSerialThread()    # start the serial port thread
             self.tMainStop.wait(1)
-            self.fNetworkNameSet.wait(10) # waiting until serial network to be Set
+            self.fNetworkNameSet.wait(10) # waiting until serial network to be set
             self._initDCRThread()       # start the DeviceConfigurationRequest thread
             self._initUDPSendThread()   # start the UDP sender
             self._initUDPListenThread() # start the UDP listener
@@ -794,19 +802,26 @@ is running then run in the current terminal
                 pass
             else:
                 self.logger.debug("tUDPSend: Got json to send: {}".format(message))
-                try:
-                    UDPSendSocket.sendto(message, ('<broadcast>', sendPort))
-                    self.logger.debug("tUDPSend: Put message out via UDP")
-                except socket.error as msg:
-                    if msg[0] == 101:
-                        try:
-                            self.logger.warn("tUDPSend: External network unreachable retrying on local interface only")
-                            UDPSendSocket.sendto(message, ('127.0.0.255', sendPort))
-                            self.logger.debug("tUDPSend: Put message out via UDP to local only")
-                        except socket.error as msg:
-                            self.logger.warn("tUDPSend: Failed to send via UDP local only. Error code : {} Message: {}".format(msg[0], msg[1]))
-                    else:
-                        self.logger.warn("tUDPSend: Failed to send via UDP. Error code : {} Message: {}".format(msg[0], msg[1]))
+                if self.config.getboolean('UDP', 'use_local_only'):
+                    try:
+                        UDPSendSocket.sendto(message, ('127.0.0.255', sendPort))
+                        self.logger.debug("tUDPSend: Put message out via UDP to local only")
+                    except socket.error as msg:
+                        self.logger.warn("tUDPSend: Failed to send via UDP local only. Error code : {} Message: {}".format(msg[0], msg[1]))
+                else:
+                    try:
+                        UDPSendSocket.sendto(message, ('<broadcast>', sendPort))
+                        self.logger.debug("tUDPSend: Put message out via UDP")
+                    except socket.error as msg:
+                        if msg[0] == 101:
+                            try:
+                                self.logger.warn("tUDPSend: External network unreachable retrying on local interface only")
+                                UDPSendSocket.sendto(message, ('127.0.0.255', sendPort))
+                                self.logger.debug("tUDPSend: Put message out via UDP to local only")
+                            except socket.error as msg:
+                                self.logger.warn("tUDPSend: Failed to send via UDP local only. Error code : {} Message: {}".format(msg[0], msg[1]))
+                        else:
+                            self.logger.warn("tUDPSend: Failed to send via UDP. Error code : {} Message: {}".format(msg[0], msg[1]))
                 # tidy up
                 self.qUDPSend.task_done()
 
@@ -859,7 +874,7 @@ is running then run in the current terminal
                         self._SerialReadIncomingLanguageOfThings()
                     #check if there's any change on the Encryption Key to set on radio
                     elif self.fSetRadioEncryption.is_set():
-                        self.logger.debug("tSerial: fSetRadioEncryption Set")
+                        self.logger.debug("tSerial: fSetRadioEncryption set")
                         self.fRadioEncryptionDone.clear()
                         self.SetRadioEncryption()
                         self.fRadioEncryptionDone.set() #informs the main thread that has some encryption result to send
@@ -1021,7 +1036,7 @@ is running then run in the current terminal
             except:
                 self.logger.error("tSerial: Error obtaining Radio Serial Number")
                 return False
-            
+
             if not self.fNetworkNameSet.is_set():
                 if self.args.network or self.config.getboolean('Serial', 'network_use_radio_serial_number'):
                     try:
@@ -1111,12 +1126,13 @@ is running then run in the current terminal
                     self._SerialProcessQQ(wirelessMsg[3:].strip("-"))
                 else:
                     #now will check if there's any message to be sent on the "sendOn" queue
-                    if not self.checkSendOnQueue(wirelessMsg[1:3], wirelessMsg[3:].strip("-")):
-                        # not a configme Language of Things message so send out via UDP WirelessMessage
-                        try:
-                            self.qUDPSend.put_nowait(self.encodeWirelessMessageJson(wirelessMsg, self._network))
-                        except Queue.Full:
-                            self.logger.warn("tSerial: Failed to put {} on qUDPSend as it's full".format(wirelessMsg))
+                    if wirelessMsg[1:3] in self._sendOnIDs:
+                        self.sendOnForMatchedID(wirelessMsg[1:3], wirelessMsg[3:].strip("-"))
+                    # not a configme Language of Things message so send out via UDP WirelessMessage
+                    try:
+                        self.qUDPSend.put_nowait(self.encodeWirelessMessageJson(wirelessMsg, self._network))
+                    except Queue.Full:
+                        self.logger.warn("tSerial: Failed to put {} on qUDPSend as it's full".format(wirelessMsg))
 
     def _SerialProcessQQ(self, wirelessMsg):
         """ process an incoming ?? Language of Things message
@@ -1311,9 +1327,8 @@ is running then run in the current terminal
                         # got a WirelessMessage type json, need to generate the Language of Things message and
                         # put them on the TX queue
                         # TODO: error checking, dict should have keys for data
-                        if 'sendOn' in jsonin:
-                            #add the package to qSendOn
-                            self.qSendOn.put_nowait([jsonin['sendOn'], jsonin['id'], jsonin['data']])
+                        if jsonin.has_key('sendOn'):
+                            self.processSendOnJSON(jsonin)
                             continue
 
                         for command in jsonin['data']:
@@ -1351,37 +1366,45 @@ is running then run in the current terminal
             self.logger.exception("tUDPListen: Failed to close socket")
         return
 
-    def checkSendOnQueue(self, jsonid, jsoncommand):
-        tempQueue = []
-        messageSent = False
-        while not self.qSendOn.empty():
-            self.logger.debug("tMain: Processing SendOn JSON message")
-            try:
-                message = self.qSendOn.get_nowait()
-                if (message[0] == jsoncommand) and (message[1] == jsonid):
-                    for command in message[2]:
-                        wirelessMsg = "a{}{}".format(message[1], command)
-                        while len(wirelessMsg) <12:
-                            wirelessMsg += '-'
+    def processSendOnJSON(self, jsonin):
+        _id = jsonin['id']
+        request = { _id:[] }
+        request[_id].append({
+                            "on":jsonin['sendOn'],
+                            "send":jsonin['data'][0]
+                            })
 
-                        try:
-                            self.qSerialOut.put_nowait(wirelessMsg)
-                            messageSent = True
-                        except Queue.Full:
-                            self.logger.debug("checkSendOnQueue: Failed to put {} on qSerialOut as it's full".format(wirelessMsg))
-                        else:
-                            self.logger.debug("checkSendOnQueue: Put {} on qSerialOut".format(wirelessMsg))
+        for i in range(0, len(jsonin['data'])-1):
+            request[_id].append({ "on":jsonin['data'][i], "send":jsonin['data'][i+1] })
+
+        if not _id in self._sendOnIDs:
+            self._sendOnIDs.append(_id)
+
+        if self._sendOnRequests.has_key(_id):
+            for i in range(0, len(request[_id])):
+                self._sendOnRequests[_id].append(request[_id][i])
+        else:
+            self._sendOnRequests.update(request)
+
+    def sendOnForMatchedID(self, _id, command):
+        if self._sendOnRequests.has_key(_id):
+            if self._sendOnRequests[_id][0]['on'] == command:
+                wirelessMsg = "a{}{}".format(_id, self._sendOnRequests[_id][0]['send'])
+                while len(wirelessMsg) <12:
+                    wirelessMsg += '-'
+
+                try:
+                    self.qSerialOut.put_nowait(wirelessMsg)
+                except Queue.Full:
+                    self.logger.debug("checkSendOnQueue: Failed to put {} on qSerialOut as it's full".format(wirelessMsg))
                 else:
-                    #if isn't the message for that ID, store the message to fill the queue again with the message
-                    tempQueue.append(message)
-                self.qSendOn.task_done()
-            except Queue.Empty():
-                pass
-
-        if len(tempQueue): #if there's any message not used, put back on the queue
-            for sendOn, _id, data in tempQueue:
-                self.qSendOn.put([sendOn, _id, data])
-        return messageSent
+                    self.logger.debug("checkSendOnQueue: Put {} on qSerialOut".format(wirelessMsg))
+                    # if message sent, remove from the sendOnRequest
+                    self._sendOnRequests[_id].pop(0)
+                    # if is the last message for that ID, remove it from the sendOn arrays
+                    if len(self._sendOnRequests[_id]) == 0:
+                        self._sendOnIDs.remove(_id)
+                        self._sendOnRequests.pop(_id)
 
     def _processMessageBridgeMessage(self, message):
         message['timestamp'] = strftime("%d %b %Y %H:%M:%S +0000", gmtime())
