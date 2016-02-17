@@ -100,7 +100,7 @@ class MessageBridge():
     _UDPListenTimeout = 5   # timeout for UDP listen
     _ATLHRetriesCount = 3
 
-    _version = 0.17
+    _version = 0.18
 
     _sendOnIDs = []
     _sendOnRequests = {}
