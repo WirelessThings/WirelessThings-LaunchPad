@@ -152,7 +152,6 @@ is running then run in the current terminal
                               }
 
         self.tMainStop = threading.Event()
-        self.fNetworkNameSet = threading.Event()
         self.qMessageBridge = Queue.Queue()
         self.qSendOn = Queue.Queue()
         # setup initial Logging
@@ -357,13 +356,11 @@ is running then run in the current terminal
             self.tMainStop.wait(1)
             self._initSerialThread()    # start the serial port thread
             self.tMainStop.wait(1)
-            self.fNetworkNameSet.wait(10) # waiting until serial network to be set
             self._initDCRThread()       # start the DeviceConfigurationRequest thread
             self._initUDPSendThread()   # start the UDP sender
             self._initUDPListenThread() # start the UDP listener
 
             self._state = self.Running
-
             # main thread looks after the Message Bridge status for us
             while not self.tMainStop.is_set():
                 # check threads are running
@@ -1014,6 +1011,7 @@ is running then run in the current terminal
         if at.enterATMode():
             try:
                 self.radioFirmwareVersion = at.sendATWaitForResponse("ATVR")
+                self.logger.debug("tSerial: FW Version: {}".format(self.radioFirmwareVersion))
                 if not self.radioFirmwareVersion:
                     self.logger.error("tSerial: Radio Firmware Version not valid")
                     return False
@@ -1040,20 +1038,9 @@ is running then run in the current terminal
                 self.logger.error("tSerial: Error obtaining Radio Serial Number")
                 return False
 
-            if not self.fNetworkNameSet.is_set():
-                if self.args.network or self.config.getboolean('Serial', 'network_use_radio_serial_number'):
-                    try:
-                        self._network = self.radioSerialNumber
-                    except:
-                        self.logger.error("tSerial: Error setting Network as radio Serial Number")
-                        self._network = self.config.get('Serial', 'network')
-                else:
-                    self._network = self.config.get('Serial', 'network')
+            if self.args.network or self.config.getboolean('Serial', 'network_use_radio_serial_number'):
+                self._network = self.radioSerialNumber
 
-                self.fNetworkNameSet.set()  #informs the network now has a value
-
-            self.logger.info("tSerial: Radio Firmware Version: {}".format(self.radioFirmwareVersion))
-            self.logger.info("tSerial: Radio Serial Number: {}".format(self.radioSerialNumber))
             #ask for the ATLH
             atlh = at.sendATWaitForResponse("ATLH")
             if atlh:
