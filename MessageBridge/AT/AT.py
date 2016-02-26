@@ -28,7 +28,7 @@ class AT():
 
     _inATMode = False
 
-    def __init__(self, serialHandle=None, logger=None, event=None, _gpio=None):
+    def __init__(self, serialHandle=None, logger=None, event=None, gpioPin=None):
         self._serial = serialHandle or serial.Serial()
         if logger == None:
             logging.basicConfig(level=logging.DEBUG)
@@ -38,20 +38,21 @@ class AT():
 
         self.event = event
 
-        self._gpio = _gpio
+        self.gpioPin = gpioPin
 
-        if self._gpio:
+        if self.gpioPin:
             try:
-                import RPi.GPIO as gpio
-                gpio.setmode(gpio.BCM)
-                gpio.setup(self._gpio, gpio.OUT)
-                gpio.output(self._gpio, gpio.HIGH)
+                global GPIO
+                import RPi.GPIO as GPIO
+                GPIO.setmode(GPIO.BCM)
+                GPIO.setup(self.gpioPin, GPIO.OUT)
+                GPIO.output(self.gpioPin, GPIO.HIGH)
             except ImportError:
                 self.logger.warn("AT: Error importing RPi.GPIO. '+++' will be used instead of GPIO")
-                self._gpio = None
+                self.gpioPin = None
             except:
                 self.logger.warn("AT: Error setting GPIO. '+++' will be used instead of GPIO")
-                self._gpio = None
+                self.gpioPin = None
 
     def __del__(self):
         pass
@@ -87,6 +88,7 @@ class AT():
         self.logger.debug("AT: Close Serial port")
 
     def enterATMode(self, retries=2):
+        global GPIO
         """ Enter AT command mode
             To enter AT mode we wait 1 seconds send +++
             wait 1 second
@@ -96,8 +98,8 @@ class AT():
         """
 
         self.logger.debug("AT: Enter Command Mode")
-        if self._gpio:
-            gpio.output(self._gpio, gpio.LOW)
+        if self.gpioPin:
+            GPIO.output(self.gpioPin, GPIO.LOW)
             self.logger.debug("AT: Entered AT Mode via GPIO")
             self._inATMode = True
             return True
@@ -128,6 +130,7 @@ class AT():
         return False
 
     def leaveATMode(self):
+        global GPIO
         """ Leave AT commnand Mode
             there are two ways to leave AT Mode
             send "ATDN"
@@ -135,8 +138,8 @@ class AT():
         """
         self.logger.debug("AT: Leave Command Mode")
         if self._inATMode:
-            if self._gpio:
-                gpio.output(self._gpio, gpio.HIGH)
+            if self.gpioPin:
+                GPIO.output(self.gpioPin, GPIO.HIGH)
             else:
                 self.sendATWaitForOK("ATDN", 5)
         return True
