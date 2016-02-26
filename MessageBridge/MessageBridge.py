@@ -352,6 +352,9 @@ is running then run in the current terminal
 
         try:
             self._readConfig()          # read in the config file
+            # could be changed later due to options set on cfg file
+            self._network = self.config.get('Serial', 'network')
+
             self._initLogging()         # setup the logging options
             self.tMainStop.wait(1)
             self._initSerialThread()    # start the serial port thread
@@ -603,8 +606,6 @@ is running then run in the current terminal
         #setup flags
         self.fSetRadioEncryption = threading.Event()
         self.fRadioEncryptionDone = threading.Event()
-        # could be changed later due to options set on cfg file
-        self._network = self.config.get('Serial', 'network')
 
         # setup thread
         self.tSerialStop = threading.Event()
