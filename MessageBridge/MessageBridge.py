@@ -606,6 +606,8 @@ is running then run in the current terminal
         #setup flags
         self.fSetRadioEncryption = threading.Event()
         self.fRadioEncryptionDone = threading.Event()
+        # could be changed later due to options set on cfg file
+        self._network = self.config.get('Serial', 'network')
 
         # setup thread
         self.tSerialStop = threading.Event()
