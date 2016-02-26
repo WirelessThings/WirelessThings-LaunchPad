@@ -152,7 +152,6 @@ is running then run in the current terminal
                               }
 
         self.tMainStop = threading.Event()
-        self.fNetworkNameSet = threading.Event()
         self.qMessageBridge = Queue.Queue()
         self.qSendOn = Queue.Queue()
         # setup initial Logging
@@ -353,17 +352,18 @@ is running then run in the current terminal
 
         try:
             self._readConfig()          # read in the config file
+            # could be changed later due to options set on cfg file
+            self._network = self.config.get('Serial', 'network')
+
             self._initLogging()         # setup the logging options
             self.tMainStop.wait(1)
             self._initSerialThread()    # start the serial port thread
             self.tMainStop.wait(1)
-            self.fNetworkNameSet.wait(10) # waiting until serial network to be set
             self._initDCRThread()       # start the DeviceConfigurationRequest thread
             self._initUDPSendThread()   # start the UDP sender
             self._initUDPListenThread() # start the UDP listener
 
             self._state = self.Running
-
             # main thread looks after the Message Bridge status for us
             while not self.tMainStop.is_set():
                 # check threads are running
@@ -1012,6 +1012,7 @@ is running then run in the current terminal
         if at.enterATMode():
             try:
                 self.radioFirmwareVersion = at.sendATWaitForResponse("ATVR")
+                self.logger.debug("tSerial: FW Version: {}".format(self.radioFirmwareVersion))
                 if not self.radioFirmwareVersion:
                     self.logger.error("tSerial: Radio Firmware Version not valid")
                     return False
@@ -1023,13 +1024,14 @@ is running then run in the current terminal
             if '0.' in fwVersion:
                 fwVersion = fwVersion.split('0.',1)[1]
 
-            if ("SRFV2" in self.radioFirmwareVersion) and (fwVersion >= 97):
+            if ("SRFV2" in self.radioFirmwareVersion) and (int(fwVersion) >= 97):
                 serialNumberCommand = "ATSF"    # SRF fixed serial number (only avalible on SRFV2 firmware 97 or later)
             else:
                 serialNumberCommand = "ATSN"    # SRF user settable serial number
 
             try:
                 self.radioSerialNumber = at.sendATWaitForResponse(serialNumberCommand)
+                self.logger.info("tSerial: Radio Serial Number: {}".format(self.radioSerialNumber))
                 if not self.radioSerialNumber:
                     self.logger.error("tSerial: Radio Serial Number not valid")
                     return False
@@ -1037,20 +1039,9 @@ is running then run in the current terminal
                 self.logger.error("tSerial: Error obtaining Radio Serial Number")
                 return False
 
-            if not self.fNetworkNameSet.is_set():
-                if self.args.network or self.config.getboolean('Serial', 'network_use_radio_serial_number'):
-                    try:
-                        self._network = self.radioSerialNumber
-                    except:
-                        self.logger.error("tSerial: Error setting Network as radio Serial Number")
-                        self._network = self.config.get('Serial', 'network')
-                else:
-                    self._network = self.config.get('Serial', 'network')
+            if self.args.network or self.config.getboolean('Serial', 'network_use_radio_serial_number'):
+                self._network = self.radioSerialNumber
 
-                self.fNetworkNameSet.set()  #informs the network now has a value
-
-            self.logger.info("tSerial: Radio Firmware Version: {}".format(self.radioFirmwareVersion))
-            self.logger.info("tSerial: Radio Serial Number: {}".format(self.radioSerialNumber))
             #ask for the ATLH
             atlh = at.sendATWaitForResponse("ATLH")
             if atlh:
