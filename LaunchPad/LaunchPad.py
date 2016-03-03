@@ -955,15 +955,16 @@ class LaunchPad:
                 except ValueError:
                     self.logger.debug("tUDPListen: Invalid JSON received")
                     continue
-
-                if jsonin['type'] == "WirelessMessage":
-                    pass
-                elif jsonin['type'] == "DeviceConfigurationRequest":
-                    pass
-                elif jsonin['type'] == "MessageBridge":
-                    # we have a MessageBridge JSON do stuff with it
-                    self.logger.debug("tUDPListen: JSON of type MessageBridge")
-                    self._updateMessageBridgeDetailsFromJSON(jsonin, address[0])
+                
+                if 'type' in jsonin:
+                    if jsonin['type'] == "WirelessMessage":
+                        pass
+                    elif jsonin['type'] == "DeviceConfigurationRequest":
+                        pass
+                    elif jsonin['type'] == "MessageBridge":
+                        # we have a MessageBridge JSON do stuff with it
+                        self.logger.debug("tUDPListen: JSON of type MessageBridge")
+                        self._updateMessageBridgeDetailsFromJSON(jsonin, address[0])
 
         self.logger.debug("tUDPListen: Thread stopping")
         try:
