@@ -402,23 +402,24 @@ class ConfigurationWizard:
                     continue
 
                 self.qJSONDebug.put([data, "RX"])
-                # TODO: Check for keys before trying to use them
-                if jsonin['type'] == "WirelessMessage":
-                    self.logger.debug("tUDPListen: JSON of type WirelessMessage")
-                    # got a WirelessMessage type json, need to generate the Language of Things message and
-                    # TODO: we should pass on WirelessMessage type to the JSON window if enabled
-                    pass
-                elif jsonin['type'] == "DeviceConfigurationRequest":
-                    # we have a DeviceConfigurationRequest reply pass it back to the GUI to deal with
-                    self.logger.debug("tUDPListen: JSON of type DeviceConfigurationRequest, passing to qDCRReply")
-                    try:
-                        self.qDCRReply.put_nowait(jsonin)
-                    except Queue.Full:
-                        self.logger.debug("tUDPListen: Failed to put json on qDCRReply")
+                # Check for keys before trying to use them
+                if 'type' in jsonin:
+                    if jsonin['type'] == "WirelessMessage":
+                        self.logger.debug("tUDPListen: JSON of type WirelessMessage")
+                        # got a WirelessMessage type json, need to generate the Language of Things message and
+                        # TODO: we should pass on WirelessMessage type to the JSON window if enabled
+                        pass
+                    elif jsonin['type'] == "DeviceConfigurationRequest":
+                        # we have a DeviceConfigurationRequest reply pass it back to the GUI to deal with
+                        self.logger.debug("tUDPListen: JSON of type DeviceConfigurationRequest, passing to qDCRReply")
+                        try:
+                            self.qDCRReply.put_nowait(jsonin)
+                        except Queue.Full:
+                            self.logger.debug("tUDPListen: Failed to put json on qDCRReply")
 
-                elif jsonin['type'] == "MessageBridge":
-                    self.logger.debug("tUDPListen: JSON of type MessageBridge")
-                    self._updateMessageBridgeDetailsFromJSON(jsonin, address[0])
+                    elif jsonin['type'] == "MessageBridge":
+                        self.logger.debug("tUDPListen: JSON of type MessageBridge")
+                        self._updateMessageBridgeDetailsFromJSON(jsonin, address[0])
 
         self.logger.info("tUDPListen: Thread stopping")
         try:
@@ -712,7 +713,7 @@ class ConfigurationWizard:
             for command in commandList:
                 if subject == command['Command']:
                     infoText = command['Description']
-                    if command.has_key('Format'):
+                    if 'Format' in command:
                         infoFormat = command['Format']
 
         position = self.master.geometry().split("+")
@@ -1865,22 +1866,22 @@ class ConfigurationWizard:
                 else:
                     self._messageBridges[network]['state'] = jsonin.get('state', "Unknown")
                     self._messageBridges[network]['timestamp'] = jsonin['timestamp']
-                    if jsonin.has_key('data'):
-                        if not self._messageBridges[network].has_key('data'):
+                    if 'data' in jsonin:
+                        if not 'data' in self._messageBridges[network]:
                             self._messageBridges[network]['data'] = jsonin['data']
                         else:
-                            if jsonin.has_key('id'):
+                            if 'id' in jsonin:
                                 self._messageBridges[network]['data']['id'] = jsonin['data']['id']
-                            if jsonin.has_key('result'):
+                            if 'result' in jsonin:
                                 results = jsonin['data']['result']
-                                if not self._messageBridges[network]['data'].has_key('result'):
+                                if not 'result' in self._messageBridges[network]['data']:
                                     self._messageBridges[network]['data']['result'] = results
                                 else:
-                                    if results.has_key('PANID'):
+                                    if 'PANID' in results:
                                         self._messageBridges[network]['data']['result']['PANID'] = results['PANID']
-                                    if results.has_key('encryptionState'):
+                                    if 'encryptionState' in results:
                                         self._messageBridges[network]['data']['result']['encryptionSet'] = results['encryptionSet']
-                                    if results.has_key('deviceStore'):
+                                    if 'deviceStore' in results:
                                         self._messageBridges[network]['data']['result']['deviceStore'] = results['deviceStore']
         else:
             # new entry store the whole packet
