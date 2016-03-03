@@ -669,7 +669,7 @@ is running then run in the current terminal
                             self._currentDCR['data']['replies'] = {}
                             # use a copy in case we are adding ENC stuff
                             toQuery = list(self._currentDCR['data']['toQuery'])
-                            if self._currentDCR['data'].has_key('setENC'):
+                            if 'setENC' in self._currentDCR['data']:
                                 if self._encryption:
                                     self.logger.debug("tDCR: auto setting encryption")
                                     toQuery.insert(0, {"command":"ENC", "value":"ON"})
@@ -930,7 +930,7 @@ is running then run in the current terminal
             at = AT.AT(self._serial, self.logger, self.tSerialStop)
 
         if at.enterATMode():
-            if self._setRadioEncryption.has_key('PANID'):
+            if 'PANID' in self._setRadioEncryption:
                 atid = at.sendATWaitForResponse("ATID")
                 if atid:
                     if self._setRadioEncryption['PANID'] in atid:
@@ -944,7 +944,7 @@ is running then run in the current terminal
                 else:
                     self.logger.error("tSerial: SetRadioEncryption: Error getting ATID response")
 
-            if self._setRadioEncryption.has_key('encryptionSet'):
+            if 'encryptionSet' in self._setRadioEncryption:
                 atee = at.sendATWaitForResponse("ATEE")
                 if atee:
                     try:
@@ -961,7 +961,7 @@ is running then run in the current terminal
                 else:
                     self.logger.error("tSerial: SetRadioEncryption: Error getting ATEE response")
 
-            if self._setRadioEncryption.has_key('encryptionKey'):
+            if 'encryptionKey' in self._setRadioEncryption:
                 status = "Fail"
                 atek = at.sendATWaitForResponse("ATEK")
                 if atek:
@@ -1374,14 +1374,14 @@ is running then run in the current terminal
         if not _id in self._sendOnIDs:
             self._sendOnIDs.append(_id)
 
-        if self._sendOnRequests.has_key(_id):
+        if _id in self._sendOnRequests:
             for i in range(0, len(request[_id])):
                 self._sendOnRequests[_id].append(request[_id][i])
         else:
             self._sendOnRequests.update(request)
 
     def sendOnForMatchedID(self, _id, command):
-        if self._sendOnRequests.has_key(_id):
+        if _id in self._sendOnRequests:
             if self._sendOnRequests[_id][0]['on'] == command:
                 wirelessMsg = "a{}{}".format(_id, self._sendOnRequests[_id][0]['send'])
                 while len(wirelessMsg) <12:
@@ -1404,9 +1404,9 @@ is running then run in the current terminal
         message['timestamp'] = strftime("%d %b %Y %H:%M:%S +0000", gmtime())
         message['network'] = self._network
         message['state'] = self._state
-        if message.has_key('data'):
+        if 'data' in message:
             result = {}
-            if message['data'].has_key('request'):
+            if 'request' in message['data']:
                 for request in message['data']['request']:
                     if request == "deviceStore":
                         result['deviceStore'] = self._deviceStore
@@ -1423,7 +1423,7 @@ is running then run in the current terminal
                         result['radioSerialNumber'] = self.radioSerialNumber
                 message['data']['result'] = result
 
-            elif message['data'].has_key('set'):
+            elif 'set' in message['data']:
                 self.logger.debug("tSerial: received 'set' on json")
                 self._setRadioEncryption = {}
                 for _set in message['data']['set']:
@@ -1439,7 +1439,7 @@ is running then run in the current terminal
 
         try:
             # just report state
-            if message.has_key('data') and message['data'].has_key('set'):
+            if 'data' in message and 'set' in message['data']:
                     queueName = "qReplyEncryption"
                     self.qReplyEncryption.put(message)
             else:
