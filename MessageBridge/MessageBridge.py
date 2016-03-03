@@ -1308,47 +1308,50 @@ is running then run in the current terminal
                     self.logger.debug("tUDPListen: Invalid JSON received")
                     continue
 
-                # TODO: error checking, dict should have keys for network
-                if (jsonin['network'] == self._network or
-                    jsonin['network'] == "ALL"):
-                    # yep its for our network or "ALL"
-                    # TODO: error checking, dict should have keys for type
-                    if jsonin['type'] == "WirelessMessage":
-                        self.logger.debug("tUDPListen: JSON of type WirelessMessage, send out messages")
-                        # got a WirelessMessage type json, need to generate the Language of Things message and
-                        # put them on the TX queue
-                        # TODO: error checking, dict should have keys for data
-                        if jsonin.has_key('sendOn'):
-                            self.processSendOnJSON(jsonin)
-                            continue
+                # error checking, dict should have keys for network, ignore it if not there
+                if 'network' in jsonin:
+                    if (jsonin['network'] == self._network or
+                        jsonin['network'] == "ALL"):
+                        # yep its for our network or "ALL"
+                        # error checking, dict should have keys for type
+                        if 'type' in jsonin:
+                            if jsonin['type'] == "WirelessMessage":
+                                self.logger.debug("tUDPListen: JSON of type WirelessMessage, send out messages")
+                                # got a WirelessMessage type json, need to generate the Language of Things message and
+                                # put them on the TX queue
+                                # error checking, dict should have keys for sendon and data
+                                if 'sendOn' in jsonin:
+                                    self.processSendOnJSON(jsonin)
+                                    continue
+                                
+                                if 'data' in jsonin:
+                                    for command in jsonin['data']:
+                                        wirelessMsg = "a{}{}".format(jsonin['id'], command[0:9].upper())
+                                        while len(wirelessMsg) <12:
+                                            wirelessMsg += '-'
+                                        try:
+                                            self.qSerialOut.put_nowait(wirelessMsg)
+                                        except Queue.Full:
+                                            self.logger.debug("tUDPListen: Failed to put {} on qDCRSerial as it's full".format(wirelessMsg))
+                                        else:
+                                            self.logger.debug("tUDPListen: Put {} on qSerialOut".format(wirelessMsg))
 
-                        for command in jsonin['data']:
-                            wirelessMsg = "a{}{}".format(jsonin['id'], command[0:9].upper())
-                            while len(wirelessMsg) <12:
-                                wirelessMsg += '-'
-                            try:
-                                self.qSerialOut.put_nowait(wirelessMsg)
-                            except Queue.Full:
-                                self.logger.debug("tUDPListen: Failed to put {} on qDCRSerial as it's full".format(wirelessMsg))
-                            else:
-                                self.logger.debug("tUDPListen: Put {} on qSerialOut".format(wirelessMsg))
+                            elif jsonin['type'] == "DeviceConfigurationRequest" and self.config.getboolean('DCR', 'dcr_enable'):
+                                # we have a DeviceConfigurationRequest pass in onto the DCR thread
+                                # TODO: error checking, dict should have keys for data
+                                self.logger.debug("tUDPListen: JSON of type DeviceConfigurationRequest, passing to qDCRRequest")
+                                try:
+                                    self.qDCRRequest.put_nowait(jsonin)
+                                except Queue.Full:
+                                    self.logger.debug("tUDPListen: Failed to put json on qDCRRequest")
 
-                    elif jsonin['type'] == "DeviceConfigurationRequest" and self.config.getboolean('DCR', 'dcr_enable'):
-                        # we have a DeviceConfigurationRequest pass in onto the DCR thread
-                        # TODO: error checking, dict should have keys for data
-                        self.logger.debug("tUDPListen: JSON of type DeviceConfigurationRequest, passing to qDCRRequest")
-                        try:
-                            self.qDCRRequest.put_nowait(jsonin)
-                        except Queue.Full:
-                            self.logger.debug("tUDPListen: Failed to put json on qDCRRequest")
-
-                    elif jsonin['type'] == "MessageBridge":
-                        # we have a MessageBridge json do stuff with it
-                        self.logger.debug("tUDPListen: JSON of type MessageBridge, passing to qMessageBridge")
-                        try:
-                            self.qMessageBridge.put(jsonin)
-                        except Queue.Full():
-                            self.logger.debug("tUDPListen: Failed to put json on qMessageBridge")
+                            elif jsonin['type'] == "MessageBridge":
+                                # we have a MessageBridge json do stuff with it
+                                self.logger.debug("tUDPListen: JSON of type MessageBridge, passing to qMessageBridge")
+                                try:
+                                    self.qMessageBridge.put(jsonin)
+                                except Queue.Full():
+                                    self.logger.debug("tUDPListen: Failed to put json on qMessageBridge")
 
         self.logger.info("tUDPListen: Thread stopping")
         try:
