@@ -208,6 +208,9 @@ is running then run in the current terminal
         parser.add_argument('-n', '--network',
                             help='Use the radio Serial Number as Network Name',
                             action='store_true')
+        parser.add_argument('-c', '--configfile',
+                            help='Override defualt config file loading'
+                            )
 
         self.args = parser.parse_args()
 
@@ -458,8 +461,12 @@ is running then run in the current terminal
         except:
             self.logger.debug("Could Not Load Default Settings File")
 
-        if not self.config.read(self._configFile):
-            self.logger.debug("Could Not Load User Config, One Will be Created on Exit")
+        if self.args.configfile:
+            if not self.config.read(self.args.configfile):
+                self.logger.debug("Could not load user config from {}".fortmat(self.args.configfile))
+        else:
+            if not self.config.read(self._configFile):
+                self.logger.debug("Could Not Load User Config, One Will be Created on Exit")
 
         if not self.config.sections():
             self.logger.critical("No Config Loaded, Exiting")
