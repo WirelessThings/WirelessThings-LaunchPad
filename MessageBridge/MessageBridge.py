@@ -474,7 +474,12 @@ is running then run in the current terminal
 
     def _writeConfig(self):
         self.logger.debug("Writing Config")
-        with open(self._configFile, 'wb') as configFile:
+        if self.args.configfile:
+            file = self.args.configfile
+        else:
+            file = self._configFile
+        
+        with open(file, 'wb') as configFile:
             self.config.write(configFile)
 
     def _reloadProgramConfig(self):
