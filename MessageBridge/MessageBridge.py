@@ -1653,6 +1653,9 @@ is running then run in the current terminal
                     # The specified PID does not exist
                     result = True
 
+        if pidfile_pid == None:
+            self._pidFile.break_lock()
+        
         return result
 
     def _cleanUp(self, signal_number=None, stack_frame=None):
