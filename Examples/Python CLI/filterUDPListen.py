@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """ Filterd UDP lienter
 
@@ -50,16 +50,16 @@ lasttime = time()
 
 while True:
     data, addr = sock.recvfrom(1024*8)
-    pydata = json.loads(data)
+    pydata = json.loads(data.decode())
     if pydata['type'] == 'WirelessMessage':
         if len(sys.argv) == 3:
             if pydata['network'] != sys.argv[2]:
                 continue
         if len(sys.argv) >= 2:
             if pydata['id'] == sys.argv[1]:
-		now = time()
+                now = time()
                 timediff = now - lasttime
-		lasttime = now
-                print("Device: {} Data: {} Time: {} Network: {} Timesince: {}".format(pydata['id'], pydata['data'][0], pydata['timestamp'], pydata['network'], timediff))
+                lasttime = now
+                print(("Device: {} Data: {} Time: {} Network: {} Timesince: {}".format(pydata['id'], pydata['data'][0], pydata['timestamp'], pydata['network'], timediff)))
         else:
-            print("Device: {} Data: {}".format(pydata['id'], pydata['data'][0]))
+            print(("Device: {} Data: {}".format(pydata['id'], pydata['data'][0])))

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """ WirelessThings Message Bridge
 
@@ -25,9 +25,9 @@ from time import time, sleep, gmtime, strftime
 import os
 import signal
 import errno
-import Queue
+import queue
 import argparse
-import ConfigParser
+import configparser
 import serial
 import threading
 import socket
@@ -152,8 +152,8 @@ is running then run in the current terminal
                               }
 
         self.tMainStop = threading.Event()
-        self.qMessageBridge = Queue.Queue()
-        self.qSendOn = Queue.Queue()
+        self.qMessageBridge = queue.Queue()
+        self.qSendOn = queue.Queue()
         # setup initial Logging
         logging.getLogger().setLevel(logging.NOTSET)
         self.logger = logging.getLogger('Message Bridge')
@@ -254,7 +254,7 @@ is running then run in the current terminal
                     return False
                 else:
                     # register our own signal handlers
-                    for (signal_number, handler) in self._signalMap.items():
+                    for (signal_number, handler) in list(self._signalMap.items()):
                         signal.signal(signal_number, handler)
 
                     self._background = False
@@ -341,9 +341,9 @@ is running then run in the current terminal
 
         pid = self._pidFile.read_pid()
         if pid is not None:
-            print("{} is running (PID {})".format(os.path.basename(__file__),pid))
+            print(("{} is running (PID {})".format(os.path.basename(__file__),pid)))
         else:
-            print("{} is not running".format(os.path.basename(__file__)))
+            print(("{} is not running".format(os.path.basename(__file__))))
 
         return pid
 
@@ -418,14 +418,14 @@ is running then run in the current terminal
                     if not self.qReplyEncryption.empty():
                         try:
                             message = self.qReplyEncryption.get_nowait()
-                        except Queue.Empty():
+                        except queue.Empty():
                             pass
                         else:
                             message['timestamp'] = strftime("%d %b %Y %H:%M:%S +0000", gmtime())
                             message['data']['result'] = self._setRadioEncryption
                             try:
                                 self.qUDPSend.put(json.dumps(message))
-                            except Queue.Full:
+                            except queue.Full:
                                 self.logger.debug("tMain: Failed to put {} on qUDPSend as it's full".format(message))
                             else:
                                 self.logger.debug("tMain: Put {} on qUDPSend".format(message))
@@ -436,7 +436,7 @@ is running then run in the current terminal
                     self.logger.debug("tMain: Processing MessageBridge JSON message")
                     try:
                         jsonMessage = self.qMessageBridge.get_nowait()
-                    except Queue.Empty():
+                    except queue.Empty():
                         pass
                     else:
                         self._processMessageBridgeMessage(jsonMessage)
@@ -454,10 +454,10 @@ is running then run in the current terminal
         """Read the Message Bridge config file from disk
         """
         self.logger.info("Reading config files")
-        self.config = ConfigParser.SafeConfigParser()
+        self.config = configparser.ConfigParser()
         # load defaults
         try:
-            self.config.readfp(open(self._configFileDefault))
+            self.config.read_file(open(self._configFileDefault))
         except:
             self.logger.debug("Could Not Load Default Settings File")
 
@@ -479,7 +479,7 @@ is running then run in the current terminal
         else:
             file = self._configFile
         
-        with open(file, 'wb') as configFile:
+        with open(file, 'w') as configFile:
             self.config.write(configFile)
 
     def _reloadProgramConfig(self):
@@ -555,8 +555,8 @@ is running then run in the current terminal
         """
         self.logger.info("DCR Thread init")
 
-        self.qDCRRequest = Queue.Queue()
-        self.qDCRSerial = Queue.Queue()
+        self.qDCRRequest = queue.Queue()
+        self.qDCRSerial = queue.Queue()
 
         self.tDCRStop = threading.Event()
         self.fAnsweredAll = threading.Event()
@@ -583,7 +583,7 @@ is running then run in the current terminal
         """
         self.logger.info("UDP Send Thread init")
 
-        self.qUDPSend = Queue.Queue()
+        self.qUDPSend = queue.Queue()
 
         self.tUDPSendStop = threading.Event()
 
@@ -612,9 +612,9 @@ is running then run in the current terminal
         self._serial.baudrate = self.config.get('Serial', 'baudrate')
         self._serial.timeout = self._serialTimeout
         # setup queue
-        self.qSerialOut = Queue.Queue()
-        self.qSerialToQuery = Queue.Queue()
-        self.qReplyEncryption = Queue.Queue()
+        self.qSerialOut = queue.Queue()
+        self.qSerialToQuery = queue.Queue()
+        self.qReplyEncryption = queue.Queue()
         #setup flags
         self.fSetRadioEncryption = threading.Event()
         self.fRadioEncryptionDone = threading.Event()
@@ -665,7 +665,7 @@ is running then run in the current terminal
                     # lets get it out the queue and start processing it
                     try:
                         self._currentDCR = self.qDCRRequest.get_nowait()
-                    except Queue.Empty:
+                    except queue.Empty:
                         self.logger.debug("tDCR: Failed to get item from qDCRRequest")
                     else:
                         # check the keepAwake
@@ -691,7 +691,7 @@ is running then run in the current terminal
                             # pass queries on to the serial thread to send out
                             try:
                                 self.qSerialToQuery.put_nowait(toQuery)
-                            except Queue.Full:
+                            except queue.Full:
                                 self.logger.debug("tDCR: Failed to put item onto toQuery as it's full")
                             else:
                                 self.devType = self._currentDCR['data'].get('devType', None)
@@ -713,7 +713,7 @@ is running then run in the current terminal
                 self.logger.debug("tDCR: Something in qDCRSerial")
                 try:
                     wirelessReply = self.qDCRSerial.get_nowait()
-                except Queue.Empty:
+                except queue.Empty:
                     self.logger.debug("tDCR: Failed to get item from qDCRSerial")
                 else:
                     self.logger.debug("tDCR: Got {} to process".format(wirelessReply))
@@ -757,7 +757,7 @@ is running then run in the current terminal
                         try:
                             self.qSerialToQuery.get()
                             self.logger.debug("tDCR: removed stale query from qSerialToQuery")
-                        except Queue.Empty:
+                        except queue.Empty:
                             pass
 
                     self._DCRReturnDCR("FAIL_TIMEOUT")
@@ -781,7 +781,7 @@ is running then run in the current terminal
         # send to UDP thread
         try:
             self.qUDPSend.put_nowait(jsonout)
-        except Queue.Full:
+        except queue.Full:
             self.logger.warn("tDCR: Failed to put {} on qUDPSend as it's full".format(wirelessMsg))
         else:
             self.logger.debug("tDCR: Sent DCR reply to qUDPSend")
@@ -807,7 +807,7 @@ is running then run in the current terminal
         while (not self.tUDPSendStop.is_set()):
             try:
                 message = self.qUDPSend.get(timeout=1)     # block for up to 1 seconds
-            except Queue.Empty:
+            except queue.Empty:
                 # UDP Send queue was empty
                 # extrem debug message
                 # self.logger.debug("tUDPSend: queue is empty")
@@ -816,19 +816,19 @@ is running then run in the current terminal
                 self.logger.debug("tUDPSend: Got json to send: {}".format(message))
                 if self.config.getboolean('UDP', 'use_local_only'):
                     try:
-                        UDPSendSocket.sendto(message, ('127.0.0.255', sendPort))
+                        UDPSendSocket.sendto(message.encode(), ('127.0.0.255', sendPort))
                         self.logger.debug("tUDPSend: Put message out via UDP to local only")
                     except socket.error as msg:
                         self.logger.warn("tUDPSend: Failed to send via UDP local only. Error code : {} Message: {}".format(msg[0], msg[1]))
                 else:
                     try:
-                        UDPSendSocket.sendto(message, ('<broadcast>', sendPort))
+                        UDPSendSocket.sendto(message.encode(), ('<broadcast>', sendPort))
                         self.logger.debug("tUDPSend: Put message out via UDP")
                     except socket.error as msg:
                         if msg[0] == 101:
                             try:
                                 self.logger.warn("tUDPSend: External network unreachable retrying on local interface only")
-                                UDPSendSocket.sendto(message, ('127.0.0.255', sendPort))
+                                UDPSendSocket.sendto(message.encode(), ('127.0.0.255', sendPort))
                                 self.logger.debug("tUDPSend: Put message out via UDP to local only")
                             except socket.error as msg:
                                 self.logger.warn("tUDPSend: Failed to send via UDP local only. Error code : {} Message: {}".format(msg[0], msg[1]))
@@ -896,8 +896,8 @@ is running then run in the current terminal
                         self.logger.debug("tSerial: got something to send")
                         try:
                             wirelessMsg = self.qSerialOut.get_nowait()
-                            self._serial.write(wirelessMsg)
-                        except Queue.Empty:
+                            self._serial.write(wirelessMsg.encode())
+                        except queue.Empty:
                             self.logger.debug("tSerial: failed to get item from queue")
                         except Serial.SerialException as e:
                             self.logger.warn("tSerial: failed to write to the serial port {}: {}".format(self._serial.port, e))
@@ -1091,7 +1091,7 @@ is running then run in the current terminal
 
 
     def _SerialReadIncomingLanguageOfThings(self):
-        char = self._serial.read()  # should not time out but we should check anyway
+        char = self._serial.read().decode()  # should not time out but we should check anyway
         self.logger.debug("tSerial: RX:{}".format(char))
 
         if char == 'a':
@@ -1100,7 +1100,7 @@ is running then run in the current terminal
             wirelessMsg = "a"
             count = 0
             while count < 11:
-                char = self._serial.read()
+                char = self._serial.read().decode()
                 if not char:
                     self.logger.debug("tSerial: RX:{}".format(char))
                     return
@@ -1134,7 +1134,7 @@ is running then run in the current terminal
                     # not a configme Language of Things message so send out via UDP WirelessMessage
                     try:
                         self.qUDPSend.put_nowait(self.encodeWirelessMessageJson(wirelessMsg, self._network))
-                    except Queue.Full:
+                    except queue.Full:
                         self.logger.warn("tSerial: Failed to put {} on qUDPSend as it's full".format(wirelessMsg))
 
     def _SerialProcessQQ(self, wirelessMsg):
@@ -1172,7 +1172,7 @@ is running then run in the current terminal
                     # store the reply
                     try:
                         self.qDCRSerial.put_nowait(wirelessMsg)
-                    except Queue.Full:
+                    except queue.Full:
                         self.logger.warn("tSerial: Failed to put {} on qDCRSerial as it's full".format(wirelessMsg))
 
                     # if we have replies for all state == 0:
@@ -1210,7 +1210,7 @@ is running then run in the current terminal
                 # do we have a waiting query and can we send one
                 try:
                     self._SerialToQuery = self.qSerialToQuery.get_nowait()
-                except Queue.Empty:
+                except queue.Empty:
                     pass
                 else:
                     self._SerialToQuery.reverse()
@@ -1239,7 +1239,7 @@ is running then run in the current terminal
         # only thing left now would be a CONFIGME so do we need to send a keepAwake
         if wirelessMsg == "CONFIGME" and self.fKeepAwake.is_set():
             try:
-                self._serial.write("a??HELLO----")
+                self._serial.write("a??HELLO----".encode())
             except Serial.SerialException as e:
                 self.logger.warn("tSerial: failed to write to the serial port {}: {}".format(self._serial.port, e))
             else:
@@ -1257,7 +1257,7 @@ is running then run in the current terminal
             while len(wirelessToSend) < 12:
                 wirelessToSend += "-"
             try:
-                self._serial.write(wirelessToSend)
+                self._serial.write(wirelessToSend.encode())
             except Serial.SerialException as e:
                 self.logger.warn("tSerial: failed to write to the serial port {}: {}".format(self._serial.port, e))
                 return False
@@ -1273,7 +1273,7 @@ is running then run in the current terminal
         """ Ask a Language of Things device it devType
         """
         try:
-          self._serial.write("a??DTY------")
+          self._serial.write("a??DTY------".encode())
         except Serial.SerialException as e:
           self.logger.warn("tSerial: failed to write to the serial port {}: {}".format(self._serial.port, e))
           return False
@@ -1311,11 +1311,11 @@ is running then run in the current terminal
             datawaiting = select.select([UDPListenSocket], [], [], self._UDPListenTimeout)
             if datawaiting[0]:
                 (data, address) = UDPListenSocket.recvfrom(8192)
-                self.logger.debug("tUDPListen: Received JSON: {} From: {}".format(data, address))
+                self.logger.debug("tUDPListen: Received JSON: {} From: {}".format(data.decode(), address))
 
                 # Test its actually json/catch errors
                 try :
-                    jsonin = json.loads(data)
+                    jsonin = json.loads(data.decode())
                 except ValueError:
                     self.logger.debug("tUDPListen: Invalid JSON received")
                     continue
@@ -1343,7 +1343,7 @@ is running then run in the current terminal
                                             wirelessMsg += '-'
                                         try:
                                             self.qSerialOut.put_nowait(wirelessMsg)
-                                        except Queue.Full:
+                                        except queue.Full:
                                             self.logger.debug("tUDPListen: Failed to put {} on qDCRSerial as it's full".format(wirelessMsg))
                                         else:
                                             self.logger.debug("tUDPListen: Put {} on qSerialOut".format(wirelessMsg))
@@ -1354,7 +1354,7 @@ is running then run in the current terminal
                                 self.logger.debug("tUDPListen: JSON of type DeviceConfigurationRequest, passing to qDCRRequest")
                                 try:
                                     self.qDCRRequest.put_nowait(jsonin)
-                                except Queue.Full:
+                                except queue.Full:
                                     self.logger.debug("tUDPListen: Failed to put json on qDCRRequest")
 
                             elif jsonin['type'] == "MessageBridge":
@@ -1362,7 +1362,7 @@ is running then run in the current terminal
                                 self.logger.debug("tUDPListen: JSON of type MessageBridge, passing to qMessageBridge")
                                 try:
                                     self.qMessageBridge.put(jsonin)
-                                except Queue.Full():
+                                except queue.Full():
                                     self.logger.debug("tUDPListen: Failed to put json on qMessageBridge")
 
         self.logger.info("tUDPListen: Thread stopping")
@@ -1401,7 +1401,7 @@ is running then run in the current terminal
 
                 try:
                     self.qSerialOut.put_nowait(wirelessMsg)
-                except Queue.Full:
+                except queue.Full:
                     self.logger.debug("checkSendOnQueue: Failed to put {} on qSerialOut as it's full".format(wirelessMsg))
                 else:
                     self.logger.debug("checkSendOnQueue: Put {} on qSerialOut".format(wirelessMsg))
@@ -1457,7 +1457,7 @@ is running then run in the current terminal
             else:
                 queueName = "qUDPSend"
                 self.qUDPSend.put(json.dumps(message))
-        except Queue.Full:
+        except queue.Full:
             self.logger.debug("tMain: Failed to put {} on {} as it's full".format(message, queueName))
         else:
             self.logger.debug("tMain: Put {} on {}".format(message, queueName))
@@ -1491,7 +1491,7 @@ is running then run in the current terminal
     # catch errors and add logging
     def _makePidlockfile(self, path, acquire_timeout):
         """ Make a PIDLockFile instance with the given filesystem path. """
-        if not isinstance(path, basestring):
+        if not isinstance(path, str):
             error = ValueError("Not a filesystem path: %(path)r" % vars())
             self.logger.critical("makePidlockFile: Not a filesystem path: %(path)r" % vars())
             raise error

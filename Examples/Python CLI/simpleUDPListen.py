@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """ Simple UDP broadcast listener for Language of Things
 
@@ -39,4 +39,4 @@ sock.bind(('', FROM_PORT))
 
 while True:
     data, addr = sock.recvfrom(1024)
-    print("Got: {} from address {}".format(data, addr))
+    print(("Got: {} from address {}".format(data.decode(), addr)))

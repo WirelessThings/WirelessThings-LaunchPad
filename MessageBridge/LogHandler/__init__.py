@@ -1,3 +1,3 @@
-from LogHandler import CSVTimedRotatingFileHandler
+from .LogHandler import CSVTimedRotatingFileHandler
 
 __ALL__ = ['CSVTimedRotatingFileHandler']

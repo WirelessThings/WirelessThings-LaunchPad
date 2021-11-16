@@ -109,7 +109,7 @@ class AT():
 
             self._sleep(1)
 
-            self._serial.write("+++")
+            self._serial.write("+++".encode())
 
             self._sleep(0.1)
 
@@ -120,7 +120,7 @@ class AT():
                 return True
             else:
                 self.logger.debug("AT: Send 'AT'")
-                self._serial.write("AT\r")
+                self._serial.write("AT\r".encode())
                 if self.waitForOK(0.5):
                     self.logger.debug("AT: Entered AT Mode")
                     self._inATMode = True
@@ -150,7 +150,7 @@ class AT():
         self.logger.debug("AT: Send command: {}".format(command))
         if self._inATMode:
             self._serial.flushInput();
-            self._serial.write("{}\r".format(command))
+            self._serial.write("{}\r".format(command).encode())
             return True
         else:
             return False
@@ -181,7 +181,7 @@ class AT():
         buffer = ""
         char = ""
         while (time() - starttime) < timeout and char != "\r":
-            char = self._serial.read()
+            char = self._serial.read().decode()
             #self.logger.debug("AT: RX:{}".format(char))
             buffer += char
 
@@ -223,7 +223,7 @@ class AT():
         buffer = ""
         char = ""
         while (time() - starttime) < timeout:
-            char = self._serial.read()
+            char = self._serial.read().decode()
             if char == '\r':
                 break
             # self.logger.debug("AT: RX:{}".format(char))

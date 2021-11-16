@@ -22,9 +22,9 @@ import os
 import signal
 import errno
 
-import pidlockfile
+from . import pidlockfile
 
-from daemon import DaemonContext
+from .daemon import DaemonContext
 
 
 class DaemonRunnerError(Exception):
@@ -92,7 +92,7 @@ class DaemonRunner(object):
             """
         progname = os.path.basename(argv[0])
         usage_exit_code = 2
-        action_usage = "|".join(self.action_funcs.keys())
+        action_usage = "|".join(list(self.action_funcs.keys()))
         message = "usage: %(progname)s %(action_usage)s" % vars()
         emit_message(message)
         sys.exit(usage_exit_code)
@@ -196,7 +196,7 @@ def emit_message(message, stream=None):
 
 def make_pidlockfile(path, acquire_timeout):
     """ Make a PIDLockFile instance with the given filesystem path. """
-    if not isinstance(path, basestring):
+    if not isinstance(path, str):
         error = ValueError("Not a filesystem path: %(path)r" % vars())
         raise error
     if not os.path.isabs(path):
