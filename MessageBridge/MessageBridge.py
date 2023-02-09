@@ -474,7 +474,7 @@ is running then run in the current terminal
 
         if self.args.configfile:
             if not self.config.read(self.args.configfile):
-                self.logger.debug("Could not load user config from {}".fortmat(self.args.configfile))
+                self.logger.debug("Could not load user config from {}, this Will be Created on Exit".fortmat(self.args.configfile))
         else:
             if not self.config.read(self._configFile):
                 self.logger.debug("Could Not Load User Config, One Will be Created on Exit")
