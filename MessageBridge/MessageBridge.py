@@ -1549,7 +1549,7 @@ is running then run in the current terminal
             pass
         try:
             self.tUDPSendStop.set()
-            self.tUDPListen.join()
+            self.tUDPSend.join()
         except:
             pass
 

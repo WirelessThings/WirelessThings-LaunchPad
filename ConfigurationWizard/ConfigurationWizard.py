@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """ WirelessThings Configuration Wizard
 
@@ -19,18 +19,18 @@
 
 """
 
-import Tkinter as tk
-import ttk
+import tkinter as tk
+import tkinter.ttk
 import sys
 import os
 import argparse
 import socket
 import select
 import json
-import ConfigParser
-import tkMessageBox
+import configparser
+import tkinter.messagebox
 import threading
-import Queue
+import queue
 import string
 import re
 from time import sleep, asctime, time
@@ -38,9 +38,9 @@ import logging
 import uuid
 from collections import OrderedDict
 import itertools
-import urllib2
-import httplib
-import tkFont
+import urllib.request, urllib.error, urllib.parse
+import http.client
+import tkinter.font
 
 
 """
@@ -142,9 +142,9 @@ class ConfigurationWizard:
         self.logger.addHandler(self._ch)
 
         # JSON Debug window Q
-        self.qJSONDebug = Queue.Queue()
+        self.qJSONDebug = queue.Queue()
         # DCR Reply Q, Incoming JSON's from the Message Bridge
-        self.qDCRReply = Queue.Queue()
+        self.qDCRReply = queue.Queue()
         # flag to show a MessageBridge msg has been received
         self.fMessageBridgeUpdate = threading.Event()
         self.fWaitingForReply = threading.Event()
@@ -244,9 +244,9 @@ class ConfigurationWizard:
             self.tUDPSendStarted.wait()
 
             # TODO: are UDP threads running
-            if (not self.tUDPListen.isAlive() and not self.tUDPSend.isAlive()):
+            if (not self.tUDPListen.is_alive() and not self.tUDPSend.is_alive()):
                 self.logger.warn("UDP Threads not running")
-                tkMessageBox.showerror("UDP Socket Failed", "UDP Socket could not be open")
+                tkinter.messagebox.showerror("UDP Socket Failed", "UDP Socket could not be open")
                 return
                 # TODO: do we have an error form the UDP to show?
             else:
@@ -267,7 +267,7 @@ class ConfigurationWizard:
             """
         self.logger.info("UDP Send Thread init")
 
-        self.qUDPSend = Queue.Queue()
+        self.qUDPSend = queue.Queue()
 
         self.tUDPSendStop = threading.Event()
         self.tUDPSendStarted = threading.Event()
@@ -301,7 +301,7 @@ class ConfigurationWizard:
         while not self.tUDPSendStop.is_set():
             try:
                 message = self.qUDPSend.get(timeout=1)     # block for up to 30 seconds
-            except Queue.Empty:
+            except queue.Empty:
                 # UDP Send que was empty
                 # extreme debug message
                 # self.logger.debug("tUDPSend: queue is empty")
@@ -310,7 +310,7 @@ class ConfigurationWizard:
                 self.logger.debug("tUDPSend: Got json to send: {}".format(message))
                 if self.config.getboolean('UDP', 'use_local_only'):
                     try:
-                        UDPSendSocket.sendto(message, ('127.0.0.255', sendPort))
+                        UDPSendSocket.sendto(message.encode(), ('127.0.0.255', sendPort))
                         self.logger.debug("tUDPSend: Put message out via UDP to local only")
                     except socket.error as msg:
                         self.logger.warn("tUDPSend: Failed to send via UDP local only. Error code : {} Message: {}".format(msg[0], msg[1]))
@@ -318,13 +318,13 @@ class ConfigurationWizard:
                         self.qJSONDebug.put([message, "TX"])
                 else:
                     try:
-                        UDPSendSocket.sendto(message, ('<broadcast>', sendPort))
+                        UDPSendSocket.sendto(message.encode(), ('<broadcast>', sendPort))
                         self.logger.debug("tUDPSend: Put message out via UDP")
                     except socket.error as msg:
                         if msg[0] == 101:
                             try:
                                 self.logger.warn("tUDPSend: External network unreachable retrying on local interface only")
-                                UDPSendSocket.sendto(message, ('127.0.0.255', sendPort))
+                                UDPSendSocket.sendto(message.encode(), ('127.0.0.255', sendPort))
                                 self.logger.debug("tUDPSend: Put message out via UDP to local only")
                             except socket.error as msg:
                                 self.logger.warn("tUDPSend: Failed to send via UDP local only. Error code : {} Message: {}".format(msg[0], msg[1]))
@@ -392,6 +392,7 @@ class ConfigurationWizard:
             ready = select.select([UDPListenSocket], [], [], 3)  # 3 second time out using select
             if ready[0]:
                 (data, address) = UDPListenSocket.recvfrom(8192)
+                data = data.decode()
                 self.logger.debug("tUDPListen: Received JSON: {} From: {}".format(data, address))
 
                 # Test its actually json/catch errors
@@ -414,7 +415,7 @@ class ConfigurationWizard:
                         self.logger.debug("tUDPListen: JSON of type DeviceConfigurationRequest, passing to qDCRReply")
                         try:
                             self.qDCRReply.put_nowait(jsonin)
-                        except Queue.Full:
+                        except queue.Full:
                             self.logger.debug("tUDPListen: Failed to put json on qDCRReply")
 
                     elif jsonin['type'] == "MessageBridge":
@@ -435,7 +436,7 @@ class ConfigurationWizard:
         self._readingScale = [tk.IntVar(), tk.StringVar(), tk.StringVar()]
         self._readingScale[0].trace_variable('w', self._updateIntervalOnScaleChange)
 
-        self._italicFont = tkFont.Font(font='TKDefaultFont')
+        self._italicFont = tkinter.font.Font(font='TKDefaultFont')
         self._italicFont.config(slant="italic")
         self._devIDWarning = tk.StringVar()
         self._settingMissMatchVar = tk.IntVar()
@@ -584,7 +585,7 @@ class ConfigurationWizard:
                   command=lambda: self._displayMoreInfo("LongDescription"),
                   font = self._italicFont
                   ).grid(row=r, column=5, sticky=tk.W)
-    
+
         # new device Label
         if self.device['newDevice']:
             r += 2
@@ -687,7 +688,7 @@ class ConfigurationWizard:
                       font = self._italicFont,
                       ).grid(row=r+2, column=5, sticky=tk.W)
             r += 3
-    
+
     def _displayMoreInfo(self, subject):
         self.logger.debug("Displaying more info for {}".format(subject))
 
@@ -720,9 +721,11 @@ class ConfigurationWizard:
         position = self.master.geometry().split("+")
 
         self.moreInfoWindow = tk.Toplevel()
-        self.moreInfoWindow.geometry("+{}+{}".format(
-                                                    int(position[1])+self._widthMain/6,
-                                                    int(position[2])+self._heightMain/6
+        self.moreInfoWindow.geometry("{}x{}+{}+{}".format(
+                                                    self._widthSerial,
+                                                    self._heightSerial,
+                                                    int(int(position[1])+self._widthMain/6),
+                                                    int(int(position[2])+self._heightMain/6)
                                                     )
                                     )
 
@@ -801,9 +804,9 @@ class ConfigurationWizard:
         except:
             pass
         else:
-            ods = OrderedDict(sorted(ds.items(), key=lambda t: t[0]))
+            ods = OrderedDict(sorted(list(ds.items()), key=lambda t: t[0]))
             index = 0
-            for id, data in ods.items():
+            for id, data in list(ods.items()):
                 self._devIDListbox.insert(index,
                                           "id: {}, data: {}, time: {}".format(id,
                                                                               data['data'],
@@ -992,9 +995,11 @@ class ConfigurationWizard:
         position = self.master.geometry().split("+")
 
         self.advanceWindow = tk.Toplevel()
-        self.advanceWindow.geometry("+{}+{}".format(
-                                                     int(position[1])+self._widthMain/6,
-                                                     int(position[2])+self._heightMain/6
+        self.advanceWindow.geometry("{}x{}+{}+{}".format(
+                                                    self._widthSerial,
+                                                    self._heightSerial,
+                                                     int(int(position[1])+self._widthMain/6),
+                                                     int(int(position[2])+self._heightMain/6)
                                                      )
                                      )
 
@@ -1083,12 +1088,12 @@ class ConfigurationWizard:
 
         tk.Button(self.eframe, text='Start Over', command=self._startOver
                   ).grid(row=4, column=2, columnspan=2, sticky=tk.E+tk.W)
-    
+
     def _displayProgress(self):
         self.logger.debug("Displaying progress pop up")
 
         # disable current Next Button
-        if self._currentFrame is not "pressFrame" and self._currentFrame is not "introFrame":
+        if self._currentFrame != "pressFrame" and self._currentFrame != "introFrame":
             self.master.children[self._currentFrame].children['next'].config(state=tk.DISABLED)
 
         if self._currentFrame != "pressFrame":
@@ -1096,9 +1101,11 @@ class ConfigurationWizard:
             position = self.master.geometry().split("+")
 
             self.progressWindow = tk.Toplevel()
-            self.progressWindow.geometry("+{}+{}".format(
-                                                 int(position[1])+self._widthMain/4,
-                                                 int(position[2])+self._heightMain/4
+            self.progressWindow.geometry("{}x{}+{}+{}".format(
+                                                self._widthSerial,
+                                                self._heightSerial,
+                                                int(int(position[1])+self._widthMain/4),
+                                                int(int(position[2])+self._heightMain/4)
                                                          )
                                          )
 
@@ -1107,14 +1114,14 @@ class ConfigurationWizard:
             tk.Label(self.progressWindow,
                      text="Communicating with device please wait").pack()
 
-            self.progressBar = ttk.Progressbar(self.progressWindow,
+            self.progressBar = tkinter.ttk.Progressbar(self.progressWindow,
                                                orient="horizontal", length=200,
                                                mode="indeterminate")
             self.progressBar.pack()
             self.progressBar.start()
         else:
             # use the progress bar in the pressFrame
-            self.progressBar = ttk.Progressbar(self.pframe,
+            self.progressBar = tkinter.ttk.Progressbar(self.pframe,
                                                orient="horizontal", length=200,
                                                mode="indeterminate")
             self.progressBar.grid(row=7, column=1, columnspan=4)
@@ -1125,11 +1132,11 @@ class ConfigurationWizard:
         if self._checkMessageBoxFlag:
             if self._messageBoxFlag:
                 self._messageBoxFlag = False
-                tkMessageBox.showerror(self._msgBoxTitle, self._msgBoxMessage)
+                tkinter.messagebox.showerror(self._msgBoxTitle, self._msgBoxMessage)
             self.master.after(1000, self._checkMessageBoxFlagUpdate)
 
     def _checkMessageBridgeUpdate(self):
-		# self.logger.debug("Checking Message Bridge reply flag")
+        # self.logger.debug("Checking Message Bridge reply flag")
         if self.fMessageBridgeUpdate.is_set():
             # flag set, re-draw buttons
             self._updateMessageBridgeList()
@@ -1157,9 +1164,9 @@ class ConfigurationWizard:
     def _updateMessageBridgeList(self):
         self.logger.debug("Updating Message Bridge list buttons")
         self.iframe.children['introText'].config(text=INTRO1)
-        for network, messageBridge in self._messageBridges.items():
+        for network, messageBridge in list(self._messageBridges.items()):
             # if we don't all-ready have a button create a new one
-            if network not in self._messageBridgeButtons.keys():
+            if network not in list(self._messageBridgeButtons.keys()):
                 self._messageBridgeButtons[network] = tk.Button(self.iframe,
                                                          name="n{}".format(network),
                                                          text=network,
@@ -1233,7 +1240,7 @@ class ConfigurationWizard:
         # TODO: correctly calculate and display expected life text
         # return "Expected life will be {}".format("?")
         return ""
-    
+
     def _getNextFreeID(self):
         try:
             for id in itertools.product(string.ascii_uppercase, repeat=2):
@@ -1268,15 +1275,15 @@ class ConfigurationWizard:
     def _checkDevIDList(self, *args):
         if self._currentFrame == "chdevidFrame":
             try:
-                if self.entry['CHDEVID'][0].get() in self._messageBridges[self._network]['data']['result']['deviceStore'].keys():
+                if self.entry['CHDEVID'][0].get() in list(self._messageBridges[self._network]['data']['result']['deviceStore'].keys()):
                     self._devIDWarning.set(WARNINGTEXT)
                 else:
                     self._devIDWarning.set("")
             except:
                 pass
-    
+
     def _entryCopy(self):
-        for key, value in self.entry.items():
+        for key, value in list(self.entry.items()):
             value[1].set(value[0].get())
 
     def _checkAdvance(self):
@@ -1285,7 +1292,7 @@ class ConfigurationWizard:
             self.advanceWindow.destroy()
         else:
             # let user know KEY needs to be 0 or 32
-            tkMessageBox.showerror("Encryption Key Length",
+            tkinter.messagebox.showerror("Encryption Key Length",
                                    ("Encryption key needs to be 32 characters "
                                     "long to set a new one or empty to leave unchanged"))
     def _checkChangeDevIDValid(self):
@@ -1296,7 +1303,7 @@ class ConfigurationWizard:
             # reset CHDEVID to previous ID
         else:
             # let user know KEY needs to be 0 or 32
-            tkMessageBox.showerror("Invalid Device ID",
+            tkinter.messagebox.showerror("Invalid Device ID",
                                    ("Please enter a valid two character device ID\r"
                                     "A device ID can be anything from AA to ZZ"))
 
@@ -1440,7 +1447,7 @@ class ConfigurationWizard:
     def _sendConfigRequest(self):
         self.logger.debug("Sending config request to device")
         query = []
-        for command, value in self.entry.items():
+        for command, value in list(self.entry.items()):
             self.logger.debug("Checking {}: {} != {}".format(command, value[0].get(), value[1].get()))
             if not value[0].get() == value[1].get():
                 query = self._entryAppend(query, command, value)
@@ -1532,7 +1539,7 @@ class ConfigurationWizard:
                              'value': ("8" if self.entry['SLEEPM'][0].get() else "0")
                              }
                              )
-                         
+
         elif value[2] == 'ENKey':
             # set encryption key
             # need to split into each EN[1-6]
@@ -1560,7 +1567,7 @@ class ConfigurationWizard:
         """
         self.logger.debug("Query type")
         self._checkMessageBridge = False
-        
+
         query = [
                  {'command': "DTY"},
                  {'command': "APVER"},
@@ -1593,7 +1600,7 @@ class ConfigurationWizard:
             # handle failed due to timeout
             self.logger.debug("DeviceConfigurationRequest timeout")
             # display pop up ask user to check configme mode and try again
-            if tkMessageBox.askretrycancel("Communications Timeout",
+            if tkinter.messagebox.askretrycancel("Communications Timeout",
                                      "Please check the device is in CONFIGME mode"):
                 # send query again
                 self._sendRequest(self._lastDCR[-1])
@@ -1604,7 +1611,7 @@ class ConfigurationWizard:
             # handle failed due to retry
             self.logger.debug("DeviceConfigurationRequest retry error")
             # display pop up ask user to check configme mode and try again
-            if tkMessageBox.askretrycancel("Communications Timeout",
+            if tkinter.messagebox.askretrycancel("Communications Timeout",
                                      "Please check the device is in CONFIGME mode"):
                 # send query again
                 self._sendRequest(self._lastDCR[-1])
@@ -1648,14 +1655,14 @@ class ConfigurationWizard:
                     if not matched:
                         self.logger.debug("Failed to find DTY in Devices JSON")
                         # let the user know we couldn't match the device type
-                        tkMessageBox.showerror("Unknown device",
+                        tkinter.messagebox.showerror("Unknown device",
                                      ("The device is of an unknown type\n")
                                      )
                         # populate fields before call simpleConfig
                         self.device['network'] = json['network']
                         self.device['APVER'] = apver
                         self.device['index'] = unknownDeviceIndex
-                        for command, args in reply['replies'].items():
+                        for command, args in list(reply['replies'].items()):
                             if command in self.entry:
                                 # TODO: need to handle check box entry (Format: ONOFF)
                                 if self.entry[command][2] == 'Int':
@@ -1681,7 +1688,7 @@ class ConfigurationWizard:
                         if self.device['devID'] == '??':
                             # this is a new or reset device, set a flag so we know later
                             self.device['newDevice'] = True
-                for command, args in reply['replies'].items():
+                for command, args in list(reply['replies'].items()):
                     if command == "CHREMID" and args['reply'] == '':
                         self.entry[command][0].set("--")
                     elif command == "SLEEPM":
@@ -1732,19 +1739,19 @@ class ConfigurationWizard:
                 enkeyMatch = 0
                 en = re.compile('^EN[1-6]')
 
-                for command, arg in reply['replies'].items():
+                for command, arg in list(reply['replies'].items()):
                     if en.match(command):
                         enkeyCount += 1
                         if arg['reply'] == "ENACK":
                             enkeyMatch += 1
                     elif arg['value'] != arg['reply']:
                         # values don't match we should warn user
-                        tkMessageBox.showerror("Value mismatch",
+                        tkinter.messagebox.showerror("Value mismatch",
                                                "The {} value was not set, \n Sent: {}\n Got back: {}".format(command, arg['value'], arg['reply']))
 
                 if enkeyCount != 0 and enkeyMatch != 6:
                     # encryption key not fully set
-                    tkMessageBox.showerror("Encryption Key Error",
+                    tkinter.messagebox.showerror("Encryption Key Error",
                                            "Your encryption key was not correctly set please try again")
 
                 # show end screen
@@ -1776,11 +1783,11 @@ class ConfigurationWizard:
                  {'command': "RSSI"},
                  {'command': 'FVER'}
                  ]
-                 
+
         # If APVER 2.1 ask DVI
         if self.device['APVER'] >= 2.1:
             query.append({'command': "DVI"})
-         
+
 
         if self.devices[self.device['index']]['SleepMode'] == "Cyclic":
             query.append({'command': "INTVL"})
@@ -1818,11 +1825,11 @@ class ConfigurationWizard:
         if self.device['newDevice']:
             # give it a new deviceID
             self.entry['CHDEVID'][0].set(self._getNextFreeID())
-            
+
             # if this is a Intrerupt sleeping device set it to sleep
             if self.devices[self.device['index']]['SleepMode'] == "Interrupt":
                 self.entry['SLEEPM'][0].set(1)
-            
+
             try:
                 if self.entry['PANID'][0].get() != self._messageBridges[self._network]['data']['result']['PANID']:
                     self.entry['PANID'][0].set(self._messageBridges[self._network]['data']['result']['PANID'])
@@ -1855,7 +1862,7 @@ class ConfigurationWizard:
 
     def _updateMessageBridgeDetailsFromJSON(self, jsonin, address):
         # update Message Bridge entry in our list
-        if jsonin['network'] in self._messageBridges.keys():
+        if jsonin['network'] in list(self._messageBridges.keys()):
             network = jsonin['network']
             if not self._messageBridges[network]['conflict']: #if already in conflict, nothing more to do with the message
                 if self._messageBridges[network]['address'] != address:
@@ -1897,7 +1904,7 @@ class ConfigurationWizard:
         self.logger.debug("No Reply with in timeouts")
         # ask user to press pair button and try again?
 
-        if tkMessageBox.askyesno("Communications Timeout",
+        if tkinter.messagebox.askyesno("Communications Timeout",
                                  ("No reply from the Message Bridge, \n"
                                   "To try again click yes"
                                   )
@@ -1949,7 +1956,7 @@ class ConfigurationWizard:
                             self.progressWindow.destroy()
                         except:
                             pass
-                        if self._currentFrame is not "pressFrame" and self._currentFrame is not "introFrame":
+                        if self._currentFrame != "pressFrame" and self._currentFrame != "introFrame":
                             self.master.children[self._currentFrame].children['next'].config(state=tk.ACTIVE)
                     self._processReply(json)
                 self.qDCRReply.task_done()
@@ -2078,7 +2085,7 @@ class ConfigurationWizard:
                             )
         parser.add_argument('-j', '--json',
                             help='Use specfied JSON device file instead file set via ConfigurationWizard.cfg',
-                            type=file
+                            type=argparse.FileType('r')
                             )
 
         try:
@@ -2091,11 +2098,11 @@ class ConfigurationWizard:
     def _readConfig(self):
         self.logger.debug("Reading Config")
 
-        self.config = ConfigParser.SafeConfigParser()
+        self.config = configparser.ConfigParser()
 
         # load defaults
         try:
-            self.config.readfp(open(self._configFileDefault))
+            self.config.read_file(open(self._configFileDefault))
         except:
             self.logger.debug("Could Not Load Default Settings File")
 
@@ -2115,7 +2122,7 @@ class ConfigurationWizard:
     # MARK: - Device file loading
 
     def _updateDevicesFile(self):
-        """ 
+        """
             If posible fetch the latest devices.json from the net
         """
         self.logger.info("Updating device list")
@@ -2129,23 +2136,23 @@ class ConfigurationWizard:
             url = self.args.url
         else:
             url = self.config.get('ConfigurationWizard', 'devFileURL')
-                
+
         # open the url and download the file
         try:
-            request = urllib2.urlopen(url)
+            request = urllib.request.urlopen(url)
             self.newJSON = request.read()
 
-        except urllib2.HTTPError as e:
+        except urllib.error.HTTPError as e:
             self.logger.error('Unable to get latest device JSON - HTTPError = ' +
                             str(e.code))
             self.newJSON = False
 
-        except urllib2.URLError as e:
+        except urllib.error.URLError as e:
             self.logger.error('Unable to get latest device JSON - URLError = ' +
                             str(e.reason))
             self.newJSON = False
 
-        except httplib.HTTPException as e:
+        except http.client.HTTPException as e:
             self.logger.error('Unable to get latest device JSON - HTTPException')
             self.newJSON = False
 
@@ -2164,7 +2171,7 @@ class ConfigurationWizard:
     def _loadDevices(self):
         self.logger.debug("Loading device List")
         # if files name give on command line use that else use file from config file
-        
+
         try:
             if (self.args.json):
                 read_data = self.args.json.read()
@@ -2178,7 +2185,7 @@ class ConfigurationWizard:
             self.devices = json.loads(read_data)['Devices']
 
         except IOError:
-			# TODO: better fail condition
+            # TODO: better fail condition
             self.logger.warn("Could Not Load DevList File")
             sys.exit()
 
@@ -2189,12 +2196,12 @@ class ConfigurationWizard:
             with open(self._languageFile, 'r') as f:
                 read_data = f.read()
             f.closed
-        
+
             # TODO: Check/catch json errors
             self._genericCommands = json.loads(read_data)['Generic Commands']
             self._cyclicCommands = json.loads(read_data)['Cyclic Commands']
             self._readingPeriods = json.loads(read_data)['Reading Periods']
-    
+
         except IOError:
             # TODO: better fail condition
             self.logger.critical("Could Not Load Language JSON File")
@@ -2212,3 +2219,4 @@ class ConfigurationWizard:
 if __name__ == "__main__":
     app = ConfigurationWizard()
     app.on_execute()
+
