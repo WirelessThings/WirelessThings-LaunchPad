@@ -37,6 +37,7 @@ import logging
 import LogHandler
 import AT
 import re
+import paho.mqtt.client as mqtt
 if sys.platform == 'win32':
     pass
 else:
@@ -365,6 +366,7 @@ is running then run in the current terminal
             self._initDCRThread()       # start the DeviceConfigurationRequest thread
             self._initUDPSendThread()   # start the UDP sender
             self._initUDPListenThread() # start the UDP listener
+            self._initMQTTThread()      # start the MQTT client
 
             self._state = self.Running
             # main thread looks after the Message Bridge status for us
@@ -408,7 +410,16 @@ is running then run in the current terminal
                     self.tMainStop.wait(1)
                     self._startUDPListen()
                     self.tMainStop.wait(1)
-                    if self.tUDPSend.is_alive():
+                    if self.tUDPListen.is_alive():
+                        self._state = self.Running
+
+                if not self.tMQTT.is_alive():
+                    self.logger.error("tMain: MQTT thread stopped")
+                    self._state = self.Error
+                    self.tMainStop.wait(1)
+                    self._startMQTT()
+                    self.tMainStop.wait(1)
+                    if self.tMQTT.is_alive():
                         self._state = self.Running
 
                 #check if the serial have done the encryption on the radio
@@ -648,6 +659,121 @@ is running then run in the current terminal
             self.tUDPListen.start()
         except:
             self.logger.exception("Failed to Start the UDP listen thread")
+
+    def _initMQTTThread(self):
+        """ Start the MQTT thread and queues
+        """
+        self.logger.info("MQTT Thread init")
+
+        self.qMQTTSend = queue.Queue()
+
+        self.tMQTTStop = threading.Event()
+
+        self._startMQTT()
+
+    def _startMQTT(self):
+        self.tMQTT = threading.Thread(name='tMQTT', target=self._MQTTThread)
+        self.tMQTT.daemon = False
+        try:
+            self.tMQTT.start()
+        except:
+            self.logger.exception("Failed to Start the MQTT thread")
+
+    def _MQTTThread(self):
+        """ MQTT thread
+            Main logic for dealing with MQTT
+        """
+        self._mqttClient = mqtt.Client()
+        self._mqttClient.on_connect = self._MQTT_on_connect
+        self._mqttClient.on_message = self._MQTT_on_message
+
+        self._mqttClient.connect(self.config.get('MQTT', 'host'), self.config.getint('MQTT', 'port'), 60)
+        self._mqttClient.loop_start()
+
+        publishTopic = "{}/listen".format(self.config.get('MQTT', 'base_topic').rstrip('/'))
+
+        while (not self.tMQTTStop.is_set()):
+            try:
+                message = self.qMQTTSend.get(timeout=1)     # block for up to 1 seconds
+            except queue.Empty:
+                # MQTT Send queue was empty
+                # extrem debug message
+                # self.logger.debug("tMQTT: send queue is empty")
+                pass
+            else:
+                self.logger.debug("tMQTT: Got json to send: {}".format(message))
+                self._mqttClient.publish(publishTopic, message)
+
+                # tidy up
+                self.qMQTTSend.task_done()
+
+        self.logger.info("tMQTT: Thread stopping")
+        self._mqttClient.disconnect()
+        self._mqttClient.loop_stop()
+        return
+
+    def _MQTT_on_connect(self, client, userdata, flags, rc):
+        self.logger.debug("tMQTT: Connected with result code " + str(rc))
+
+        # Subscribing in on_connect() means that if we lose the connection and
+        # reconnect then subscriptions will be renewed.
+        client.subscribe("{}/send".format(self.config.get('MQTT', 'base_topic').rstrip('/')))
+
+    # The callback for when a PUBLISH message is received from the server.
+    def _MQTT_on_message(self, client, userdata, msg):
+        self.logger.debug("tMQTT@_MQTT_on_message: Received JSON: {}".format(msg.payload))
+
+        # Test its actually json/catch errors
+        try :
+            jsonin = json.loads(msg.payload)
+        except ValueError:
+            self.logger.debug("tMQTT@_MQTT_on_message: Invalid JSON received")
+            return
+
+        # error checking, dict should have keys for network, ignore it if not there
+        if 'network' in jsonin:
+            if (jsonin['network'] == self._network or
+                jsonin['network'] == "ALL"):
+                # yep its for our network or "ALL"
+                # error checking, dict should have keys for type
+                if 'type' in jsonin:
+                    if jsonin['type'] == "WirelessMessage":
+                        self.logger.debug("tMQTT@_MQTT_on_message: JSON of type WirelessMessage, send out messages")
+                        # got a WirelessMessage type json, need to generate the Language of Things message and
+                        # put them on the TX queue
+                        # error checking, dict should have keys for sendon and data
+                        if 'sendOn' in jsonin:
+                            self.processSendOnJSON(jsonin)
+                            return
+
+                        if 'data' in jsonin:
+                            for command in jsonin['data']:
+                                wirelessMsg = "a{}{}".format(jsonin['id'], command[0:9].upper())
+                                while len(wirelessMsg) <12:
+                                    wirelessMsg += '-'
+                                try:
+                                    self.qSerialOut.put_nowait(wirelessMsg)
+                                except queue.Full:
+                                    self.logger.debug("tMQTT@_MQTT_on_message: Failed to put {} on qDCRSerial as it's full".format(wirelessMsg))
+                                else:
+                                    self.logger.debug("tMQTT@_MQTT_on_message: Put {} on qSerialOut".format(wirelessMsg))
+
+                    # elif jsonin['type'] == "DeviceConfigurationRequest" and self.config.getboolean('DCR', 'dcr_enable'):
+                    #     # we have a DeviceConfigurationRequest pass in onto the DCR thread
+                    #     # TODO: error checking, dict should have keys for data
+                    #     self.logger.debug("tMQTT@_MQTT_on_message: JSON of type DeviceConfigurationRequest, passing to qDCRRequest")
+                    #     try:
+                    #         self.qDCRRequest.put_nowait(jsonin)
+                    #     except queue.Full:
+                    #         self.logger.debug("tMQTT@_MQTT_on_message: Failed to put json on qDCRRequest")
+
+                    # elif jsonin['type'] == "MessageBridge":
+                    #     # we have a MessageBridge json do stuff with it
+                    #     self.logger.debug("tMQTT@_MQTT_on_message: JSON of type MessageBridge, passing to qMessageBridge")
+                    #     try:
+                    #         self.qMessageBridge.put(jsonin)
+                    #     except queue.Full():
+                    #         self.logger.debug("tMQTT@_MQTT_on_message: Failed to put json on qMessageBridge")
 
     def _DCRThread(self):
         """ Device Configuration Request thread
@@ -1137,6 +1263,11 @@ is running then run in the current terminal
                     except queue.Full:
                         self.logger.warn("tSerial: Failed to put {} on qUDPSend as it's full".format(wirelessMsg))
 
+                    try:
+                        self.qMQTTSend.put_nowait(self.encodeWirelessMessageJson(wirelessMsg, self._network))
+                    except queue.Full:
+                        self.logger.warn("tSerial: Failed to put {} on qMQTTSend as it's full".format(wirelessMsg))
+
     def _SerialProcessQQ(self, wirelessMsg):
         """ process an incoming ?? Language of Things message
         """
@@ -1550,6 +1681,11 @@ is running then run in the current terminal
         try:
             self.tUDPSendStop.set()
             self.tUDPSend.join()
+        except:
+            pass
+        try:
+            self.tMQTTStop.set()
+            self.tMQTT.join()
         except:
             pass
 
