@@ -822,7 +822,7 @@ is running then run in the current terminal
                         self.logger.warn("tUDPSend: Failed to send via UDP local only. Error code : {} Message: {}".format(msg[0], msg[1]))
                 else:
                     try:
-                        UDPSendSocket.sendto(message.encode(), ('<broadcast>', sendPort))
+                        UDPSendSocket.sendto(message.encode(), ('', sendPort))
                         self.logger.debug("tUDPSend: Put message out via UDP")
                     except socket.error as msg:
                         if msg[0] == 101:
@@ -948,7 +948,7 @@ is running then run in the current terminal
                     if self._setRadioEncryption['PANID'] in atid:
                         self.logger.debug("tSerial: SetRadioEncryption: PANID already Set")
                     else:
-                        if at.sendATWaitForOK("PANID{}".format(self._setRadioEncryption['PANID'])):
+                        if at.sendATWaitForOK("ATID{}".format(self._setRadioEncryption['PANID'])):
                             self._panID = self._setRadioEncryption['PANID']
                             changesToCommit = True
                         else:
@@ -1299,7 +1299,7 @@ is running then run in the current terminal
             UDPListenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 
         try:
-            UDPListenSocket.bind(('', int(self.config.get('UDP', 'listen_port'))))
+            UDPListenSocket.bind(("", int(self.config.get('UDP', 'listen_port'))))
         except socket.error:
             self.logger.exception("tUDPListen: Failed to bind port, Exiting")
             self.die()

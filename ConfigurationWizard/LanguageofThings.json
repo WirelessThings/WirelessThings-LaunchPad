@@ -1,6 +1,6 @@
 {
     "Version":150602,
-    "ProtocolVersions":[2.0,2.1],
+    "ProtocolVersions":[2.0,2.1,2.2],
     "ActionsType":[
                    {
                    "Name":"Polled",
@@ -307,6 +307,12 @@
                         "ProtocolFrom":2.0,
                         "Format":"Int",
                         "Description":"Request an RSSI reading from the device, Returns a negative dBm RSSI of the RSSI enquiry message when received"
+                        },
+                        {
+                        "Command":"MTEST",
+                        "ProtocolFrom":2.2,
+                        "Format":"HEX",
+                        "Description":"Test the I2C memory chip by writing a value reading back and replaying, Param is aavv, where aa is the address offset in memory and vv is the value written/read"
                         }
                         ],
     "Cyclic Commands":[

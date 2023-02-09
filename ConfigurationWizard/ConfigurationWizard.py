@@ -470,7 +470,8 @@ class ConfigurationWizard:
                       "ENKEY" : [tk.StringVar(), tk.StringVar(), 'ENKey'],
                       "BATT" : [tk.DoubleVar(), tk.DoubleVar(), 'Float'],
                       "DVI" : [tk.StringVar(), tk.StringVar(), 'String'],
-                      "RSSI" : [tk.IntVar(), tk.IntVar(), 'Int']
+                      "RSSI" : [tk.IntVar(), tk.IntVar(), 'Int'],
+                      "FVER" : [tk.StringVar(), tk.StringVar(), 'String']
                      }
         self.entry['CHDEVID'][0].trace_variable('w', self._checkDevIDList)
         self._settingMissMatchVar.set(0)
@@ -1771,8 +1772,9 @@ class ConfigurationWizard:
                  {'command': "SNL"},
                  {'command': "SNH"},
                  {'command': "ENC"},
-                 {'command': "BATT"},
-                 {'command': "RSSI"}
+                 # {'command': "BATT"},
+                 {'command': "RSSI"},
+                 {'command': 'FVER'}
                  ]
                  
         # If APVER 2.1 ask DVI
@@ -1905,7 +1907,7 @@ class ConfigurationWizard:
             self._replyCheck()
         else:
             if self._currentFrame == "pressFrame":
-                self._startOver
+                self._startOver()
 
     def _sendRequest(self, dcr):
         self.logger.debug("Sending Request to Message Bridge")
@@ -2166,7 +2168,7 @@ class ConfigurationWizard:
         try:
             if (self.args.json):
                 read_data = self.args.json.read()
-                self.args.json.close()
+                self.args.json.seek(0)
             else:
                 with open(self.config.get('ConfigurationWizard', 'devFile'), 'r') as f:
                     read_data = f.read()

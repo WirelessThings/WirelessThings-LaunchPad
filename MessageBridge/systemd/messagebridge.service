@@ -1,0 +1,15 @@
+[Unit]
+Description=WirelessThings Message Bridge
+After=syslog.target network.target
+
+[Service]
+User=messagebridge
+Group=messagebridge
+WorkingDirectory=/home/messagebridge/WirelessThings-LaunchPad/MessageBridge/
+ExecStart=/home/messagebridge/WirelessThings-LaunchPad/MessageBridge/MessageBridge.py -d
+Nice=10
+Restart=on-failure
+KillSignal=SIGINT
+
+[Install]
+WantedBy=multi-user.target

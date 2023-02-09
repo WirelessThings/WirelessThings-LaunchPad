@@ -38,12 +38,15 @@ sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 if sys.platform == 'darwin':
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 
-jsonDict = {'type':"WirelessMessage"}
-jsonDict['network'] = "All"      # could be 'Serial' or 'ALL'
-jsonDict['id'] = "MA"               # sending to example device ID of MA
-jsonDict['data'] = ["HELLO","TEMP"] # sending two commands HELLO and TEMP
-                                    # this will result in two message going out via the radio
-                                    # aMAHELLO---- and aMATEMP-----
+jsonDict = {
+    'type': "WirelessMessage",
+    'network': "ALL",               # could be 'Serial' or 'ALL'
+    'id': "MA",                     # sending to example device ID of MA
+    'data': [                       # sending two commands HELLO and TEMP
+        "HELLO",                    # this will result in two message going out via the radio
+        "TEMP"                      # aMAHELLO---- and aMATEMP-----
+    ]
+}
 
 jsonout = json.dumps(jsonDict)
 try:
@@ -51,7 +54,7 @@ try:
 except socket.error as msg:
     if msg[0] == 101:
         try:
-            sock.sendto(jsonout.encode(), ('127.0.0..255', TO_PORT))
+            sock.sendto(jsonout.encode(), ('127.0.0.255', TO_PORT))
         except socket.error as msg:
             print(("Failed to send, Error code : {} Message: {}".format(msg[0], msg[1])))
         else:
