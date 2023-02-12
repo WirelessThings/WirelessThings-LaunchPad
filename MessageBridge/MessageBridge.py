@@ -366,7 +366,7 @@ is running then run in the current terminal
             self._initDCRThread()       # start the DeviceConfigurationRequest thread
             self._initUDPSendThread()   # start the UDP sender
             self._initUDPListenThread() # start the UDP listener
-            if self.config.getboolean('MQTT'. 'enabled'):
+            if self.config.getboolean('MQTT', 'enabled'):
                 self._initMQTTThread()      # start the MQTT client
 
             self._state = self.Running
@@ -664,7 +664,7 @@ is running then run in the current terminal
     def _initMQTTThread(self):
         """ Start the MQTT thread and queues
         """
-        if not self.config.getboolean('MQTT'. 'enabled'):
+        if not self.config.getboolean('MQTT', 'enabled'):
             self.logger.info("MQTT no enabled");
             return
 
@@ -688,7 +688,7 @@ is running then run in the current terminal
         """ MQTT thread
             Main logic for dealing with MQTT
         """
-        if not self.config.getboolean('MQTT'. 'enabled'):
+        if not self.config.getboolean('MQTT', 'enabled'):
             return
 
         self._mqttClient = mqtt.Client()
@@ -1271,7 +1271,7 @@ is running then run in the current terminal
                     except queue.Full:
                         self.logger.warn("tSerial: Failed to put {} on qUDPSend as it's full".format(wirelessMsg))
 
-                    if self.config.getboolean('MQTT'. 'enabled'):
+                    if self.config.getboolean('MQTT', 'enabled'):
                         try:
                             self.qMQTTSend.put_nowait(self.encodeWirelessMessageJson(wirelessMsg, self._network))
                         except queue.Full:
@@ -1696,7 +1696,7 @@ is running then run in the current terminal
         except:
             pass
 
-        if self.config.getboolean('MQTT'. 'enabled'):
+        if self.config.getboolean('MQTT', 'enabled'):
             try:
                 self.tMQTTStop.set()
                 self.tMQTT.join()
