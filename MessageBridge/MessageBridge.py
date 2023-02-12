@@ -414,7 +414,7 @@ is running then run in the current terminal
                     if self.tUDPListen.is_alive():
                         self._state = self.Running
 
-                if self.config.getboolean('MQTT'. 'enabled') and not self.tMQTT.is_alive():
+                if self.config.getboolean('MQTT', 'enabled') and not self.tMQTT.is_alive():
                     self.logger.error("tMain: MQTT thread stopped")
                     self._state = self.Error
                     self.tMainStop.wait(1)
