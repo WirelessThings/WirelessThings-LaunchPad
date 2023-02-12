@@ -366,7 +366,8 @@ is running then run in the current terminal
             self._initDCRThread()       # start the DeviceConfigurationRequest thread
             self._initUDPSendThread()   # start the UDP sender
             self._initUDPListenThread() # start the UDP listener
-            self._initMQTTThread()      # start the MQTT client
+            if self.config.getboolean('MQTT'. 'enabled'):
+                self._initMQTTThread()      # start the MQTT client
 
             self._state = self.Running
             # main thread looks after the Message Bridge status for us
@@ -413,7 +414,7 @@ is running then run in the current terminal
                     if self.tUDPListen.is_alive():
                         self._state = self.Running
 
-                if not self.tMQTT.is_alive():
+                if self.config.getboolean('MQTT'. 'enabled') and not self.tMQTT.is_alive():
                     self.logger.error("tMain: MQTT thread stopped")
                     self._state = self.Error
                     self.tMainStop.wait(1)
@@ -663,6 +664,10 @@ is running then run in the current terminal
     def _initMQTTThread(self):
         """ Start the MQTT thread and queues
         """
+        if not self.config.getboolean('MQTT'. 'enabled'):
+            self.logger.info("MQTT no enabled");
+            return
+
         self.logger.info("MQTT Thread init")
 
         self.qMQTTSend = queue.Queue()
@@ -683,6 +688,9 @@ is running then run in the current terminal
         """ MQTT thread
             Main logic for dealing with MQTT
         """
+        if not self.config.getboolean('MQTT'. 'enabled'):
+            return
+
         self._mqttClient = mqtt.Client()
         self._mqttClient.on_connect = self._MQTT_on_connect
         self._mqttClient.on_message = self._MQTT_on_message
@@ -1263,10 +1271,11 @@ is running then run in the current terminal
                     except queue.Full:
                         self.logger.warn("tSerial: Failed to put {} on qUDPSend as it's full".format(wirelessMsg))
 
-                    try:
-                        self.qMQTTSend.put_nowait(self.encodeWirelessMessageJson(wirelessMsg, self._network))
-                    except queue.Full:
-                        self.logger.warn("tSerial: Failed to put {} on qMQTTSend as it's full".format(wirelessMsg))
+                    if self.config.getboolean('MQTT'. 'enabled'):
+                        try:
+                            self.qMQTTSend.put_nowait(self.encodeWirelessMessageJson(wirelessMsg, self._network))
+                        except queue.Full:
+                            self.logger.warn("tSerial: Failed to put {} on qMQTTSend as it's full".format(wirelessMsg))
 
     def _SerialProcessQQ(self, wirelessMsg):
         """ process an incoming ?? Language of Things message
@@ -1686,11 +1695,13 @@ is running then run in the current terminal
             self.tUDPSend.join()
         except:
             pass
-        try:
-            self.tMQTTStop.set()
-            self.tMQTT.join()
-        except:
-            pass
+
+        if self.config.getboolean('MQTT'. 'enabled'):
+            try:
+                self.tMQTTStop.set()
+                self.tMQTT.join()
+            except:
+                pass
 
         if not self._background:
             if not sys.platform == 'win32':
