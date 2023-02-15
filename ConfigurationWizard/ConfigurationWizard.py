@@ -1799,7 +1799,7 @@ class ConfigurationWizard:
         for n in self.devices[self.device['index']]['Options']:
             # create place to put the reply later
             self.entry[n['Command']] = [tk.StringVar(), tk.StringVar(), 'String']
-            query.append({'command': n['Command'].encode('ascii', 'ignore')})
+            query.append({'command': n['Command']})
 
 
         self.logger.debug("Setting keepAwake")
@@ -2116,7 +2116,7 @@ class ConfigurationWizard:
 
     def _writeConfig(self):
         self.logger.debug("Writing Config")
-        with open(self._configFile, 'wb') as _configFile:
+        with open(self._configFile, 'w') as _configFile:
             self.config.write(_configFile)
 
     # MARK: - Device file loading
