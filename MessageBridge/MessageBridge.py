@@ -956,7 +956,7 @@ is running then run in the current terminal
                         self.logger.warn("tUDPSend: Failed to send via UDP local only. Error code : {} Message: {}".format(msg[0], msg[1]))
                 else:
                     try:
-                        UDPSendSocket.sendto(message.encode(), ('', sendPort))
+                        UDPSendSocket.sendto(message.encode(), ('<broadcast>', sendPort))
                         self.logger.debug("tUDPSend: Put message out via UDP")
                     except socket.error as msg:
                         if msg[0] == 101:
